@@ -44,6 +44,8 @@ Redesenhar o processo de atendimento de chamados da Nexa Software e especificar 
 - Eliminar a perda de rastreabilidade entre chamado e card de desenvolvimento;
 - Reduzir o volume de chamados que são dúvida de uso e não defeito;
 - Dar visibilidade ao cliente sobre o andamento do seu chamado;
+- Eliminar o pagamento de descontos indevidos gerados por prazos estourados durante a espera de resposta do cliente, e não por lentidão da Nexa;
+- Implementar a medição da satisfação do cliente (CSAT/NPS) ao encerramento do atendimento, hoje inexistente;
 - Fazer tudo isso sem alterar o contrato de SLA, sem trocar a ferramenta de quadro dos squads e sem aumento de headcount.
 
 ---
