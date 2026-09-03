@@ -41,12 +41,14 @@ Como conta o coordenador de suporte, Rafael: o desconto não é pago porque o ti
 Redesenhar o processo de atendimento de chamados da Nexa Software e especificar as ferramentas de suporte necessárias, de forma a:
 
 - Tornar possível identificar de quem é a responsabilidade pelo tempo decorrido em cada chamado (Nexa x cliente);
-- Eliminar a perda de rastreabilidade entre chamado e card de desenvolvimento;
-- Reduzir o volume de chamados que são dúvida de uso e não defeito;
+- Garantir a rastreabilidade dos chamados, cards de desenvolvimento e ações realizadas pelos analistas, permitindo identificar responsáveis, alterações e o vínculo entre atendimento e desenvolvimento;
+- Reduzir o volume de chamados relacionados a dúvidas de uso, por meio da disponibilização de uma base de conhecimento para os clientes;
 - Dar visibilidade ao cliente sobre o andamento do seu chamado;
 - Eliminar o pagamento de descontos indevidos gerados por prazos estourados durante a espera de resposta do cliente, e não por lentidão da Nexa;
-- Implementar a medição da satisfação do cliente (CSAT/NPS) ao encerramento do atendimento, hoje inexistente;
-- Fazer tudo isso sem alterar o contrato de SLA, sem trocar a ferramenta de quadro dos squads e sem aumento de headcount.
+- Implementar a medição da satisfação do cliente (CSAT/NPS) ao encerramento do atendimento, integrada ao fluxo de encerramento dos chamados;
+- Automatizar o ciclo de encerramento dos chamados, garantindo o fechamento após a conclusão pelo analista ou após o prazo de 24 horas sem resposta do cliente, com classificação adequada da situação e notificação automática ao cliente;
+- Automatizar a atualização dos sistemas das clínicas parceiras após a disponibilização de novas versões, eliminando a dependência de ações manuais dos clientes e reduzindo chamados decorrentes de versões desatualizadas;
+- Manter a solução dentro das restrições existentes, sem alterar o contrato de SLA, substituir a ferramenta de quadro dos squads ou aumentar o headcount.
 
 ---
 
