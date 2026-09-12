@@ -3,16 +3,16 @@ services:
     image: mysql:8.4
     container_name: octopus-mysql
     environment:
-      MYSQL_DATABASE: octopus_msusuario
-      MYSQL_USER: octopus
-      MYSQL_PASSWORD: octopus
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?defina no .env}
+      MYSQL_USER: ${MYSQL_USER:?defina no .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?defina no .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?defina no .env}
     ports:
       - "${MYSQL_HOST_PORT:-3307}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uoctopus", "-poctopus"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u$$MYSQL_USER -p$$MYSQL_PASSWORD"]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -23,12 +23,14 @@ services:
     ports:
       - "8080:8080"
     environment:
-      DB_URL: jdbc:mysql://mysql:3306/octopus_msusuario
-      DB_USERNAME: octopus
-      DB_PASSWORD: octopus
-      JWT_SECRET: ${JWT_SECRET:-csecbQgeJEvQ1T3lYpkG2gP6a1Iz5pP7FJwJNdsQi66IG+wxh7XyDmOFZYkH/xms}
+      DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}
+      DB_USERNAME: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?defina no .env}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-28800000}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@octopus.local}
-      ADMIN_SENHA: ${ADMIN_SENHA:-Admin@123}
+      ADMIN_SENHA: ${ADMIN_SENHA:?defina no .env}
+      ADMIN_NOME: ${ADMIN_NOME:-Administrador}
     depends_on:
       mysql:
         condition: service_healthy

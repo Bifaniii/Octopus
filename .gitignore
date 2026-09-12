@@ -1,5 +1,6 @@
 CLAUDE.md
 *.env*
+!.env.example
 .idea/
 
 HELP.md
