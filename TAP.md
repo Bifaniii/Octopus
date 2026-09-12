@@ -10,14 +10,17 @@
 ---
 
 ## 2. Equipe do Projeto (Squad)
-* Douglas Rocha
-* Guilherme Bifani
-* Guilherme Soares
-* Gustavo Amaral
-* Luigi Vasconcelos
-* Marcos Vinicios
-* Miliani Alves
-* Vitor Kimany
+
+| Integrante        | Papel            |
+| :---------------- | :--------------- |
+| Douglas Rocha     | Tech Lead        |
+| Guilherme Bifani  | Dev Backend      |
+| Guilherme Soares  | Dev Backend      |
+| Gustavo Amaral    | Dev Frontend     |
+| Luigi Vasconcelos | Dev Fullstack    |
+| Marcos Vinicios   | Product Owner    |
+| Miliani Alves     | Scrum Master     |
+| Vitor Kimany      | QA               |
 
 ---
 
