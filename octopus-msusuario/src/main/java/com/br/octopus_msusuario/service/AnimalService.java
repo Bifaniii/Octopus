@@ -1,0 +1,34 @@
+package com.br.octopus_msusuario.service;
+
+import com.br.octopus_msusuario.domain.Animal;
+import com.br.octopus_msusuario.domain.Tutor;
+import com.br.octopus_msusuario.dto.request.AnimalRequest;
+import com.br.octopus_msusuario.dto.response.AnimalResponse;
+import com.br.octopus_msusuario.repository.AnimalRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class AnimalService {
+
+    private final AnimalRepository animalRepository;
+    private final TutorService tutorService;
+
+    @Transactional
+    public AnimalResponse criar(UUID tutorId, AnimalRequest request) {
+        Tutor tutor = tutorService.obter(tutorId);
+        Animal animal = Animal.builder().nome(request.nome()).build();
+        tutor.adicionarAnimal(animal);
+        return AnimalResponse.from(animalRepository.save(animal));
+    }
+
+    @Transactional(readOnly = true)
+    public List<AnimalResponse> listar() {
+        return animalRepository.findAll().stream().map(AnimalResponse::from).toList();
+    }
+}
