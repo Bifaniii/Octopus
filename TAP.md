@@ -1,150 +1,119 @@
-# Termo de Abertura de Projeto (TAP)
+# Termo de Abertura do Projeto (TAP) — Projeto Sistema para VidaPet
 
-**Projeto:** Reestruturação do Processo e Ferramentas de Atendimento — Portal de Chamados da Nexa Software
-**Disciplina:** Análise e Projeto de Sistemas II
-**Data de elaboração:** 03/09
-**Versão:** 1.0
+**Projeto:** Um painel de medicação que mostra, a qualquer hora do plantão, o que está atrasado, o que vence na próxima hora e o que foi perdido.
 
----
-
-## 1. Squad
-
-| Integrante       | Papel        |
-| ---------------- | ------------ |
-| Guilherme Bifani | Dev Backend  |
-| Guilherme Soares | Dev Backend  |
-| Gustavo          | Dev Frontend |
-| Douglas          | Tech Lead    |
-| Kimany           | QA           |
-| Luigi            | Fullstack    |
-| Marcos           | PO           |
-| Miliani          | Scrum Master |
+## 1. Informações Gerais do Projeto
+* **Nome do Produto:** Plantão (Sistema de Plantão para Clínicas Veterinárias com Internação).
+* **Interlocutor de Negócio:** Dr. Rodrigo Salvatore (Veterinário Responsável).
+* **Stakeholder:** Márcio da Silva Bastos.
 
 ---
 
-## 2. Justificativa do Projeto
+## 2. Equipe do Projeto (Squad)
 
-A Nexa Software atende 240 clínicas veterinárias sob um contrato de suporte com SLA de 4 horas úteis (chamados críticos) e 24 horas úteis (demais chamados). No último trimestre, de 1.847 chamados abertos, 312 estouraram o prazo contratual, gerando 18 mil reais em descontos concedidos.
-
-O processo atual depende de dois sistemas que não conversam entre si (portal de chamados e quadro de desenvolvimento), com a ponte entre eles feita manualmente por uma pessoa copiando texto de um sistema para o outro. Isso gera perda de rastreabilidade (23 cards sem referência ao chamado de origem), retrabalho (o mesmo defeito de impressão de receituário corrigido duas vezes) e falhas de comunicação entre suporte e desenvolvimento (chamado que ficou 19 dias aberto após a correção já estar em produção).
-
-Além disso, o formulário de abertura de chamado não possui campos estruturados (categoria, urgência, versão instalada, identificação da clínica), o que contribui para que 41 de 96 chamados analisados precisassem de rodadas extras de pedido de informação, com espera média de 1,5 dia — tempo que corre contra o prazo contratual.
-
-Como conta o coordenador de suporte, Rafael: o desconto não é pago porque o time é lento, mas porque não é possível provar de quem era a vez de agir.
-
-**Prioridade declarada pelo patrocinador do processo (Rafael):** eliminar o pagamento de descontos por estouro de prazo que não é de responsabilidade da Nexa.
-
----
-
-## 3. Objetivo do Projeto
-
-Redesenhar o processo de atendimento de chamados da Nexa Software e especificar as ferramentas de suporte necessárias, de forma a:
-
-- Tornar possível identificar de quem é a responsabilidade pelo tempo decorrido em cada chamado (Nexa x cliente);
-- Garantir a rastreabilidade dos chamados, cards de desenvolvimento e ações realizadas pelos analistas, permitindo identificar responsáveis, alterações e o vínculo entre atendimento e desenvolvimento;
-- Reduzir o volume de chamados relacionados a dúvidas de uso, por meio da disponibilização de uma base de conhecimento para os clientes;
-- Dar visibilidade ao cliente sobre o andamento do seu chamado;
-- Eliminar o pagamento de descontos indevidos gerados por prazos estourados durante a espera de resposta do cliente, e não por lentidão da Nexa;
-- Implementar a medição da satisfação do cliente (CSAT/NPS) ao encerramento do atendimento, integrada ao fluxo de encerramento dos chamados;
-- Automatizar o ciclo de encerramento dos chamados, garantindo o fechamento após a conclusão pelo analista ou após o prazo de 24 horas sem resposta do cliente, com classificação adequada da situação e notificação automática ao cliente;
-- Automatizar a atualização dos sistemas das clínicas parceiras após a disponibilização de novas versões, eliminando a dependência de ações manuais dos clientes e reduzindo chamados decorrentes de versões desatualizadas;
-- Manter a solução dentro das restrições existentes, sem alterar o contrato de SLA, substituir a ferramenta de quadro dos squads ou aumentar o headcount.
+| Integrante        | Papel            |
+| :---------------- | :--------------- |
+| Douglas Rocha     | Tech Lead        |
+| Guilherme Bifani  | Dev Backend      |
+| Guilherme Soares  | Dev Backend      |
+| Gustavo Amaral    | Dev Frontend     |
+| Luigi Vasconcelos | Dev Fullstack    |
+| Marcos Vinicios   | Product Owner    |
+| Miliani Alves     | Scrum Master     |
+| Vitor Kimany      | QA               |
 
 ---
 
-## 4. Escopo
+## 3. Justificativa do Projeto
+A clínica veterinária *VidaPet* possui 12 baias e opera em regime de 24 horas, mas atualmente depende de processos manuais e informais (como prescrições em papel presas nas baias). Essa realidade gerou métricas críticas no último trimestre:
+* **9 doses registradas fora do horário** e **2 doses provavelmente não aplicadas**.
+* Falhas graves de segurança física, como **3 animais colocados na mesma baia por engano** na virada de plantão.
+* **Ausência de rastreabilidade**, sem registros de qual auxiliar aplicou qual dose.
 
-### Dentro do escopo
-
-- Processo de atendimento de chamados, do abrir ao encerrar;
-- Formulário de abertura de chamado e seus campos;
-- Integração/rastreabilidade entre portal de chamados e quadro de desenvolvimento;
-- Regras de pausa e retomada do relógio do SLA;
-- Controle de acesso à base de dados das clínicas durante o atendimento;
-- Tratamento do caminho paralelo do WhatsApp das nove clínicas maiores;
-- Base de conhecimento para dúvidas de uso recorrentes.
-
-### Fora do escopo
-
-- O produto de gestão veterinária vendido pela Nexa (sistema fim, usado pelas clínicas);
-- Renegociação do contrato de SLA (4h/24h) com as clínicas;
-- Troca da ferramenta de quadro usada pelos três squads de desenvolvimento;
-- Contratação de novos analistas de suporte (orçamento de headcount fechado).
+O projeto justifica-se pela necessidade de eliminar erros humanos, garantir a segurança dos animais internados, automatizar o controle de plantão e fornecer rastreabilidade total das medicações por meio de um painel inteligente em tempo real.
 
 ---
 
-## 5. Principais Stakeholders
+## 4. Objetivo do Projeto
+O projeto tem como objetivo principal o desenvolvimento e a entrega do sistema **Plantão**, uma solução voltada para a gestão integrada de plantões e internações em clínicas veterinárias. O escopo de desenvolvimento executado pela squad abrange a implementação dos seguintes módulos e funcionalidades centrais:
 
-| Papel                              | Interesse principal                                       |
-| ---------------------------------- | --------------------------------------------------------- |
-| Letícia (Analista N1)              | Não repetir a mesma pergunta três vezes ao cliente        |
-| Rafael (Coordenador de Suporte)    | Parar de pagar desconto por prazo estourado indevidamente |
-| Bianca (Tech Lead de Squad)        | Proteger a sprint de interrupções                         |
-| Camila (CS/Sucesso do Cliente)     | Reduzir cancelamento das clínicas                         |
-| Otávio (Diretor de Produto)        | Time entregar funcionalidade nova, não só correção        |
-| Cliente (recepcionista da clínica) | Saber quando o problema será resolvido                    |
+-   **Módulos de Cadastro:** Estruturação das bases de dados para o gerenciamento de animais, tutores, baias (coletivas, de isolamento e ninhada) e medicamentos (com controle de esquemas e interações proibidas).
 
----
+-   **Gestão de Internação:** Automatização do fluxo de alocação de animais com aplicação de validações sanitárias (como controle de vacinação antirrábica) e capacidade física.
 
-## 6. Premissas
+-   **Prescrição e Controle de Doses:** Criação de rotinas para prescrição médica com geração automatizada de horários, operando em conjunto com um **painel de doses** para monitoramento de status.
 
-- O contrato de suporte com os prazos de 4h e 24h permanece válido durante todo o projeto;
-- A ferramenta de quadro de desenvolvimento dos squads não muda;
-- O time de suporte continua com 6 analistas + 1 coordenador;
-- As 240 clínicas continuam rodando múltiplas versões do produto simultaneamente.
-
-## 7. Restrições
-
-- Orçamento de headcount fechado (não é possível contratar analistas);
-- Contrato de SLA não será renegociado neste ano;
-- Ferramenta de quadro de desenvolvimento não será substituída;
-- Produto de gestão veterinária está fora do escopo do projeto.
+-   **Relatório de Doses:** Disponibilização de relatórios consolidados de aplicação, atrasos e perdas, filtrados por turnos e auxiliares.
 
 ---
 
-## 8. Riscos Preliminares
+## 5. Escopo do Produto
 
-| Risco                                                                                  | Impacto                                 |
-| -------------------------------------------------------------------------------------- | --------------------------------------- |
-| Resistência dos analistas a preencher campos extra no chamado                          | Baixa adoção do novo formulário         |
-| Conflito de prioridade entre suporte (correção) e squads (roadmap)                     | Atraso nas entregas do TO-BE            |
-| Pico de chamados de segunda-feira (18% do volume semanal) não ser tratado no redesenho | Solução não resolve o gargalo real      |
-| Falta de dado histórico de satisfação do cliente                                       | Dificuldade em medir sucesso do projeto |
-
----
-
-## 9. Cronograma Macro (entregas da disciplina)
-
-| Entrega | Unidade | Descrição                                                  |
-| ------- | ------- | ---------------------------------------------------------- |
-| E1      | I       | Processo atual em 6 a 10 passos, com ator por passo        |
-| E2      | I       | Três regras de negócio                                     |
-| E3      | II      | BPMN do AS-IS com raias por ator                           |
-| E4      | II      | BPMN do TO-BE                                              |
-| E5      | III     | Mapa de stakeholders e roteiro de entrevista               |
-| E6      | III     | Requisitos funcionais e não funcionais                     |
-| E7      | III     | Histórias de usuário com critérios de aceite               |
-| E8      | III     | Lista de prioridades/complexidades e Product Backlog       |
-| E9      | IV      | Sprints, Definition of Done, cronograma e riscos           |
-| E10     | V       | Diagrama de Casos de Uso e Caso de Uso Expandido           |
-| E11     | V       | Diagrama de Classes e Diagrama de Sequência                |
-| E12     | V e VI  | Mockups, mapa navegacional, documento final e apresentação |
+1. **Cadastro de Animais e Tutores:** Registro de espécie, tutor e data da última vacina antirrábica.
+2. **Cadastro de Baias:** Definição do tipo (coletiva, isolamento ou ninhada) e capacidade.
+3. **Cadastro de Medicamentos:** Nome, tipo de esquema (contínuo ou sintomático) e interações proibidas.
+4. **Internação:** Alocação do animal na baia com aplicação de validações de capacidade e saúde.
+5. **Prescrição:** Criação de itens de medicação associados à internação, definindo intervalos e gerando os horários automaticamente.
+6. **Painel de Doses:** Visualização de doses atrasadas, próximas e perdidas, com interface para registro de aplicação.
+7. **Relatório de Doses:** Consolidação de doses aplicadas, atrasadas e perdidas filtradas por turno e por auxiliar.
 
 ---
 
-## 10. Critérios de Sucesso
+## 6. Fora do Escopo
 
-- Redução do número de chamados estourados sem responsabilidade clara da Nexa;
-- Rastreabilidade completa entre chamado e card de desenvolvimento (0 cards órfãos);
-- Redução de chamados de dúvida de uso via base de conhecimento;
-- Cliente com visibilidade do status do seu chamado.
+* Funcionalidades avançadas de infraestrutura corporativa; em vez disso, será adotado um sistema de login simples baseado em perfis.
+* Esforço excessivo em design visual.
 
 ---
 
-## 11. Aprovação
+## 7. Principais Stakeholders
+| Papel / Nome | Interesse Principal / Impacto no Projeto |
+| :--- | :--- |
+| **Dr. Rodrigo Salvatore** (Cliente / Veterinário Responsável) | Garantir a segurança clínica dos animais internados e a fidelidade das prescrições. |
+| **Equipe de Desenvolvimento (Squad Octopus)** | Entregar as 5 sprints com código limpo, modelagem correta e os 10 casos de teste validados. |
+| **Márcio da Silva Bastos** (Patrocinador / "Dono" da Clínica) | Garantir a viabilidade estratégica do produto, o cumprimento rigoroso do contrato de engenharia e a rentabilidade/utilidade do sistema para o negócio. |
+| **Recepcionista / Veterinário / Auxiliar** (Usuários Finais) | Operacionalizar cadastros, internações, prescrições e registros de aplicação sem atritos. |
 
-| Nome    | Papel        | Assinatura/Aceite |
-| ------- | ------------ | ----------------- |
-| Douglas | Tech Lead    |                   |
-| Marcos  | PO           |                   |
-| Miliani | Scrum Master |                   |
+---
+
+## 8. Premissas
+* A equipe do projeto terá disponibilidade e capacidade técnica de desenvolver as competências necessárias para a realização das atividades planejadas.
+* Considera-se que o sistema lidará de forma segura com os registros inconsistentes fornecidos na carga inicial, evitando falhas ou erros de execução.
+
+---
+
+## 9. Restrições
+* **Limites de Engenharia:** Proibido uso de integrações externas, notificações automáticas (e-mail/push) ou apps mobile; login restrito a formato simples por perfil.
+* **Recursos:** O número de desenvolvedores da squad é fixo e não poderá ser alterado.
+
+---
+
+## 10. Riscos Preliminares
+* **Resistência operacional:** Possível dificuldade ou resistência dos auxiliares e funcionários no registro rigoroso das informações corretas no painel de doses.
+* **Complexidade nas regras de tempo:** Gestão de janelas temporais estritas (30 minutos) e deslocamento de esquemas contínuos vs. descarte de esquemas sintomáticos em caso de perda de dose.
+
+---
+
+## 11. Cronograma Macro
+* **Sprint 1 (17/09 a 30/09):** Cadastros (Telas 1, 2 e 3) e criação da entidade central de internação simples sem validações.
+* **Sprint 2 (01/10 a 14/10):** Tela 4 com validações de baia e vacinação (RN-01, RN-02) e modelagem do ciclo de vida da internação.
+* **Sprint 3 (15/10 a 28/10):** Telas 5 e 6 (Prescrição, Painel, Janela de aplicação de 30 min, controle de doses perdidas e validação de interações medicamentosas - RN-03, RN-04, RN-05, RN-06).
+* **Sprint 4 (29/10 a 11/11):** Tela 7 (Relatório), regras de reaplicação por tipo de esquema (RN-07, RN-08) e implementação da mudança contratada a partir de 01/11.
+* **Sprint 5 (12/11 a 18/11):** Execução e validação dos 10 casos de teste oficiais, correções de bugs e ensaio geral.
+* **Apresentação Final (19/11):** Demonstração ao vivo para a banca e entrega dos artefatos.
+
+---
+
+## 12. Critérios de Sucesso
+* **Automatização de Processos:** Eliminação do uso de papéis nas baias, centralizando o fluxo na clínica veterinária.
+* **Redução de Desperdícios:** Controle rigoroso de horários para mitigar perdas de doses e otimizar insumos.
+* **Segurança na Internação:** Validação impeditiva de interações medicamentosas, controle estrito de capacidade de baias e isolamento obrigatório para animais com vacinação antirrábica irregular.
+* **Conformidade de Testes:** Aprovação em 100% dos casos de teste definidos no contrato do projeto (com 6 demonstrações ao vivo e 4 evidenciadas no laudo).
+
+---
+
+## 13. Aprovação
+* **Miliani Alves** *(Squad)*
+* **Marcos Vinicios** *(Squad)*
+* **Dr. Rodrigo Salvatore** *(Veterinário responsável)*
+*  **Márcio da Silva Bastos** *(Stakeholder)*
