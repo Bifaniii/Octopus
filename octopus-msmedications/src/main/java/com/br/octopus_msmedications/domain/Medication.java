@@ -7,40 +7,39 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "tb_medication")
+@Table(name = "tb_medicacao")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Medication {
+public class Medicacao {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "animal_id", nullable = false)
-    private Long animalId;
-
     @Column(nullable = false, length = 100)
-    private String name;
+    private String nomeComercial;
+
+    @Column(nullable = false, length = 200)
+    private String principioAtivo;
 
     @Column(nullable = false, length = 50)
-    private String dosage; // Ex: "500mg", "10ml"
+    private String concentracao; // Ex: "500mg", "10ml"
 
-    @Column(name = "hour_frequency")
-    private Integer hourFrequency; // Ex: de 8 em 8 horas
+    @Column(nullable = false, length = 50)
+    private String formaFarmaceutica; // Ex.: Xarope, Gotas, Pomada...
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "scheme_type", nullable = false)
-    private StraSchemeType schemeType;
+    @Column(nullable = false)
+    private String unidadeMedidaEmbalagem; // Ex.: mg, mL, g...
 
-    @Column(name = "start_date")
-    private LocalDateTime startDate;
+    @Column(nullable = false, name = "data_vencimento")
+    private LocalDateTime dataVencimento;;
 
-    @Column(name = "end_date")
-    private LocalDateTime endDate;
+    @Column(nullable = false)
+    private String fabricante;
 
-    @Column(columnDefinition = "TEXT")
-    private String instructions; // Ex: "Tomar após as refeições"
+    @Column(nullable = false, name = "numero_registro_anvisa")
+    private String numeroRegistroAnvisa;
 }
