@@ -1,6 +1,5 @@
 package com.br.octopus_msmedications.domain;
 
-import com.br.octopus_msmedications.domain.enums.SchemeType;
 import jakarta.persistence.*;
 import lombok.*;
 
