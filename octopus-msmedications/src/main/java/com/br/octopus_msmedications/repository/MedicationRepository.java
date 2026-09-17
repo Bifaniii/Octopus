@@ -6,6 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface MedicationRepository extends JpaRepository<Medication, Long> {
-    List<Medicacao> findByFabricante(String fabricante);
-    Optional<Medicacao> findBynomeComercial (String nomeComercial);
+    List<Medicacao> findByFabricanteIgnoreCase(String fabricante);
+    Optional<Medicacao> findBynomeComercialIgnoreCase(String nomeComercial);
 }

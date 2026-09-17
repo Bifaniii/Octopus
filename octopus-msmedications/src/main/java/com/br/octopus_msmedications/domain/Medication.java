@@ -19,10 +19,10 @@ public class Medicacao {
     private Long id;
 
     @Column(nullable = false, length = 100)
-    private String nomeComercial;
+    private String nomeComercial; // Ex.: Novalgina
 
     @Column(nullable = false, length = 200)
-    private String principioAtivo;
+    private String principioAtivo; // Ex.: Dipirona monoidratada
 
     @Column(nullable = false, length = 50)
     private String concentracao; // Ex: "500mg", "10ml"
