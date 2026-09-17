@@ -2,8 +2,9 @@
 
 Este arquivo fornece orientações ao Claude Code (claude.ai/code) ao trabalhar com código neste repositório.
 
-> Atenção: `CLAUDE.md` está no `.gitignore` da raiz. É um arquivo local, **não** é versionado — não tente
-> adicioná-lo em commits. Última revisão: 17/09/2026 (início da Sprint 1).
+> Este arquivo é versionado e vale para toda a squad. Não coloque nele valores de `.env`, senhas ou tokens —
+> só nomes de variáveis. A seção "Estado das branches" é um retrato datado: atualize-a ao integrar uma branch.
+> Última revisão: 17/09/2026 (início da Sprint 1).
 
 ## Visão geral do repositório
 
@@ -38,20 +39,19 @@ pasta na raiz (com `pom.xml`, `mvnw` e `src/` próprios — não há POM agregad
 
 - **`main`** — contém apenas `octopus-msusuario`, `docker-compose.yml`, `.env.example` e `TAP.md`. PR #1
   (`feature/cadastro_login_usuario`) já foi mergeada; essa branch pode ser apagada.
-- **`feature/cadastro-baia`** (Douglas, Tech Lead) — parte da `main`, adiciona `ms-cadastro-baias/`, **mas o commit
-  `fe7c49d` apaga o diretório `octopus-msusuario` inteiro** e versiona `.idea/`. Um merge direto na `main`
-  removeria o ms de usuário: antes de mergear, restaurar `octopus-msusuario` e remover `.idea/`. O código
-  diverge das convenções do projeto (ver "Convenções para novos microsserviços"): pacote `com.ocptopus.ms_cadastro_baias`
-  (typo em "ocptopus"), entidade chamada `Cadastro` (deveria ser `Baia`), id `int` com `IDENTITY`, tabela
-  `cadastro_baia` sem prefixo `tb_`, enum em pacote `domain.ENUM`, depende de `spring-boot-starter-amqp`
-  (RabbitMQ, que o TAP não pede e nenhum outro módulo usa).
-- **`feature/register_medications`** (Guilherme Bifani) — **branch órfã**: começou de um commit vazio, sem
-  ancestral comum com a `main`. Contém só `.gitignore` e `octopus-msmedications/` (`Medicacao` + `MedicationRepository`).
-  Para integrar vai ser preciso `git merge --allow-unrelated-histories` ou rebase/cherry-pick sobre a `main`.
-  No estado atual **não compila**: `Medication.java` declara `class Medicacao`; `MedicationRepository` estende
-  `JpaRepository<Medication, Long>` mas retorna `Medicacao`, e usa `Optional` sem import. A versão anterior
+- **`feature/cadastro-baia`** (Douglas) — parte da `main` e adiciona `ms-cadastro-baias/`. Pontos a resolver antes
+  do merge: o commit `fe7c49d` remove o diretório `octopus-msusuario` (precisa ser restaurado, senão o merge apaga
+  o ms de usuário da `main`) e `.idea/` foi versionado (remover). Para alinhar com as convenções abaixo: pacote
+  `com.ocptopus.ms_cadastro_baias` → `com.br.octopus_msbaias` (corrigindo "ocptopus"), entidade `Cadastro` →
+  `Baia`, id `int`/`IDENTITY` → `UUID`, tabela `cadastro_baia` → `tb_baias`, enum de `domain.ENUM` → `domain.enums`,
+  e avaliar se `spring-boot-starter-amqp` (RabbitMQ) é necessário — o TAP não prevê mensageria.
+- **`feature/register_medications`** (Guilherme Bifani) — branch órfã: começou de um commit vazio, sem ancestral
+  comum com a `main`. Contém só `.gitignore` e `octopus-msmedications/` (`Medicacao` + `MedicationRepository`).
+  Para integrar: `git merge --allow-unrelated-histories` ou rebase/cherry-pick sobre a `main`. Pendências de
+  compilação: `Medication.java` declara `class Medicacao` (renomear o arquivo); `MedicationRepository` estende
+  `JpaRepository<Medication, Long>` mas retorna `Medicacao`, e falta o import de `Optional`. A versão anterior
   desse trabalho (`ms-medication/`, com `ApplicationDosage`, `SchemeType`, `StatusDosage`) está preservada
-  em `refs/backup/register_medication` (ref local, não está no remoto).
+  em `refs/backup/register_medication` — ref só na máquina do Guilherme Bifani, não está no remoto.
 
 ## Comandos
 
@@ -133,9 +133,38 @@ Use `octopus-msusuario` como referência ao criar ou revisar os outros módulos 
   bloqueia todas as rotas com senha gerada). Antes de expor controllers neles, decidir com a squad se cada
   módulo valida o token do `msusuario` (mesmo `JWT_SECRET`) ou se fica sem segurança por enquanto.
 
+## README.md (obrigatório antes de todo push)
+
+O `README.md` da raiz é a "cara" do projeto no GitHub e precisa refletir o último push. **Sempre que for fazer
+`git push`, antes de enviar:**
+
+1. Se o `README.md` não existir, crie-o. Se existir, atualize — nunca reescreva do zero as seções estáveis
+   (visão geral, como rodar, tabela de microsserviços); só corrija o que mudou.
+2. Reescreva a seção **"Últimas alterações"** com: data, branch, e um resumo em bullets do que este push
+   entrega (funcionalidades, endpoints, entidades, configs). Substitui o conteúdo anterior, não acumula —
+   o histórico completo está no `git log`.
+3. Reescreva a seção **"Próximos passos"** com o que vem a seguir nos próximos commits (pendências desta
+   feature, o que falta para fechar a sprint, dívidas conhecidas). Bullets curtos, verbos no infinitivo.
+4. Inclua o `README.md` **no mesmo commit** da funcionalidade (não faça um commit separado só para ele).
+5. Se este `CLAUDE.md` tiver a seção "Estado das branches" desatualizada pelo push, atualize-a também.
+
+Formato fixo das duas seções (mantenha os títulos exatos para facilitar a leitura no GitHub):
+
+```markdown
+## Últimas alterações
+_Push de DD/MM/AAAA — branch `feature/xxx`_
+- ...
+
+## Próximos passos
+- [ ] ...
+```
+
+Esta regra só se aplica a pushes feitos pelo Claude; se você pushar manualmente, atualize o README por conta.
+
 ## Git
 
 - Branch por funcionalidade: `feature/<nome_da_funcionalidade>`. Commit com funcionalidade `feature/<nome_da_funcionalidade>`.
+- Antes de todo push, atualizar o `README.md` (ver seção acima).
 - Toda branch de feature deve partir da `main` atual (nada de branch órfã) e **não** deve apagar módulos de
   outras pessoas; cada microsserviço vive na sua própria pasta.
 - **Nunca** adicionar trailer `Co-Authored-By` nem qualquer trailer extra.
