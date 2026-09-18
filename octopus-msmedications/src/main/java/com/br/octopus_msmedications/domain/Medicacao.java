@@ -30,15 +30,15 @@ public class Medicacao {
     @Column(nullable = false, length = 50)
     private String formaFarmaceutica; // Ex.: Xarope, Gotas, Pomada...
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private String unidadeMedidaEmbalagem; // Ex.: mg, mL, g...
 
     @Column(nullable = false, name = "data_vencimento")
-    private LocalDateTime dataVencimento;;
+    private LocalDateTime dataVencimento;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private String fabricante;
 
-    @Column(nullable = false, name = "numero_registro_anvisa")
+    @Column(nullable = false, name = "numero_registro_anvisa", length = 17)
     private String numeroRegistroAnvisa;
 }
