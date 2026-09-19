@@ -21,7 +21,7 @@ pasta na raiz (com `pom.xml`, `mvnw` e `src/` próprios — não há POM agregad
 | :---------------------- | :----------------------------------------- | :-------------------------------------------------- |
 | `octopus-msusuario/`    | `main`                                     | Funcional: login, perfis, tutores e animais (stub); schema via Flyway. |
 | `ms-cadastro-baias/`    | branch `feature/cadastro-baia`             | Só entidade + repository, sem service/controller.   |
-| `octopus-msmedications/`| branch `feature/register_medications`      | Entidade + repository + `V1__medicacao.sql`; não compila ainda. |
+| `octopus-msmedications/`| branch `feature/register_medications`      | Entidade + repository + `V1__medicacao.sql`; compila, sem Flyway ainda. |
 
 ### Domínio do produto (conforme TAP.md)
 
@@ -50,15 +50,14 @@ seções "Últimas alterações"/"Próximos passos" do README.
   `Baia`, id `int`/`IDENTITY` → `UUID`, tabela `cadastro_baia` → `tb_baias`, enum de `domain.ENUM` → `domain.enums`,
   e avaliar se `spring-boot-starter-amqp` (RabbitMQ) é necessário — o TAP não prevê mensageria.
 - **`feature/register_medications`** (Guilherme Bifani) — branch órfã: começou de um commit vazio, sem ancestral
-  comum com a `main`. Contém `octopus-msmedications/` (`Medicacao` + `MedicationRepository` +
-  `db/migration/V1__medicacao.sql`), além de `.gitignore`, `CLAUDE.md` e `README.md`. Para integrar:
-  `git merge --allow-unrelated-histories` ou rebase/cherry-pick sobre a `main`. Pendências de compilação:
-  `Medication.java` declara `class Medicacao` (renomear o arquivo); `MedicationRepository` estende
-  `JpaRepository<Medication, Long>` mas retorna `Medicacao`, e falta o import de `Optional`. Pendências de
-  convenção: id `Long`/`IDENTITY` → `UUID`, tabela `tb_medicacao` → `tb_medicacoes`, e o módulo ainda não tem a
-  dependência do Flyway nem `ddl-auto=validate` (ver "Migrations"). A versão anterior desse trabalho
-  (`ms-medication/`, com `ApplicationDosage`, `SchemeType`, `StatusDosage`) está preservada em
-  `refs/backup/register_medication` — ref só na máquina do Guilherme Bifani, não está no remoto.
+  comum com a `main`. Contém `octopus-msmedications/` (`Medicacao` + `MedicacaoRepository` +
+  `db/migration/V1__medicacao.sql`; compila), além de `.gitignore`, `CLAUDE.md` e `README.md`. Para integrar:
+  `git merge --allow-unrelated-histories` ou rebase/cherry-pick sobre a `main`. Pendências de convenção: id
+  `Long`/`IDENTITY` → `UUID`/`BINARY(16)`, tabela `tb_medicacao` → `tb_medicacoes`, método
+  `findBynomeComercialIgnoreCase` → `findByNomeComercialIgnoreCase`, e o módulo ainda não tem a dependência do
+  Flyway nem `ddl-auto=validate` (ver "Migrations"). A versão anterior desse trabalho (`ms-medication/`, com
+  `ApplicationDosage`, `SchemeType`, `StatusDosage`) está preservada em `refs/backup/register_medication` — ref
+  só na máquina do Guilherme Bifani, não está no remoto.
 
 ## Comandos
 
