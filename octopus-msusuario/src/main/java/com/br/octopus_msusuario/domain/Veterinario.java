@@ -9,7 +9,10 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
-@Table(name = "tb_veterinarios")
+@Table(name = "tb_veterinarios", uniqueConstraints = {
+        // O número do CRMV só é único dentro da UF: o mesmo número pode existir em estados diferentes.
+        @UniqueConstraint(name = "uk_veterinarios_crmv", columnNames = {"crmv", "crmv_uf"})
+})
 @Getter
 @Setter
 @NoArgsConstructor
