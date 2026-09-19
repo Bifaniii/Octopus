@@ -89,8 +89,9 @@ _Push de 19/09/2026 — branch `main`_
 ## Próximos passos
 - [ ] Integrar `feature/cadastro-baia` na `main` sem remover `octopus-msusuario`; alinhar pacote, nome da
       entidade (`Baia`), id `UUID`, tabela `tb_baias` e criar `V1__baias.sql` com Flyway.
-- [ ] Corrigir compilação de `octopus-msmedications` (`Medication.java` → `Medicacao.java`, tipos do repository),
-      adicionar Flyway ao módulo e integrar a branch órfã `feature/register_medications` sobre a `main`.
+- [ ] `octopus-msmedications`: adicionar Flyway ao módulo (`spring-boot-starter-flyway` + `flyway-mysql`,
+      `ddl-auto=validate`), trocar id para `UUID`/`BINARY(16)` e tabela para `tb_medicacoes`, e integrar a branch
+      órfã `feature/register_medications` sobre a `main`.
 - [ ] Criar service, DTOs e controller de baias e de medicamentos (Sprint 1, telas 1–3).
 - [ ] Completar a entidade `Animal` (espécie, data da última vacina antirrábica) via nova migration e criar a
       entidade central de internação simples, sem validações (Sprint 1).
