@@ -1,13 +1,13 @@
-package com.ocptopus.ms_cadastro_baias;
+package com.br.octopus_msbaias;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class MsCadastroBaiasApplicationTests {
+class OctopusMsbaiasApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
+    @Test
+    void contextLoads() {
+    }
 
 }
