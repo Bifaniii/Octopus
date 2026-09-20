@@ -41,7 +41,9 @@ pasta na raiz (com `pom.xml`, `mvnw` e `src/` próprios — não há POM agregad
 seções "Últimas alterações"/"Próximos passos" do README.
 
 - **`main`** — `octopus-msusuario` (com Flyway desde 19/09), `docker-compose.yml`, `.env.example`, `TAP.md`,
-  `CLAUDE.md`, `README.md`. PR #1 (`feature/cadastro_login_usuario`) já foi mergeada; a branch local foi apagada,
+  `CLAUDE.md`, `README.md` e `docs/mapas-processo.html` (mapas de processo UML das funcionalidades prontas;
+  página HTML autocontida, gerada a partir de dados JS no próprio arquivo — ao mapear uma funcionalidade nova,
+  acrescente um objeto ao array `MAPS`). PR #1 (`feature/cadastro_login_usuario`) já foi mergeada; a branch local foi apagada,
   a remota ainda existe.
 - **`feature/cadastro-baia`** (Douglas) — parte da `main` e adiciona `ms-cadastro-baias/`. Pontos a resolver antes
   do merge: o commit `fe7c49d` remove o diretório `octopus-msusuario` (precisa ser restaurado, senão o merge apaga

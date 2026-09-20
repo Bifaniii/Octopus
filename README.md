@@ -76,15 +76,18 @@ sozinho; não precisa configurar no `.env`.
   `validate` e nunca cria tabela. Migration aplicada não se edita — mudança de tabela é uma nova versão.
 - Detalhes de arquitetura e convenções para novos módulos: [`CLAUDE.md`](CLAUDE.md).
 
+## Documentação
+
+- [`TAP.md`](TAP.md) — Termo de Abertura do Projeto.
+- [`docs/mapas-processo.html`](docs/mapas-processo.html) — mapas de processo (diagramas de atividade UML com raias) das
+  funcionalidades já implementadas: usuários e acesso, medicamentos e baias. Baixe e abra no navegador, ou veja
+  pelo GitHub Pages se estiver ativado para a pasta `docs/`.
+
 ## Últimas alterações
-_Push de 19/09/2026 — branch `main`_
-- Flyway no `octopus-msusuario`: `spring-boot-starter-flyway` + `flyway-mysql`, Hibernate em `ddl-auto=validate`
-  (não cria mais tabelas), Flyway desligado nos testes.
-- Migrations iniciais: `V1__usuarios.sql` (`tb_usuarios`), `V2__perfis.sql` (`tb_admins`, `tb_veterinarios`,
-  `tb_auxiliares`, `tb_recepcionistas`, cada uma com FK 1:1 para `tb_usuarios`) e `V3__tutores_animais.sql`.
-- `Veterinario`: unicidade composta de CRMV + UF (`uk_veterinarios_crmv`) na entidade e no banco.
-- Dev local passa a usar o MySQL do compose (H2 fica só nos testes); instruções acima e no `CLAUDE.md`.
-- `CLAUDE.md`: seção "Migrations (Flyway)" com regras e tabela de mapeamento Java → MySQL.
+_Push de 20/09/2026 — branch `main`_
+- `docs/mapas-processo.html`: mapas de processo (UML, raias por ator, sem raia "Sistema") de gestão de usuários e
+  acesso, cadastro de medicamentos e cadastro de baias, com as regras do TAP e as premissas da squad marcadas.
+- README com seção "Documentação".
 
 ## Próximos passos
 - [ ] Integrar `feature/cadastro-baia` na `main` sem remover `octopus-msusuario`; alinhar pacote, nome da
