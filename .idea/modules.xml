@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/ms-cadastro-baias.iml" filepath="$PROJECT_DIR$/.idea/ms-cadastro-baias.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ms-cadastro-baias/ms-cadastro-baias.iml" filepath="$PROJECT_DIR$/ms-cadastro-baias/ms-cadastro-baias.iml" />
     </modules>
   </component>
 </project>
