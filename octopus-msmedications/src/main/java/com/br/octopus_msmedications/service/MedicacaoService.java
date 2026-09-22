@@ -52,15 +52,14 @@ public class MedicacaoService {
 
     @Transactional(readOnly = true)
     public List<MedicacaoResponse> ListarPorFabricante(String fabricante){
-
         return repository.findByFabricanteIgnoreCase(fabricante);
-        }
+    }
     //LISTAR POR NOMECOMERCIAL (READ)
     @Transactional(readOnly = true)
-    public  List<MedicacaoResponse>ListarPorNomeComercial (String nomecomercial){
-        return Collections.singletonList(repository.findByNomeComercialIgnoreCase(nomecomercial)
-                .orElseThrow(() -> new RuntimeException("Medicação com o nome comercial '" + nomecomercial + "' não encontrada")));
-    }
+    public  List<MedicacaoResponse>ListarPorNomeComercial (String nomeComercial){
+        return repository.findByNomeComercialIgnoreCase(nomeComercial)
+    }    
+
     //UPDATE (PATCH atualiza algumas informações somente)
 
 

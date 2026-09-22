@@ -9,5 +9,5 @@ import java.util.List;
 
 public interface MedicacaoRepository extends JpaRepository<Medicacao, Long> {
     List<MedicacaoResponse> findByFabricanteIgnoreCase(String fabricante);
-    Optional<MedicacaoResponse> findByNomeComercialIgnoreCase(String nomeComercial);
+    List<MedicacaoResponse> findByNomeComercialIgnoreCase(String nomeComercial);
 }
