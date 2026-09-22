@@ -1,4 +1,4 @@
-package com.br.octopus_medications.domain.dto;
+package com.br.octopus_msmedications.domain.dto.request;
 
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
