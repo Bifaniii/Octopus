@@ -1,6 +1,9 @@
-package com.br.octopus_medications.domain.dto.response;
+package com.br.octopus_msmedications.domain.dto.response;
 
-import java.util.LocalDateTime;
+import com.br.octopus_msmedications.domain.Medicacao;
+
+import java.time.LocalDateTime;
+
 
 public record MedicacaoResponse(
     Long id,

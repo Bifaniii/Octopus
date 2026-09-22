@@ -1,19 +1,20 @@
 package com.br.octopus_msmedications.Controller;
 
 import com.br.octopus_msmedications.domain.Medicacao;
-import com.br.octopus_msmedications.service.MedicationService;
+import com.br.octopus_msmedications.service.MedicacaoService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
+import com.br.octopus_msmedications.domain.dto.response.MedicacaoResponse;
 import java.util.List;
 
+
 @RestController
-@RequestMapping("/medications")
-public class MedicationController {
+@RequestMapping("/medicacao")
+public class MedicacaoController {
 
-    private final MedicationService service;
+    private final MedicacaoService service;
 
-    public MedicationController(MedicationService service) {
+    public MedicacaoController(MedicacaoService service) {
         this.service = service;
     }
 
