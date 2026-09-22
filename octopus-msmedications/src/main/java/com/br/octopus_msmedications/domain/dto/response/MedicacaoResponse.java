@@ -24,8 +24,7 @@ public record MedicacaoResponse(
             medicacao.getFormaFarmaceutica(),
             medicacao.getUnidadeMedidaEmbalagem(),
             medicacao.getDataVencimento(),
-            medicacao.getNumeroRegistroAnvisa(),
+            medicacao.getNumeroRegistroAnvisa()
         );
     }
-
 }

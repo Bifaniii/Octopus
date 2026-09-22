@@ -44,7 +44,7 @@ public class MedicacaoService {
     @Transactional(readOnly = true)
     public MedicacaoResponse listarPorId(Long id) {
         Medicacao medicacao = repository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Medicação com o id" + id + " não encontrada")
+            .orElseThrow(() -> new RuntimeException("Medicação com o id" + id + " não encontrada"));
         return MedicacaoResponse.from(medicacao);
 }
 
@@ -57,7 +57,7 @@ public class MedicacaoService {
     //LISTAR POR NOMECOMERCIAL (READ)
     @Transactional(readOnly = true)
     public  List<MedicacaoResponse>ListarPorNomeComercial (String nomeComercial){
-        return repository.findByNomeComercialIgnoreCase(nomeComercial)
+        return repository.findByNomeComercialIgnoreCase(nomeComercial);
     }    
 
     //UPDATE (PATCH atualiza algumas informações somente)
