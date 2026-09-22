@@ -1,4 +1,4 @@
-package com.br.octopus_msmedications.Controller;
+package com.br.octopus_msmedications.controller;
 
 import com.br.octopus_msmedications.domain.dto.request.MedicacaoRequest;
 import com.br.octopus_msmedications.domain.Medicacao;
@@ -25,8 +25,8 @@ public class MedicacaoController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<List<MedicacaoResponse>>findById(@PathVariable Long id){
-        return ResponseEntity.ok(service.listarPorId(id));
+    public ResponseEntity<MedicacaoResponse>findById(@PathVariable Long id){
+        return ResponseEntity.ok().body(service.listarPorId(id));
     }
 
     @PostMapping
@@ -37,16 +37,8 @@ public class MedicacaoController {
 
 
     @PatchMapping("/{id}")
-    public ResponseEntity<MedicacaoResponse>update(
-            @PathVariable Long id,
-            @Valid @RequestBody MedicacaoResquestUpdate resquest){
-        MedicacaoResponse response = service.atualiarParcial(id,resquest);
-        return  ResponseEntity.ok(response);
-    }
-
-    @PatchMapping("/{id}")
-    public MedicacaoResponse update(@PathVariable Long id, @Valid @RequestBody MedicacaoResquestUpdate request) {
-        return service.atualiarParcial(id, request);
+    public ResponseEntity<MedicacaoResponse> update(@PathVariable Long id, @Valid @RequestBody MedicacaoResquestUpdate resquest){
+        return  ResponseEntity.ok().body(service.atualizarParcial(id,resquest));
     }
 }
 

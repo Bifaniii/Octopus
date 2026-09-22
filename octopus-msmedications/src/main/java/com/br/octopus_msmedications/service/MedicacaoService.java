@@ -65,7 +65,7 @@ public class MedicacaoService {
 
     //UPDATE (PATCH atualiza algumas informações somente)
     @Transactional
-    public MedicacaoResponse atualiarParcial(Long id, MedicacaoResquestUpdate resquest) {
+    public MedicacaoResponse atualizarParcial(Long id, MedicacaoResquestUpdate resquest) {
         Medicacao medicacao = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Medicação com o id" + id + "não encontrada"));
         if (resquest.nomeComercial() != null && !resquest.nomeComercial().isBlank()){
