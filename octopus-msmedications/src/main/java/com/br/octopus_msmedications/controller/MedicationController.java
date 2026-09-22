@@ -18,8 +18,8 @@ public class MedicationController {
     }
 
     @GetMapping
-    public List<Medicacao> list(@RequestParam(required = false) String manufacturer) {
-        return service.list(manufacturer);
+    public List<MedicacaoResponse> listarTodos(@RequestParam(required = false) String manufacturer) {
+        return service.listar();
     }
 
     @GetMapping("/{id}")

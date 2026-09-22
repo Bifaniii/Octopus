@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -22,12 +21,9 @@ public class MedicacaoService {
         this.repository = repository;
     }
 
+    // CREATE (CRIAR)
     @Transactional
     public MedicacaoResponse criar(MedicacaoRequest request) {
-
-        if () {
-            
-        }
         Medicacao medicacao = Medicacao.builder()
             .nomeComercial(request.nomeComercial())
             .principioAtivo(request.principioAtivo())
@@ -41,16 +37,21 @@ public class MedicacaoService {
 
         return MedicacaoResponse.from(repository.save(medicacao));
 
-
+    // LISTAR TODOS (READ)
     @Transactional(readOnly = true)
     public List<MedicacaoResponse> listar() {
         return repository.findAll().stream().map(MedicacaoResponse::from).toList(); 
     }
 
+    // LISTAR POR ID (READ)
     @Transactional(readOnly = true)
     public MedicacaoResponse listarPorId(Long id) {
-        Medicacao medicacao = repository.findById(id);
+        Medicacao medicacao = repository.findById(id)
             .orElseThrow(() -> new RuntimeException("Medicação com o id" + id + " não encontrada")
         return MedicacaoResponse.from(medicacao);
-
 }
+
+        //LISTAR POR FABRICANTE (READ)
+        //LISTAR POR NOMECOMERCIAL (READ)
+        //UPDATE (PATCH atualiza algumas informações somente)
+

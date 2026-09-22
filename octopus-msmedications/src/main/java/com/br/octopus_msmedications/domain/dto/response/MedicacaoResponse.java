@@ -1,10 +1,9 @@
 package com.br.octopus_medications.domain.dto.response;
 
 import java.util.LocalDateTime;
-import java.util.UUID;
 
 public record MedicacaoResponse(
-    UUID id,
+    Long id,
     String nomeComercial,
     String principioAtivo,
     String concentracao,
