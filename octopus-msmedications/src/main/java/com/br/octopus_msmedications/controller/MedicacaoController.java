@@ -10,17 +10,14 @@ import org.springframework.web.bind.annotation.*;
 import com.br.octopus_msmedications.domain.dto.response.MedicacaoResponse;
 import java.util.List;
 import com.br.octopus_msmedications.domain.dto.request.MedicacaoResquestUpdate;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/medicacao")
+@RequiredArgsConstructor
 public class MedicacaoController {
 
-    private final MedicacaoService service;
-
-    public MedicacaoController(MedicacaoService service) {
-        this.service = service;
-
-    }
+    private final MedicacaoService service; 
 
     @GetMapping
     public ResponseEntity<List<MedicacaoResponse>>listarTodos(){
@@ -29,7 +26,7 @@ public class MedicacaoController {
 
     @GetMapping("/{id}")
     public ResponseEntity<List<MedicacaoResponse>>findById(@PathVariable Long id){
-        return  ResponseEntity.ok(service.listarPorId(id));
+        return ResponseEntity.ok(service.listarPorId(id));
     }
 
     @PostMapping
@@ -45,12 +42,6 @@ public class MedicacaoController {
             @Valid @RequestBody MedicacaoResquestUpdate resquest){
         MedicacaoResponse response = service.atualiarParcial(id,resquest);
         return  ResponseEntity.ok(response);
-    }
-
-    @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
-        service.delete(id);
     }
 
     @PatchMapping("/{id}")
