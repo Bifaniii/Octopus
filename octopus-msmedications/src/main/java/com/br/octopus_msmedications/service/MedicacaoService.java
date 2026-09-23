@@ -111,12 +111,12 @@ public class MedicacaoService {
         return MedicacaoResponse.from(medicacao);
     }
 
+    // Nada é apagado: o medicamento fora de uso é arquivado, preservando o histórico de prescrições.
     @Transactional
-    public void remover(UUID id) {
+    public MedicacaoResponse desativar(UUID id) {
         Medicacao medicacao = obter(id);
-        // Desfaz os dois sentidos antes de apagar, senão a FK das interações barra o delete.
-        definirInteracoes(medicacao, Set.of());
-        repository.delete(medicacao);
+        medicacao.setAtivo(false);
+        return MedicacaoResponse.from(medicacao);
     }
 
     // Substitui a lista de interações, mantendo a simetria dos pares.

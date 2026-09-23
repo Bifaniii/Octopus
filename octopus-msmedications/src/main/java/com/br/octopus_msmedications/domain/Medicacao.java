@@ -50,6 +50,10 @@ public class Medicacao {
     @Column(name = "numero_registro_anvisa", length = 17, nullable = false)
     private String numeroRegistroAnvisa;
 
+    @Builder.Default
+    @Column(name = "ativo", nullable = false)
+    private boolean ativo = true;
+
     // Simétrica: o serviço grava os dois sentidos do par, então esta coleção já é a lista completa.
     @Builder.Default
     @ManyToMany(fetch = FetchType.LAZY)

@@ -25,7 +25,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -201,18 +200,41 @@ class MedicacaoApiTest {
     }
 
     @Test
-    @DisplayName("só admin remove: veterinário recebe 403 e admin 204")
-    void remocaoSoPeloAdmin() throws Exception {
+    @DisplayName("só admin desativa: veterinário recebe 403")
+    void desativacaoSoPeloAdmin() throws Exception {
         UUID id = criar("Novalgina", "12345678901");
 
-        mockMvc.perform(delete(URL + "/" + id)
+        mockMvc.perform(patch(URL + "/" + id + "/desativar")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_VETERINARIO")))
                 .andExpect(status().isForbidden());
 
-        mockMvc.perform(delete(URL + "/" + id)
+        mockMvc.perform(patch(URL + "/" + id + "/desativar")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_ADMIN")))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ativo").value(false));
+    }
 
-        assertThat(repository.findById(id)).isEmpty();
+    @Test
+    @DisplayName("desativar arquiva sem apagar: o registro continua no banco e nas interações")
+    void desativarNaoApaga() throws Exception {
+        UUID dipirona = criar("Novalgina", "12345678901");
+        String tokenVet = token("ROLE_VETERINARIO");
+
+        var comInteracao = novaRequest("Tramal", "10987654321", Set.of(dipirona));
+        String corpo = mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenVet)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(comInteracao)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        UUID tramal = UUID.fromString(objectMapper.readTree(corpo).get("id").asString());
+
+        mockMvc.perform(patch(URL + "/" + dipirona + "/desativar")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_ADMIN")))
+                .andExpect(status().isOk());
+
+        assertThat(repository.findById(dipirona)).isPresent();
+        mockMvc.perform(get(URL + "/" + tramal).header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenVet))
+                .andExpect(jsonPath("$.interacoesProibidas[0].id").value(dipirona.toString()));
     }
 }
