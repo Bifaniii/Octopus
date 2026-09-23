@@ -9,7 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -56,10 +56,9 @@ public class BaiaController {
         return baiaService.atualizar(id, request);
     }
 
-    @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PatchMapping("/{id}/desativar")
     @PreAuthorize("hasRole('ADMIN')")
-    public void remover(@PathVariable UUID id) {
-        baiaService.remover(id);
+    public BaiaResponse desativar(@PathVariable UUID id) {
+        return baiaService.desativar(id);
     }
 }

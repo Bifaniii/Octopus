@@ -31,4 +31,8 @@ public class Baia {
 
     @Column(name = "capacidade", nullable = false)
     private int capacidade;
+
+    @Builder.Default
+    @Column(name = "ativo", nullable = false)
+    private boolean ativo = true;
 }

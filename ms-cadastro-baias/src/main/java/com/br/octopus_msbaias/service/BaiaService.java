@@ -65,9 +65,12 @@ public class BaiaService {
         return BaiaResponse.from(baiaRepository.save(baia));
     }
 
+    // Nada é apagado: a baia fora de uso é arquivada, preservando o histórico de internações.
     @Transactional
-    public void remover(UUID id) {
-        baiaRepository.delete(buscarEntidade(id));
+    public BaiaResponse desativar(UUID id) {
+        Baia baia = buscarEntidade(id);
+        baia.setAtivo(false);
+        return BaiaResponse.from(baia);
     }
 
     private Baia buscarEntidade(UUID id) {
