@@ -1,5 +1,3 @@
--- Cadastro de medicamentos (tela 3 do TAP): identificação do produto, tipo de esquema e interações
--- proibidas. Prescrição e doses são outros módulos (Sprint 3); aqui é só o cadastro.
 CREATE TABLE tb_medicacoes (
     id                       BINARY(16)   NOT NULL,
     nome_comercial           VARCHAR(100) NOT NULL,
@@ -12,12 +10,10 @@ CREATE TABLE tb_medicacoes (
     fabricante               VARCHAR(255) NOT NULL,
     numero_registro_anvisa   VARCHAR(17)  NOT NULL,
     PRIMARY KEY (id),
-    -- O registro ANVISA identifica o produto: não pode haver dois cadastros com o mesmo número.
     UNIQUE KEY uk_medicacoes_registro_anvisa (numero_registro_anvisa)
 );
 
--- Pares de medicamentos que não podem ser prescritos juntos. A simetria (A-B e B-A) é gravada pelo
--- serviço, por isso as duas linhas do par existem e a PK composta impede duplicar o mesmo sentido.
+-- O par é gravado nos dois sentidos (A-B e B-A) pelo serviço.
 CREATE TABLE tb_medicacao_interacoes (
     medicacao_id          BINARY(16) NOT NULL,
     medicacao_proibida_id BINARY(16) NOT NULL,

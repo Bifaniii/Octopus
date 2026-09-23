@@ -27,13 +27,11 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, "Dados inválidos", req, campos);
     }
 
-    // JSON malformado ou valor fora do enum (ex.: tipoEsquema: "CONTINUADO").
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErroResponse> handleCorpoInvalido(HttpMessageNotReadableException ex, HttpServletRequest req) {
         return build(HttpStatus.BAD_REQUEST, "Corpo da requisição inválido", req, null);
     }
 
-    // Id que não é um UUID válido na URL.
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ErroResponse> handleTipoInvalido(MethodArgumentTypeMismatchException ex, HttpServletRequest req) {
         return build(HttpStatus.BAD_REQUEST, "Parâmetro '" + ex.getName() + "' inválido", req, null);

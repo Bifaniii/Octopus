@@ -13,7 +13,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 
-// Exceções lançadas dentro da filter chain não chegam ao @RestControllerAdvice, então o JSON de erro é montado aqui.
+// A filter chain não passa pelo @RestControllerAdvice, então o JSON de erro é montado aqui.
 @Component
 @RequiredArgsConstructor
 public class SecurityErrorHandlers {

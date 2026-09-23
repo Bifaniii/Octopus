@@ -104,7 +104,6 @@ public class MedicacaoService {
             }
             medicacao.setNumeroRegistroAnvisa(request.numeroRegistroAnvisa());
         }
-        // Lista ausente (null) mantém as interações atuais; lista vazia apaga todas.
         if (request.interacoesProibidas() != null) {
             definirInteracoes(medicacao, request.interacoesProibidas());
         }
@@ -115,12 +114,12 @@ public class MedicacaoService {
     @Transactional
     public void remover(UUID id) {
         Medicacao medicacao = obter(id);
-        // Desfaz os dois sentidos antes de apagar, senão a FK da tabela de interações barra o delete.
+        // Desfaz os dois sentidos antes de apagar, senão a FK das interações barra o delete.
         definirInteracoes(medicacao, Set.of());
         repository.delete(medicacao);
     }
 
-    // Substitui a lista de interações desta medicação, mantendo a simetria dos pares.
+    // Substitui a lista de interações, mantendo a simetria dos pares.
     private void definirInteracoes(Medicacao medicacao, Set<UUID> idsDesejados) {
         Set<UUID> ids = idsDesejados == null ? Set.of() : idsDesejados;
 

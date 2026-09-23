@@ -48,8 +48,6 @@ public record MedicacaoRequest(
         @Pattern(regexp = "\\d{11}", message = "O registro ANVISA deve conter exatamente 11 dígitos numéricos.")
         String numeroRegistroAnvisa,
 
-        // Ids de outros medicamentos que não podem ser usados junto com este. Opcional: quando ausente
-        // ou vazio, o cadastro fica sem interações. Substitui a lista inteira no update.
         Set<UUID> interacoesProibidas
 ) {
 }

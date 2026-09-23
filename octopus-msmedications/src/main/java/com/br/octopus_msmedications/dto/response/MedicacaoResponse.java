@@ -21,7 +21,7 @@ public record MedicacaoResponse(
         List<InteracaoResponse> interacoesProibidas
 ) {
 
-    // Só o essencial para identificar o medicamento proibido; evita recursão entre os dois lados do par.
+    // Resumida, senão os dois lados do par se referenciam sem fim.
     public record InteracaoResponse(UUID id, String nomeComercial, String principioAtivo) {
     }
 

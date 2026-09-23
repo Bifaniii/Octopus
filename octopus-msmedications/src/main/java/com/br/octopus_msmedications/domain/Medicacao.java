@@ -23,21 +23,20 @@ public class Medicacao {
     private UUID id;
 
     @Column(name = "nome_comercial", length = 100, nullable = false)
-    private String nomeComercial; // Ex.: Novalgina
+    private String nomeComercial;
 
     @Column(name = "principio_ativo", length = 200, nullable = false)
-    private String principioAtivo; // Ex.: Dipirona monoidratada
+    private String principioAtivo;
 
     @Column(name = "concentracao", length = 50, nullable = false)
     private String concentracao; // Ex.: "500mg", "10ml"
 
     @Column(name = "forma_farmaceutica", length = 50, nullable = false)
-    private String formaFarmaceutica; // Ex.: Xarope, Gotas, Pomada...
+    private String formaFarmaceutica;
 
     @Column(name = "unidade_medida_embalagem", length = 20, nullable = false)
-    private String unidadeMedidaEmbalagem; // Ex.: mg, mL, g...
+    private String unidadeMedidaEmbalagem; // mg, mL, g
 
-    // Contínuo ou sintomático (item 3 do escopo do TAP).
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_esquema", length = 20, nullable = false)
     private TipoEsquema tipoEsquema;
@@ -51,8 +50,7 @@ public class Medicacao {
     @Column(name = "numero_registro_anvisa", length = 17, nullable = false)
     private String numeroRegistroAnvisa;
 
-    // Interações proibidas (item 3 do escopo). A relação é simétrica: se A não pode com B, B não pode
-    // com A. O serviço grava os dois sentidos, então basta ler esta coleção para ter a lista completa.
+    // Simétrica: o serviço grava os dois sentidos do par, então esta coleção já é a lista completa.
     @Builder.Default
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(

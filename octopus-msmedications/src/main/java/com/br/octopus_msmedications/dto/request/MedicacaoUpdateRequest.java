@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;
 
-// Atualização parcial (PATCH): todo campo é opcional e só os preenchidos são aplicados.
+// Campo ausente é mantido como está; interacoesProibidas vazia apaga as ligações existentes.
 public record MedicacaoUpdateRequest(
 
         @Size(max = 100, message = "O nome comercial deve ter no máximo 100 caracteres.")

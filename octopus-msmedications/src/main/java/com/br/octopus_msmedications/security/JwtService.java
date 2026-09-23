@@ -11,8 +11,8 @@ import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 import java.util.Optional;
 
-// Este módulo NÃO emite tokens: ele só valida o JWT emitido pelo octopus-msusuario, usando o mesmo
-// JWT_SECRET (HS384). Sem tabela de usuários aqui — a identidade/role vêm direto dos claims do token.
+// Só valida o token emitido pelo octopus-msusuario, com o mesmo JWT_SECRET. Não emite token e não
+// consulta usuários: identidade e papel saem dos claims.
 @Service
 public class JwtService {
 

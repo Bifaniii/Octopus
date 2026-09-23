@@ -55,12 +55,12 @@ class MedicacaoApiTest {
 
     @BeforeEach
     void limpar() {
-        // Direto no banco: apagar via repository esbarraria no lazy loading da coleção de interações.
+        // Direto no banco: apagar via repository esbarraria no lazy loading das interações.
         jdbcTemplate.execute("DELETE FROM tb_medicacao_interacoes");
         jdbcTemplate.execute("DELETE FROM tb_medicacoes");
     }
 
-    // Imita o token que o octopus-msusuario emite: subject = e-mail, claim "role".
+    // Mesmo formato do token do octopus-msusuario: subject = e-mail, claim "role".
     private String token(String role) {
         var chave = Keys.hmacShaKeyFor(Decoders.BASE64.decode(segredoBase64));
         return Jwts.builder()
@@ -156,7 +156,6 @@ class MedicacaoApiTest {
         UUID dipirona = criar("Novalgina", "12345678901");
         String tokenVet = token("ROLE_VETERINARIO");
 
-        // Cadastra a segunda já apontando a primeira como interação proibida.
         var comInteracao = novaRequest("Tramal", "10987654321", Set.of(dipirona));
         String corpo = mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenVet)
@@ -167,7 +166,6 @@ class MedicacaoApiTest {
                 .andReturn().getResponse().getContentAsString();
         UUID tramal = UUID.fromString(objectMapper.readTree(corpo).get("id").asString());
 
-        // O outro lado do par também enxerga a proibição.
         mockMvc.perform(get(URL + "/" + dipirona).header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenVet))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.interacoesProibidas[0].id").value(tramal.toString()));

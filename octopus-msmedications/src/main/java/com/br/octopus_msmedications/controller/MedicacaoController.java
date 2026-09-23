@@ -33,7 +33,6 @@ public class MedicacaoController {
 
     private final MedicacaoService service;
 
-    // Escrita: o veterinário é quem responde pelo que pode ser prescrito; admin mantém o cadastro.
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyRole('ADMIN','VETERINARIO')")
@@ -41,7 +40,6 @@ public class MedicacaoController {
         return service.criar(request);
     }
 
-    // Leitura: qualquer usuário autenticado (o auxiliar precisa consultar o medicamento no plantão).
     @GetMapping
     public List<MedicacaoResponse> listar(
             @RequestParam(required = false) String fabricante,
