@@ -10,14 +10,28 @@ O escopo completo, regras de negócio (RN-01..RN-08), squad e cronograma das 5 s
 
 O sistema é dividido em microsserviços Spring Boot independentes, um por área, cada um em sua própria pasta:
 
-| Módulo                    | Área                            | Onde está                              | Estado                                            |
-| :------------------------ | :------------------------------ | :------------------------------------- | :------------------------------------------------ |
-| `octopus-msusuario/`      | Usuários, perfis, tutores, animais | `main`                              | Funcional (login JWT, CRUD de perfis, tutor, animal stub); schema via Flyway |
-| `ms-cadastro-baias/`      | Baias                           | `feature/cadastro-baia`                | Entidade + repository                             |
-| `octopus-msmedications/`  | Medicamentos                    | `feature/register_medications`         | Entidade + repository + migration                 |
+| Módulo                    | Área                               | Porta | Onde está                      | Estado |
+| :------------------------ | :--------------------------------- | :---- | :----------------------------- | :----- |
+| `octopus-msusuario/`      | Usuários, perfis, tutores, animais | 8080  | `main`                         | Completo — login JWT, CRUD de perfis, tutor e animal (stub) |
+| `ms-cadastro-baias/`      | Baias                              | 8081  | `feature/cadastro-baia`        | Completo — CRUD de baias com tipo e capacidade |
+| `octopus-msmedications/`  | Medicamentos                       | 8082  | `feature/register_medications` | Completo — CRUD de medicamentos, esquema e interações proibidas |
+
+Os três dividem o mesmo banco MySQL e o mesmo `JWT_SECRET`: o `msusuario` emite o token no login e os outros
+dois apenas validam, sem tabela de usuários própria.
 
 Stack: **Java 17**, **Spring Boot 4.1.1**, Spring Data JPA, Spring Security + JWT (jjwt), Bean Validation,
-Lombok, MySQL 8.4 (docker-compose) com **Flyway**, H2 só nos testes, springdoc OpenAPI.
+Lombok, MySQL 8.4 com **Flyway**, H2 só nos testes, springdoc OpenAPI.
+
+## O que a Sprint 1 entrega (telas 1 a 3 do TAP)
+
+| Tela do TAP | Onde | Endpoints |
+| :---------- | :--- | :-------- |
+| Login e perfis (base de tudo) | `msusuario` | `POST /api/auth/login`, `/api/admins`, `/api/veterinarios`, `/api/auxiliares`, `/api/recepcionistas` |
+| 1 · Animais e tutores | `msusuario` | `/api/tutores`, `/api/animais` |
+| 2 · Baias | `msbaias` | `/api/baias` — tipo (coletiva, isolamento, ninhada) e capacidade |
+| 3 · Medicamentos | `msmedications` | `/api/medicacoes` — esquema (contínuo/sintomático) e interações proibidas |
+
+Internação, prescrição, painel de doses e relatório são das Sprints 2 a 4.
 
 ## Como rodar
 
@@ -44,10 +58,16 @@ DB_PASSWORD=<mesmo valor de MYSQL_PASSWORD>
 
 ```bash
 docker compose up -d mysql   # sobe só o banco (porta MYSQL_HOST_PORT, default 3307)
-cd octopus-msusuario
-./mvnw spring-boot:run       # sobe em http://localhost:8080; o Flyway cria as tabelas na primeira subida
-./mvnw test                  # roda os testes (H2 em memória e config própria, não dependem do .env)
+
+cd octopus-msusuario  && ./mvnw spring-boot:run   # http://localhost:8080
+cd ms-cadastro-baias  && ./mvnw spring-boot:run   # http://localhost:8081
+cd octopus-msmedications && ./mvnw spring-boot:run # http://localhost:8082
+
+./mvnw test                  # testes de cada módulo (H2 em memória, não dependem do .env)
 ```
+
+Cada módulo cria as próprias tabelas na primeira subida (Flyway) e usa a sua tabela de histórico, por isso
+podem dividir o mesmo banco. Faça login no `msusuario` e use o token nos outros dois.
 
 Se o volume do MySQL ainda tiver tabelas de antes do Flyway, zere com `docker compose down -v` antes de subir.
 
@@ -76,21 +96,25 @@ sozinho; não precisa configurar no `.env`.
   `validate` e nunca cria tabela. Migration aplicada não se edita — mudança de tabela é uma nova versão.
 - Detalhes de arquitetura e convenções para novos módulos: [`CLAUDE.md`](CLAUDE.md).
 
+## Documentação
+
+- [`TAP.md`](TAP.md) — Termo de Abertura do Projeto.
+- [`docs/mapas-processo.html`](docs/mapas-processo.html) — mapas de processo (diagramas de atividade UML com raias) das
+  funcionalidades já implementadas: usuários e acesso, medicamentos e baias. Baixe e abra no navegador, ou veja
+  pelo GitHub Pages se estiver ativado para a pasta `docs/`.
+
 ## Últimas alterações
-_Push de 19/09/2026 — branch `feature/cadastro-baia`_
-- `CLAUDE.md` e `README.md` trazidos da `main` (Flyway, estado das branches, convenções para novos
-  microsserviços); `CLAUDE.md` removido do `.gitignore`. Nenhuma mudança de código nesta branch.
-- Pendências desta branch antes do merge estão em `CLAUDE.md` → "Estado das branches" (restaurar
-  `octopus-msusuario`, remover `.idea/`, alinhar pacote/entidade/id/tabela e criar `V1__baias.sql`).
+_Push de 22/09/2026 — branch `feature/cadastro-baia`_
+- `ms-cadastro-baias` concluído (Douglas): entidade `Baia` com tipo (coletiva, isolamento, ninhada) e
+  capacidade, DTOs, service, controller `/api/baias`, exceptions, JWT, `V1__baias.sql` e Dockerfile.
+- `CLAUDE.md` e `README.md` sincronizados com as demais branches: seção "Segurança entre módulos" (cada
+  módulo valida o token do `msusuario`), regras de Flyway em banco compartilhado e estado das branches.
 
 ## Próximos passos
-- [ ] Integrar `feature/cadastro-baia` na `main` sem remover `octopus-msusuario`; alinhar pacote, nome da
-      entidade (`Baia`), id `UUID`, tabela `tb_baias` e criar `V1__baias.sql` com Flyway.
-- [ ] Corrigir compilação de `octopus-msmedications` (`Medication.java` → `Medicacao.java`, tipos do repository),
-      adicionar Flyway ao módulo e integrar a branch órfã `feature/register_medications` sobre a `main`.
-- [ ] Criar service, DTOs e controller de baias e de medicamentos (Sprint 1, telas 1–3).
-- [ ] Completar a entidade `Animal` (espécie, data da última vacina antirrábica) via nova migration e criar a
-      entidade central de internação simples, sem validações (Sprint 1).
-- [ ] Adicionar os novos módulos ao `docker-compose.yml` e definir como eles vão autenticar (validar o JWT do
-      `msusuario` com o mesmo `JWT_SECRET` ou ficar sem segurança por enquanto).
+- [ ] **Antes do merge:** restaurar `octopus-msusuario/` nesta branch (`git checkout main -- octopus-msusuario/`);
+      o commit `fe7c49d` removeu o diretório e o merge apagaria o ms de usuário da `main`.
+- [ ] Integrar na `main` por PR, junto com `feature/register_medications`.
+- [ ] Publicar o módulo de baias no mesmo ambiente do `msusuario`.
+- [ ] Sprint 2: entidade de internação, alocação em baia e validações RN-01 (capacidade) e RN-02 (vacinação),
+      que vão consumir este cadastro.
 - [ ] Apagar a branch remota `feature/cadastro_login_usuario` (já mergeada).
