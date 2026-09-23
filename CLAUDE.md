@@ -4,7 +4,7 @@ Este arquivo fornece orientações ao Claude Code (claude.ai/code) ao trabalhar 
 
 > Este arquivo é versionado e vale para toda a squad. Não coloque nele valores de `.env`, senhas ou tokens —
 > só nomes de variáveis. A seção "Estado das branches" é um retrato datado: atualize-a ao integrar uma branch.
-> Última revisão: 22/09/2026 (fim da Sprint 1).
+> Última revisão: 23/09/2026 (fim da Sprint 1).
 
 ## Visão geral do repositório
 
@@ -17,14 +17,19 @@ deve seguir (nomes de entidades, RN-01..RN-08, cronograma das 5 sprints, squad).
 O sistema é construído como **microsserviços Spring Boot independentes, um por área**, cada um em sua própria
 pasta na raiz (com `pom.xml`, `mvnw` e `src/` próprios — não há POM agregador). Hoje:
 
-| Módulo                  | Porta | Onde está                             | Estado                                     |
-| :---------------------- | :---- | :------------------------------------ | :----------------------------------------- |
-| `octopus-msusuario/`    | 8080  | `main` (em produção na AWS)           | Login/JWT, perfis, tutores, animais (stub). |
-| `ms-cadastro-baias/`    | 8081  | branch `feature/cadastro-baia`        | CRUD completo de baias, pronto para merge.  |
-| `octopus-msmedications/`| 8082  | branch `feature/register_medications` | CRUD completo de medicamentos, pronto para merge. |
+| Módulo                  | Porta | Branch                                | Estado                                      |
+| :---------------------- | :---- | :------------------------------------ | :------------------------------------------ |
+| `octopus-msusuario/`    | 8080  | `main` (em produção na AWS)           | Login/JWT, perfis, tutores, animais (stub).  |
+| `ms-cadastro-baias/`    | 8081  | `feature/cadastro-baia`               | CRUD completo de baias.                      |
+| `octopus-msmedications/`| 8082  | `feature/register_medications`        | CRUD completo de medicamentos.               |
 
-Os três compartilham o **mesmo banco MySQL** e o **mesmo `JWT_SECRET`**: só o `msusuario` emite token; os
-outros dois validam o token dele (ver "Segurança entre módulos").
+**Cada microsserviço vive na sua própria branch e fica lá** — não há merge para a `main` nem PR entre
+módulos. Por isso cada um é autocontido: `Dockerfile`, `docker-compose.yml` e `.env.example` próprios, dentro
+da pasta do módulo, subindo com o seu próprio MySQL.
+
+O que amarra os módulos é o `JWT_SECRET`: só o `msusuario` emite token e os outros validam o dele (ver
+"Segurança entre módulos"). Em produção eles podem apontar para o mesmo banco; no desenvolvimento cada
+compose sobe um MySQL separado.
 
 ### Domínio do produto (conforme TAP.md)
 
@@ -38,28 +43,24 @@ outros dois validam o token dele (ver "Segurança entre módulos").
 - **Restrições explícitas do TAP:** nada de integrações externas, notificações automáticas (e-mail/push) ou apps
   mobile; login simples baseado em perfis (sem infraestrutura de auth avançada).
 
-## Estado das branches (22/09/2026 — fim da Sprint 1)
+## Estado das branches (23/09/2026 — fim da Sprint 1)
 
-Os três módulos da Sprint 1 estão prontos, cada um na sua branch. `CLAUDE.md` é idêntico nas branches de
-feature; ao mergear, fique com ele e reescreva as seções "Últimas alterações"/"Próximos passos" do README.
+Branch por microsserviço, permanente. `CLAUDE.md` é mantido igual em todas; o `README.md` de cada uma
+descreve o próprio módulo.
 
-- **`main`** — `octopus-msusuario`, `docker-compose.yml`, `.env.example`, `TAP.md`, `CLAUDE.md`, `README.md` e
-  `docs/mapas-processo.html` (mapas de processo UML; página HTML autocontida, gerada a partir de dados JS no
-  próprio arquivo — ao mapear uma funcionalidade nova, acrescente um objeto ao array `MAPS`).
-  **Está em produção no free-tier da AWS**: mudanças aqui afetam o ambiente publicado, então nada de push
-  direto — abra PR e combine com a squad. O `CLAUDE.md`/`README.md` da `main` estão mais antigos que os das
-  branches de feature; serão atualizados no merge da Sprint 1.
+- **`main`** — `octopus-msusuario`, `TAP.md`, `CLAUDE.md`, `README.md` e `docs/mapas-processo.html` (mapas de
+  processo UML; página HTML autocontida gerada a partir de dados JS no próprio arquivo — para mapear uma
+  funcionalidade nova, acrescente um objeto ao array `MAPS`). **Está em produção no free-tier da AWS**:
+  mudanças aqui afetam o ambiente publicado, combine com a squad antes. O `CLAUDE.md`/`README.md` da `main`
+  estão mais antigos que os das branches de feature.
 - **`feature/cadastro-baia`** (Douglas) — `ms-cadastro-baias/` completo: entidade `Baia`, DTOs, service,
-  controller `/api/baias`, exceptions, JWT, `V1__baias.sql`, Dockerfile e entrada no `docker-compose.yml`.
-  **Pendência de merge:** o commit `fe7c49d` (de 14/09) removeu o diretório `octopus-msusuario` nesta branch;
-  antes de mergear é preciso restaurá-lo (`git checkout main -- octopus-msusuario/`), senão o merge apaga o ms
-  de usuário da `main`.
+  controller `/api/baias`, exceptions, JWT, `V1__baias.sql`, Dockerfile e compose próprios. Esta branch não
+  tem o diretório `octopus-msusuario/` (removido no commit `fe7c49d`), o que é esperado no modelo de uma
+  branch por microsserviço.
 - **`feature/register_medications`** (Guilherme Bifani) — `octopus-msmedications/` completo: entidade
   `Medicacao` com `TipoEsquema` e interações proibidas, DTOs, service, controller `/api/medicacoes`,
-  exceptions, JWT, `V1__medicacoes.sql`, Dockerfile e 11 testes. **Pendência de merge:** a branch é órfã (sem
-  ancestral comum com a `main`), então a integração exige `git merge --allow-unrelated-histories` ou
-  cherry-pick; ela também não tem `TAP.md`, `.env.example` nem `docker-compose.yml` (vêm da `main` no merge) e
-  o serviço ainda precisa ser acrescentado ao compose. A versão antiga (`ms-medication/`, com
+  exceptions, JWT, `V1__medicacoes.sql`, Dockerfile e compose próprios, 11 testes. Branch órfã (sem ancestral
+  comum com a `main`), o que também é esperado aqui. A versão antiga (`ms-medication/`, com
   `ApplicationDosage`, `SchemeType`, `StatusDosage`) está em `refs/backup/register_medication` — ref só na
   máquina do Guilherme Bifani, não está no remoto.
 
@@ -76,21 +77,28 @@ Cada microsserviço tem seu próprio Maven Wrapper; execute a partir da pasta do
 ./mvnw spring-boot:run      # sobe a aplicação localmente
 ```
 
-Na raiz, `docker compose up --build` sobe MySQL 8.4 (porta `MYSQL_HOST_PORT`, default 3307) e o `msusuario`
-(porta 8080). `docker compose up -d mysql` sobe só o banco, para rodar a aplicação com `./mvnw spring-boot:run`.
-Os outros módulos ainda não estão no compose.
+Cada módulo tem o próprio `docker-compose.yml`, dentro da pasta dele, que sobe o serviço e um MySQL só dele:
+
+```bash
+cd <modulo> && cp .env.example .env   # preencher os valores
+docker compose up --build             # aplicação + MySQL
+docker compose up -d mysql            # só o banco, para rodar com ./mvnw spring-boot:run
+```
+
+Portas de host default: 8080/3307 (usuário), 8081/3308 (baias), 8082/3309 (medicações).
 
 ### Configuração via `.env`
 
-- Não há valores default de credenciais em nenhum `application.properties`: **tudo vem do `.env` da raiz**
-  (`spring.config.import=optional:file:../.env[.properties]`). Sem `.env` a aplicação não sobe local
-  (`JWT_SECRET`, `DB_URL`, `ADMIN_*` são obrigatórios). Copie `.env.example` para `.env` e preencha.
+- Não há valores default de credenciais em nenhum `application.properties`: **tudo vem do `.env`**, lido da
+  pasta do próprio módulo ou da raiz do repositório
+  (`spring.config.import=optional:file:./.env[.properties],optional:file:../.env[.properties]`). Sem `.env` a
+  aplicação não sobe local. Copie o `.env.example` do módulo para `.env` e preencha.
 - O arquivo precisa se chamar exatamente `.env` (o `.gitignore` cobre `*.env*`; um arquivo chamado só `env`
   não é lido pela aplicação nem ignorado pelo git).
 - `JWT_SECRET` é base64 com ≥ 48 bytes (`openssl rand -base64 48`).
-- `DB_URL` para dev local aponta para o MySQL do compose: `jdbc:mysql://localhost:3307/<MYSQL_DATABASE>`, com
-  `DB_USERNAME`/`DB_PASSWORD` iguais a `MYSQL_USER`/`MYSQL_PASSWORD`. H2 **não serve mais para dev** (as
-  migrations são SQL de MySQL); rodando via docker-compose, o compose sobrescreve `DB_*` sozinho.
+- `DB_URL` para dev local aponta para o MySQL do compose do módulo (`jdbc:mysql://localhost:<porta>/<MYSQL_DATABASE>`),
+  com `DB_USERNAME`/`DB_PASSWORD` iguais a `MYSQL_USER`/`MYSQL_PASSWORD`. H2 **não serve para dev** (as
+  migrations são SQL de MySQL); rodando pelo compose, ele sobrescreve `DB_*` sozinho.
 - Os testes usam `src/test/resources/application.properties`, autocontido (H2 + `create-drop` + Flyway
   desligado + segredo fake), e não dependem do `.env`.
 
@@ -146,8 +154,8 @@ Os três módulos existentes já seguem o padrão abaixo; use qualquer um deles 
 - Não versionar `.idea/`, `HELP.md`, `target/` (já estão no `.gitignore` da raiz). Não adicionar dependências
   que o TAP não pede (mensageria, integrações externas).
 - Segurança: validar o token do `msusuario` com o mesmo `JWT_SECRET` (ver "Segurança entre módulos").
-- Porta própria via `server.port=${PORT:<porta>}` (8080 usuário, 8081 baias, 8082 medicações), `Dockerfile`
-  multi-stage igual ao do `msusuario` e entrada no `docker-compose.yml`.
+- Porta própria via `server.port=${PORT:<porta>}`, `Dockerfile` multi-stage e `docker-compose.yml` +
+  `.env.example` próprios dentro da pasta do módulo, com MySQL e portas de host que não colidam com os outros.
 
 ## Segurança entre módulos
 
@@ -184,8 +192,9 @@ Hibernate. Configuração (já feita no `msusuario`, replicar nos outros):
 - `application.properties`: `spring.jpa.hibernate.ddl-auto=validate` e `spring.flyway.enabled=true`. Com
   `validate`, o Hibernate confere na subida se cada entidade bate com a tabela e derruba a aplicação apontando a
   coluna errada — nunca cria nem altera nada.
-- **Banco compartilhado:** os módulos dividem o mesmo MySQL, então cada um precisa da sua própria tabela de
-  histórico e de baseline, senão o Flyway se recusa a rodar num schema que já tem tabelas de outro módulo:
+- **Banco possivelmente compartilhado:** em produção os módulos podem dividir o mesmo MySQL, então cada um
+  precisa da sua própria tabela de histórico e de baseline, senão o Flyway se recusa a rodar num schema que
+  já tem tabelas de outro módulo:
   `spring.flyway.table=flyway_schema_history_<modulo>`, `spring.flyway.baseline-on-migrate=true` e
   `spring.flyway.baseline-version=0` (o padrão 1 faria o Flyway pular a `V1`). O `msusuario`, que foi o
   primeiro, usa a tabela padrão `flyway_schema_history`.
@@ -244,8 +253,8 @@ Esta regra só se aplica a pushes feitos pelo Claude; se você pushar manualment
 
 ## Git
 
-- Branch por funcionalidade: `feature/<nome_da_funcionalidade>`. Commit com funcionalidade `feature/<nome_da_funcionalidade>`.
+- **Uma branch por microsserviço, permanente.** Nada de merge entre elas nem para a `main`; cada módulo é
+  autocontido e roda sozinho. Trabalhe sempre na branch do módulo que está mexendo.
+- Commit com funcionalidade `feature/<nome_da_funcionalidade>`.
 - Antes de todo push, atualizar o `README.md` (ver seção acima).
-- Toda branch de feature deve partir da `main` atual (nada de branch órfã) e **não** deve apagar módulos de
-  outras pessoas; cada microsserviço vive na sua própria pasta.
 - **Nunca** adicionar trailer `Co-Authored-By` nem qualquer trailer extra.
