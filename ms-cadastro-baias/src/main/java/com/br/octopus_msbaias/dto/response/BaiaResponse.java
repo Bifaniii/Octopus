@@ -10,7 +10,8 @@ public record BaiaResponse(
         Tipo tipo,
         String nome,
         String descricao,
-        int capacidade
+        int capacidade,
+        boolean ativo
 ) {
     public static BaiaResponse from(Baia baia) {
         return new BaiaResponse(
@@ -18,7 +19,8 @@ public record BaiaResponse(
                 baia.getTipo(),
                 baia.getNome(),
                 baia.getDescricao(),
-                baia.getCapacidade()
+                baia.getCapacidade(),
+                baia.isAtivo()
         );
     }
 }

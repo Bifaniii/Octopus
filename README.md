@@ -69,7 +69,7 @@ docker compose up -d mysql   # só o banco
 
 - Swagger: <http://localhost:8081/swagger-ui.html>
 - O token vem do `octopus-msusuario` (`POST /api/auth/login`). No Swagger, use o botão **Authorize** (`bearerAuth`).
-- Leitura: qualquer usuário autenticado. Cadastrar, editar e remover: `ADMIN`.
+- Leitura: qualquer usuário autenticado. Cadastrar, editar e desativar: `ADMIN`.
 
 | Endpoint | O que faz |
 | :------- | :-------- |
@@ -77,7 +77,10 @@ docker compose up -d mysql   # só o banco
 | `GET /api/baias/{id}` | Detalha uma baia |
 | `POST /api/baias` | Cadastra baia com tipo e capacidade |
 | `PUT /api/baias/{id}` | Edita a baia |
-| `DELETE /api/baias/{id}` | Remove a baia |
+| `PATCH /api/baias/{id}/desativar` | Arquiva a baia; nada é apagado |
+
+O sistema **não apaga registros**: o que sai de uso é desativado (`ativo = false`) e continua no banco, para
+preservar o histórico.
 
 ## Convenções
 
@@ -89,7 +92,10 @@ docker compose up -d mysql   # só o banco
 - Detalhes de arquitetura e convenções para novos módulos: `CLAUDE.md`.
 
 ## Últimas alterações
-_Push de 23/09/2026 — branch `feature/cadastro-baia`_
+_Push de 24/09/2026 — branch `feature/cadastro-baia`_
+- `DELETE /api/baias/{id}` substituído por `PATCH /api/baias/{id}/desativar`: nada é apagado, a baia sai de
+  uso arquivada (campo `ativo`, migration `V2__baias_ativo.sql`).
+- `mvnw` voltou a ser executável (estava sem a permissão no git, e `./mvnw` falhava).
 - Módulo autocontido: `docker-compose.yml` e `.env.example` próprios dentro de `ms-cadastro-baias/`, subindo a
   aplicação com o seu MySQL (host 3308). O compose antigo da raiz apontava para `octopus-msusuario/`, que não
   existe nesta branch, e não subia.
