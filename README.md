@@ -69,7 +69,7 @@ docker compose up -d mysql   # só o banco
 
 - Swagger: <http://localhost:8082/swagger-ui.html>
 - O token vem do `octopus-msusuario` (`POST /api/auth/login`). No Swagger, use o botão **Authorize** (`bearerAuth`).
-- Leitura: qualquer usuário autenticado. Cadastrar e editar: `ADMIN` ou `VETERINARIO`. Remover: `ADMIN`.
+- Leitura: qualquer usuário autenticado. Cadastrar e editar: `ADMIN` ou `VETERINARIO`. Desativar: `ADMIN`.
 
 | Endpoint | O que faz |
 | :------- | :-------- |
@@ -77,7 +77,10 @@ docker compose up -d mysql   # só o banco
 | `GET /api/medicacoes/{id}` | Detalha o medicamento e suas interações proibidas |
 | `POST /api/medicacoes` | Cadastra com tipo de esquema e lista de interações |
 | `PATCH /api/medicacoes/{id}` | Altera só os campos enviados |
-| `DELETE /api/medicacoes/{id}` | Remove o cadastro |
+| `PATCH /api/medicacoes/{id}/desativar` | Arquiva o medicamento; nada é apagado |
+
+O sistema **não apaga registros**: o que sai de uso é desativado (`ativo = false`) e continua no banco, para
+preservar o histórico.
 
 ## Convenções
 
@@ -89,7 +92,9 @@ docker compose up -d mysql   # só o banco
 - Detalhes de arquitetura e convenções para novos módulos: `CLAUDE.md`.
 
 ## Últimas alterações
-_Push de 23/09/2026 — branch `feature/register_medications`_
+_Push de 24/09/2026 — branch `feature/register_medications`_
+- `DELETE /api/medicacoes/{id}` substituído por `PATCH /api/medicacoes/{id}/desativar`: nada é apagado, o
+  medicamento sai de uso arquivado (campo `ativo`, migration `V2__medicacoes_ativo.sql`).
 - Módulo autocontido: `docker-compose.yml` e `.env.example` próprios, subindo a aplicação com o seu MySQL
   (host 3309), além do `Dockerfile`.
 - Cadastro completo em `/api/medicacoes`: listar com filtro, buscar, criar, PATCH parcial e remover.

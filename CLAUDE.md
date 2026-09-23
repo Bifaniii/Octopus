@@ -4,7 +4,7 @@ Este arquivo fornece orientações ao Claude Code (claude.ai/code) ao trabalhar 
 
 > Este arquivo é versionado e vale para toda a squad. Não coloque nele valores de `.env`, senhas ou tokens —
 > só nomes de variáveis. A seção "Estado das branches" é um retrato datado: atualize-a ao integrar uma branch.
-> Última revisão: 23/09/2026 (fim da Sprint 1).
+> Última revisão: 24/09/2026 (fim da Sprint 1).
 
 ## Visão geral do repositório
 
@@ -177,11 +177,25 @@ quem emite. A autorização fina continua por `@PreAuthorize` no controller:
 | :------------ | :--------------------- | :----------------------------------- |
 | `msusuario`   | conforme o recurso     | `ADMIN` (usuários), `ADMIN`/`RECEPCIONISTA` (tutor, animal) |
 | `msbaias`     | autenticado            | `ADMIN`                              |
-| `msmedications` | autenticado          | `ADMIN`/`VETERINARIO`; remover só `ADMIN` |
+| `msmedications` | autenticado          | `ADMIN`/`VETERINARIO`; desativar só `ADMIN` |
 
 Desativar um usuário no `msusuario` **não** invalida na hora o acesso aos outros módulos: eles não consultam a
 tabela de usuários, então o token continua válido até expirar. É aceitável para o escopo do TAP; se virar
 problema, a saída é reduzir `JWT_EXPIRATION_MS`.
+
+## Nada é apagado
+
+O sistema não tem exclusão: o que sai de uso é **arquivado**, para preservar o histórico (quem aplicou qual
+dose, em qual baia, com qual medicamento). Toda entidade que pode sair de circulação tem um campo `ativo`
+(default `true`) e um endpoint `PATCH /api/<recurso>/{id}/desativar` que devolve o recurso atualizado.
+
+- Não crie `@DeleteMapping` nem chame `repository.delete(...)`.
+- Em `msusuario` o `ativo` mora em `Usuario`, compartilhado pelo perfil; nos demais módulos é uma coluna da
+  própria entidade.
+- Desativar um usuário no `msusuario` derruba os tokens dele naquele módulo; nos outros, o token vale até
+  expirar (ver "Segurança entre módulos").
+- O `GET` de listagem devolve ativos e inativos, com o campo `ativo` na resposta — quem consome decide o que
+  mostrar.
 
 ## Migrations (Flyway)
 
