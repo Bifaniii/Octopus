@@ -1,10 +1,16 @@
-package com.br.octopus_msmedications.domain.dto.request;
+package com.br.octopus_msmedications.dto.request;
 
-import jakarta.validation.constraints.*;
+import com.br.octopus_msmedications.domain.enums.TipoEsquema;
+import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
+import java.util.Set;
+import java.util.UUID;
 
-public record MedicacaoResquestUpdate(
+// Atualização parcial (PATCH): todo campo é opcional e só os preenchidos são aplicados.
+public record MedicacaoUpdateRequest(
 
         @Size(max = 100, message = "O nome comercial deve ter no máximo 100 caracteres.")
         String nomeComercial,
@@ -18,15 +24,20 @@ public record MedicacaoResquestUpdate(
         @Size(max = 50, message = "A forma farmacêutica deve ter no máximo 50 caracteres.")
         String formaFarmaceutica,
 
-        @Size(max = 50, message = "A unidade de medida da embalagem deve ter no máximo 20 caracteres.")
+        @Size(max = 20, message = "A unidade de medida da embalagem deve ter no máximo 20 caracteres.")
         String unidadeMedidaEmbalagem,
+
+        TipoEsquema tipoEsquema,
 
         @Future(message = "A data de vencimento deve ser uma data futura.")
         LocalDateTime dataVencimento,
 
+        @Size(max = 255, message = "O fabricante deve ter no máximo 255 caracteres.")
         String fabricante,
 
         @Pattern(regexp = "\\d{11}", message = "O registro ANVISA deve conter exatamente 11 dígitos numéricos.")
-        String numeroRegistroAnvisa
-){}
+        String numeroRegistroAnvisa,
 
+        Set<UUID> interacoesProibidas
+) {
+}

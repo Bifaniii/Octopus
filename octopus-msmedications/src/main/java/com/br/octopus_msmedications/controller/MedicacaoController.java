@@ -1,44 +1,76 @@
 package com.br.octopus_msmedications.controller;
 
-import com.br.octopus_msmedications.domain.dto.request.MedicacaoRequest;
-import com.br.octopus_msmedications.domain.Medicacao;
+import com.br.octopus_msmedications.dto.request.MedicacaoRequest;
+import com.br.octopus_msmedications.dto.request.MedicacaoUpdateRequest;
+import com.br.octopus_msmedications.dto.response.MedicacaoResponse;
 import com.br.octopus_msmedications.service.MedicacaoService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import com.br.octopus_msmedications.domain.dto.response.MedicacaoResponse;
-import java.util.List;
-import com.br.octopus_msmedications.domain.dto.request.MedicacaoResquestUpdate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+import java.util.UUID;
 
 @RestController
-@RequestMapping("/medicacao")
+@RequestMapping("/api/medicacoes")
 @RequiredArgsConstructor
+@Tag(name = "Medicações")
+@SecurityRequirement(name = "bearerAuth")
 public class MedicacaoController {
 
-    private final MedicacaoService service; 
+    private final MedicacaoService service;
 
+    // Escrita: o veterinário é quem responde pelo que pode ser prescrito; admin mantém o cadastro.
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('ADMIN','VETERINARIO')")
+    public MedicacaoResponse criar(@Valid @RequestBody MedicacaoRequest request) {
+        return service.criar(request);
+    }
+
+    // Leitura: qualquer usuário autenticado (o auxiliar precisa consultar o medicamento no plantão).
     @GetMapping
-    public ResponseEntity<List<MedicacaoResponse>>listarTodos(){
-        return ResponseEntity.ok(service.listar());
+    public List<MedicacaoResponse> listar(
+            @RequestParam(required = false) String fabricante,
+            @RequestParam(required = false) String nomeComercial
+    ) {
+        if (fabricante != null && !fabricante.isBlank()) {
+            return service.listarPorFabricante(fabricante);
+        }
+        if (nomeComercial != null && !nomeComercial.isBlank()) {
+            return service.listarPorNomeComercial(nomeComercial);
+        }
+        return service.listar();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<MedicacaoResponse>findById(@PathVariable Long id){
-        return ResponseEntity.ok().body(service.listarPorId(id));
+    public MedicacaoResponse buscar(@PathVariable UUID id) {
+        return service.buscar(id);
     }
-
-    @PostMapping
-    public ResponseEntity<MedicacaoResponse> criar(@Valid @RequestBody MedicacaoRequest request){
-       MedicacaoResponse novaMedicacao = service.criar(request);
-       return  ResponseEntity.status(HttpStatus.CREATED).body(novaMedicacao);
-    }
-
 
     @PatchMapping("/{id}")
-    public ResponseEntity<MedicacaoResponse> update(@PathVariable Long id, @Valid @RequestBody MedicacaoResquestUpdate resquest){
-        return  ResponseEntity.ok().body(service.atualizarParcial(id,resquest));
+    @PreAuthorize("hasAnyRole('ADMIN','VETERINARIO')")
+    public MedicacaoResponse atualizar(@PathVariable UUID id, @Valid @RequestBody MedicacaoUpdateRequest request) {
+        return service.atualizarParcial(id, request);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ADMIN')")
+    public void remover(@PathVariable UUID id) {
+        service.remover(id);
     }
 }
-

@@ -1,17 +1,21 @@
 package com.br.octopus_msmedications.service;
 
-
 import com.br.octopus_msmedications.domain.Medicacao;
-import com.br.octopus_msmedications.domain.dto.request.MedicacaoResquestUpdate;
+import com.br.octopus_msmedications.dto.request.MedicacaoRequest;
+import com.br.octopus_msmedications.dto.request.MedicacaoUpdateRequest;
+import com.br.octopus_msmedications.dto.response.MedicacaoResponse;
+import com.br.octopus_msmedications.exception.RecursoDuplicadoException;
+import com.br.octopus_msmedications.exception.RecursoNaoEncontradoException;
+import com.br.octopus_msmedications.exception.RegraNegocioException;
 import com.br.octopus_msmedications.repository.MedicacaoRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import lombok.RequiredArgsConstructor;
-import com.br.octopus_msmedications.domain.dto.response.MedicacaoResponse;
 
-import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
-import  com.br.octopus_msmedications.domain.dto.request.MedicacaoRequest;
+import java.util.Set;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -19,85 +23,131 @@ public class MedicacaoService {
 
     private final MedicacaoRepository repository;
 
-    // CREATE (CRIAR)
     @Transactional
     public MedicacaoResponse criar(MedicacaoRequest request) {
+        if (repository.existsByNumeroRegistroAnvisa(request.numeroRegistroAnvisa())) {
+            throw new RecursoDuplicadoException("Registro ANVISA já cadastrado: " + request.numeroRegistroAnvisa());
+        }
+
         Medicacao medicacao = Medicacao.builder()
                 .nomeComercial(request.nomeComercial())
                 .principioAtivo(request.principioAtivo())
                 .concentracao(request.concentracao())
                 .formaFarmaceutica(request.formaFarmaceutica())
                 .unidadeMedidaEmbalagem(request.unidadeMedidaEmbalagem())
+                .tipoEsquema(request.tipoEsquema())
                 .dataVencimento(request.dataVencimento())
                 .fabricante(request.fabricante())
                 .numeroRegistroAnvisa(request.numeroRegistroAnvisa())
                 .build();
 
-        return MedicacaoResponse.from(repository.save(medicacao));
+        // Salva antes de ligar as interações: o par precisa dos dois lados já persistidos.
+        Medicacao salva = repository.save(medicacao);
+        definirInteracoes(salva, request.interacoesProibidas());
+        return MedicacaoResponse.from(salva);
     }
 
-    // LISTAR TODOS (READ)
     @Transactional(readOnly = true)
     public List<MedicacaoResponse> listar() {
         return repository.findAll().stream().map(MedicacaoResponse::from).toList();
     }
 
-    // LISTAR POR ID (READ)
     @Transactional(readOnly = true)
-    public MedicacaoResponse listarPorId(Long id) {
-        Medicacao medicacao = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Medicação com o id" + id + " não encontrada"));
+    public MedicacaoResponse buscar(UUID id) {
+        return MedicacaoResponse.from(obter(id));
+    }
+
+    @Transactional(readOnly = true)
+    public List<MedicacaoResponse> listarPorFabricante(String fabricante) {
+        return repository.findByFabricanteIgnoreCase(fabricante).stream().map(MedicacaoResponse::from).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<MedicacaoResponse> listarPorNomeComercial(String nomeComercial) {
+        return repository.findByNomeComercialContainingIgnoreCase(nomeComercial).stream()
+                .map(MedicacaoResponse::from)
+                .toList();
+    }
+
+    @Transactional
+    public MedicacaoResponse atualizarParcial(UUID id, MedicacaoUpdateRequest request) {
+        Medicacao medicacao = obter(id);
+
+        if (preenchido(request.nomeComercial())) {
+            medicacao.setNomeComercial(request.nomeComercial());
+        }
+        if (preenchido(request.principioAtivo())) {
+            medicacao.setPrincipioAtivo(request.principioAtivo());
+        }
+        if (preenchido(request.concentracao())) {
+            medicacao.setConcentracao(request.concentracao());
+        }
+        if (preenchido(request.formaFarmaceutica())) {
+            medicacao.setFormaFarmaceutica(request.formaFarmaceutica());
+        }
+        if (preenchido(request.unidadeMedidaEmbalagem())) {
+            medicacao.setUnidadeMedidaEmbalagem(request.unidadeMedidaEmbalagem());
+        }
+        if (request.tipoEsquema() != null) {
+            medicacao.setTipoEsquema(request.tipoEsquema());
+        }
+        if (request.dataVencimento() != null) {
+            medicacao.setDataVencimento(request.dataVencimento());
+        }
+        if (preenchido(request.fabricante())) {
+            medicacao.setFabricante(request.fabricante());
+        }
+        if (preenchido(request.numeroRegistroAnvisa())
+                && !request.numeroRegistroAnvisa().equals(medicacao.getNumeroRegistroAnvisa())) {
+            if (repository.existsByNumeroRegistroAnvisa(request.numeroRegistroAnvisa())) {
+                throw new RecursoDuplicadoException("Registro ANVISA já cadastrado: " + request.numeroRegistroAnvisa());
+            }
+            medicacao.setNumeroRegistroAnvisa(request.numeroRegistroAnvisa());
+        }
+        // Lista ausente (null) mantém as interações atuais; lista vazia apaga todas.
+        if (request.interacoesProibidas() != null) {
+            definirInteracoes(medicacao, request.interacoesProibidas());
+        }
+
         return MedicacaoResponse.from(medicacao);
     }
 
-    //LISTAR POR FABRICANTE (READ)
-
-    @Transactional(readOnly = true)
-    public List<MedicacaoResponse> ListarPorFabricante(String fabricante) {
-        return repository.findByFabricanteIgnoreCase(fabricante);
-    }
-
-    //LISTAR POR NOMECOMERCIAL (READ)
-    @Transactional(readOnly = true)
-    public List<MedicacaoResponse> ListarPorNomeComercial(String nomeComercial) {
-        return repository.findByNomeComercialIgnoreCase(nomeComercial);
-    }
-
-    //UPDATE (PATCH atualiza algumas informações somente)
     @Transactional
-    public MedicacaoResponse atualizarParcial(Long id, MedicacaoResquestUpdate resquest) {
-        Medicacao medicacao = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Medicação com o id" + id + "não encontrada"));
-        if (resquest.nomeComercial() != null && !resquest.nomeComercial().isBlank()){
-            medicacao.setNomeComercial(resquest.nomeComercial());
-        }
-        if (resquest.principioAtivo() !=null && !resquest.principioAtivo().isBlank()){
-            medicacao.setPrincipioAtivo(resquest.principioAtivo());
-        }
-        if (resquest.concentracao() !=null && !resquest.concentracao().isBlank()){
-            medicacao.setConcentracao((resquest.concentracao()));
-        }
-        if (resquest.formaFarmaceutica() !=null && !resquest.formaFarmaceutica().isBlank()){
-            medicacao.setFormaFarmaceutica(resquest.formaFarmaceutica());
-        }
-        if (resquest.unidadeMedidaEmbalagem() != null && !resquest.unidadeMedidaEmbalagem().isBlank()){
-            medicacao.setUnidadeMedidaEmbalagem(resquest.unidadeMedidaEmbalagem());
-        }
-        if (resquest.dataVencimento() != null){
-            medicacao.setDataVencimento(resquest.dataVencimento());
-        }
-        if(resquest.fabricante() != null && !resquest.fabricante().isBlank()){
-            medicacao.setFabricante(resquest.fabricante());
-        }
-        if (resquest.numeroRegistroAnvisa() != null && !resquest.numeroRegistroAnvisa().isBlank()){
-            medicacao.setNumeroRegistroAnvisa(resquest.numeroRegistroAnvisa());
-        }
-        return MedicacaoResponse.from(repository.save(medicacao));
+    public void remover(UUID id) {
+        Medicacao medicacao = obter(id);
+        // Desfaz os dois sentidos antes de apagar, senão a FK da tabela de interações barra o delete.
+        definirInteracoes(medicacao, Set.of());
+        repository.delete(medicacao);
     }
 
+    // Substitui a lista de interações desta medicação, mantendo a simetria dos pares.
+    private void definirInteracoes(Medicacao medicacao, Set<UUID> idsDesejados) {
+        Set<UUID> ids = idsDesejados == null ? Set.of() : idsDesejados;
 
+        if (ids.contains(medicacao.getId())) {
+            throw new RegraNegocioException("Um medicamento não pode ter interação proibida consigo mesmo.");
+        }
+
+        for (Medicacao atual : new LinkedHashSet<>(medicacao.getInteracoesProibidas())) {
+            if (!ids.contains(atual.getId())) {
+                medicacao.removerInteracao(atual);
+            }
+        }
+
+        for (UUID idProibido : ids) {
+            Medicacao proibida = repository.findById(idProibido)
+                    .orElseThrow(() -> new RecursoNaoEncontradoException(
+                            "Medicação informada como interação proibida não encontrada: " + idProibido));
+            medicacao.adicionarInteracao(proibida);
+        }
+    }
+
+    private Medicacao obter(UUID id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Medicação não encontrada: " + id));
+    }
+
+    private boolean preenchido(String valor) {
+        return valor != null && !valor.isBlank();
+    }
 }
-
-
-
-
