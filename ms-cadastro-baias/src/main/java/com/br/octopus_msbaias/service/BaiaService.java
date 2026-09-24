@@ -25,8 +25,8 @@ public class BaiaService {
 
     @Transactional
     public BaiaResponse criar(BaiaRequest request) {
-        if (baiaRepository.count() >= LIMITE_BAIAS) {
-            throw new RegraNegocioException("Limite de " + LIMITE_BAIAS + " baias atingido; não é possível cadastrar mais.");
+        if (baiaRepository.countByAtivoTrue() >= LIMITE_BAIAS) {
+            throw new RegraNegocioException("Limite de " + LIMITE_BAIAS + " baias ativas atingido; desative uma para cadastrar outra.");
         }
         if (baiaRepository.existsByNomeIgnoreCase(request.nome())) {
             throw new RecursoDuplicadoException("Já existe uma baia com o nome '" + request.nome() + "'");
@@ -70,6 +70,19 @@ public class BaiaService {
     public BaiaResponse desativar(UUID id) {
         Baia baia = buscarEntidade(id);
         baia.setAtivo(false);
+        return BaiaResponse.from(baia);
+    }
+
+    @Transactional
+    public BaiaResponse ativar(UUID id) {
+        Baia baia = buscarEntidade(id);
+        if (baia.isAtivo()) {
+            return BaiaResponse.from(baia);
+        }
+        if (baiaRepository.countByAtivoTrue() >= LIMITE_BAIAS) {
+            throw new RegraNegocioException("Limite de " + LIMITE_BAIAS + " baias ativas atingido; desative uma para reativar esta.");
+        }
+        baia.setAtivo(true);
         return BaiaResponse.from(baia);
     }
 

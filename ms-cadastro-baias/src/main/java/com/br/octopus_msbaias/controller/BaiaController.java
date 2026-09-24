@@ -61,4 +61,10 @@ public class BaiaController {
     public BaiaResponse desativar(@PathVariable UUID id) {
         return baiaService.desativar(id);
     }
+
+    @PatchMapping("/{id}/ativar")
+    @PreAuthorize("hasRole('ADMIN')")
+    public BaiaResponse ativar(@PathVariable UUID id) {
+        return baiaService.ativar(id);
+    }
 }
