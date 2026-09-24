@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mapas de Processo do Plantão</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --bg:#f3f6f4; --card:#ffffff; --ink:#17242b; --ink-soft:#5b6c74; --line:#cdd8d4;
+    --accent:#1f7f6b; --accent-deep:#135547; --accent-soft:#e3f2ec;
+    --lane-a:#ffffff; --lane-b:#edf3f0; --gutter:#e4ece8;
+    --auto-bg:#e3f2ec; --auto-stroke:#1f7f6b;
+    --dec-bg:#fbf1d8; --dec-stroke:#9c6a12;
+    --warn:#b7791f; --crit:#b5443c;
+    --font-display:"Bricolage Grotesque","Avenir Next","Segoe UI",sans-serif;
+    --font-body:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
+    --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0e1517; --card:#162024; --ink:#e6edef; --ink-soft:#9db0b6; --line:#2b3b40;
+      --accent:#4fc4a6; --accent-deep:#8ddcc6; --accent-soft:#183a33;
+      --lane-a:#141f23; --lane-b:#0f181b; --gutter:#1a272c;
+      --auto-bg:#173931; --auto-stroke:#4fc4a6;
+      --dec-bg:#3a2d12; --dec-stroke:#e3b45c;
+      --warn:#e3b45c; --crit:#e8877f;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1517; --card:#162024; --ink:#e6edef; --ink-soft:#9db0b6; --line:#2b3b40;
+    --accent:#4fc4a6; --accent-deep:#8ddcc6; --accent-soft:#183a33;
+    --lane-a:#141f23; --lane-b:#0f181b; --gutter:#1a272c;
+    --auto-bg:#173931; --auto-stroke:#4fc4a6;
+    --dec-bg:#3a2d12; --dec-stroke:#e3b45c;
+    --warn:#e3b45c; --crit:#e8877f;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.55}
+  a{color:var(--accent-deep)}
+  .wrap{max-width:1240px;margin:0 auto;padding-block:32px 64px;padding-inline:20px;display:grid;grid-template-columns:220px minmax(0,1fr);gap:40px}
+  @media (max-width:860px){.wrap{grid-template-columns:minmax(0,1fr);gap:24px}}
+  header.top{grid-column:1/-1;max-width:760px}
+  .eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-deep)}
+  h1{font-family:var(--font-display);font-weight:700;font-size:clamp(30px,4.5vw,44px);line-height:1.05;margin:8px 0 14px;text-wrap:balance;letter-spacing:-.01em}
+  .lead{font-size:17px;color:var(--ink-soft);margin:0 0 6px;max-width:66ch}
+  nav.index{position:sticky;top:env(safe-area-inset-top,0px);align-self:start;padding-top:8px}
+  @media (max-width:860px){nav.index{position:static}}
+  nav.index h2{font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 10px}
+  nav.index ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+  @media (max-width:860px){nav.index ol{flex-direction:row;flex-wrap:wrap;gap:6px}}
+  nav.index a{display:flex;gap:10px;align-items:baseline;text-decoration:none;color:var(--ink);padding:6px 8px;border-radius:6px;font-size:13.5px;line-height:1.3}
+  nav.index a:hover,nav.index a:focus-visible{background:var(--accent-soft);outline:none}
+  nav.index a .n{font-family:var(--font-mono);font-size:11px;color:var(--ink-soft);min-width:1.6em}
+  main{min-width:0;display:flex;flex-direction:column;gap:52px}
+  section.map{scroll-margin-top:16px}
+  section.map h2{font-family:var(--font-display);font-weight:700;font-size:26px;line-height:1.15;margin:4px 0 8px;letter-spacing:-.01em;text-wrap:balance}
+  .meta{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13.5px;color:var(--ink-soft);margin:0 0 14px}
+  .meta b{color:var(--ink);font-weight:600}
+  figure{margin:0;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .scroller{overflow-x:auto;overscroll-behavior-x:contain}
+  .scroller svg{display:block;height:auto;color:var(--ink);font-family:var(--font-body)}
+  figcaption{padding:10px 16px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-soft);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  figcaption .hint{font-family:var(--font-mono);font-size:11.5px}
+  .notes{margin:16px 0 0;padding:0 0 0 18px;max-width:72ch}
+  .notes li{margin:0 0 6px}
+  .tag{font-family:var(--font-mono);font-size:11.5px;padding:1px 6px;border-radius:4px;background:var(--accent-soft);color:var(--accent-deep);white-space:nowrap}
+  .tag.warn{background:var(--dec-bg);color:var(--dec-stroke)}
+  .legend{grid-column:1/-1;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 22px;align-items:center}
+  .legend .item{display:flex;align-items:center;gap:12px;font-size:13.5px}
+  .legend svg{flex:none;color:var(--ink)}
+  .legend p{grid-column:1/-1;margin:2px 0 0;font-size:13.5px;color:var(--ink-soft)}
+  /* símbolos do diagrama */
+  .lane-bg.a{fill:var(--lane-a)} .lane-bg.b{fill:var(--lane-b)}
+  .lane-gutter{fill:var(--gutter)}
+  .lane-line{stroke:var(--line);stroke-width:1}
+  .frame{fill:none;stroke:var(--line);stroke-width:1}
+  .lane-label{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;fill:var(--ink)}
+  .n-action{fill:var(--card);stroke:var(--ink);stroke-width:1.3}
+  .n-auto{fill:var(--auto-bg);stroke:var(--auto-stroke);stroke-width:1.3;stroke-dasharray:5 3}
+  .n-dec{fill:var(--dec-bg);stroke:var(--dec-stroke);stroke-width:1.3}
+  .n-start{fill:var(--ink)} .n-end-o{fill:none;stroke:var(--ink);stroke-width:1.6} .n-end-i{fill:var(--ink)}
+  .n-text{font-size:12px;fill:var(--ink)} .n-text.dec{font-size:11.5px}
+  .n-autotag{font-size:8.5px;letter-spacing:.1em;fill:var(--auto-stroke);font-weight:600}
+  .edge{fill:none;stroke:var(--ink);stroke-width:1.3}
+  .arrhead{fill:var(--ink)}
+  .e-label{font-size:11px;fill:var(--ink-soft);paint-order:stroke;stroke:var(--card);stroke-width:4px;stroke-linejoin:round}
+  .e-label.guard{fill:var(--dec-stroke);font-weight:500}
+  footer{grid-column:1/-1;margin-top:24px;padding-top:16px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-soft);max-width:72ch}
+  @media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Plantão · VidaPet · Análise e Projeto de Sistemas II</div>
+    <h1>Mapas de Processo do Plantão</h1>
+    <p class="lead">Três diagramas de atividade no estilo UML, um por funcionalidade já implementada (usuários, baias e medicamentos), com raias por ator. Não há raia "Sistema": o que o Plantão faz sozinho aparece como etapa tracejada na raia de quem a disparou.</p>
+  </header>
+
+  <div class="legend" aria-label="Legenda dos símbolos">
+    <div class="item"><svg width="44" height="30" viewBox="0 0 44 30" aria-hidden="true"><circle cx="22" cy="15" r="7" class="n-start"/></svg>Início do processo</div>
+    <div class="item"><svg width="44" height="30" viewBox="0 0 44 30" aria-hidden="true"><circle cx="22" cy="15" r="9" class="n-end-o"/><circle cx="22" cy="15" r="5" class="n-end-i"/></svg>Fim do processo</div>
+    <div class="item"><svg width="64" height="34" viewBox="0 0 64 34" aria-hidden="true"><rect x="3" y="4" width="58" height="26" rx="7" class="n-action"/></svg>Atividade feita pelo ator da raia</div>
+    <div class="item"><svg width="64" height="34" viewBox="0 0 64 34" aria-hidden="true"><rect x="3" y="4" width="58" height="26" rx="7" class="n-auto"/><text x="9" y="13" class="n-autotag">AUTO</text></svg>Etapa automática do Plantão, na raia de quem a disparou</div>
+    <div class="item"><svg width="64" height="40" viewBox="0 0 64 40" aria-hidden="true"><polygon points="32,3 61,20 32,37 3,20" class="n-dec"/></svg>Decisão; as saídas levam a condição entre colchetes</div>
+    <div class="item"><svg width="64" height="30" viewBox="0 0 64 30" aria-hidden="true"><rect x="2" y="2" width="60" height="26" class="frame"/><rect x="2" y="2" width="18" height="26" class="lane-gutter"/></svg>Raia: quem executa as atividades daquela faixa</div>
+    <p>Regras de negócio do TAP aparecem como <span class="tag">RN-xx</span>; o que ainda não está definido no TAP e foi assumido pela squad aparece como <span class="tag warn">premissa</span>, para confirmar com o cliente.</p>
+  </div>
+
+  <nav class="index" aria-label="Índice dos mapas">
+    <h2>Mapas</h2>
+    <ol id="index"></ol>
+  </nav>
+
+  <main id="maps"></main>
+
+  <footer>Fonte: <code>TAP.md</code> (escopo do produto, cronograma das sprints e riscos) e o estado atual do código dos microsserviços <code>octopus-msusuario</code>, <code>ms-cadastro-baias</code> e <code>octopus-msmedications</code>. Internação, prescrição, painel e relatório entram nos mapas conforme forem implementados (Sprints 2 a 4).</footer>
+</div>
+
+<script>
+(function(){
+  // ---------- dados dos mapas ----------
+  // nó: [id, raia, coluna, tipo, texto, linha]  tipo: start | end | action | auto | decision
+  // aresta: [de, para, rótulo, rota]  rota: h | v | hv | vh | loop | loopup (padrão: inferida)
+  const MAPS = [
+  {
+    id:'acesso', num:'1', title:'Gestão de usuários e acesso', eyebrow:'Login simples por perfil · octopus-msusuario',
+    actors:'Admin e Colaborador (veterinário, auxiliar ou recepcionista)',
+    lanes:['Admin','Colaborador'], rows:[1,2],
+    nodes:[
+      ['s','Admin',0,'start'],
+      ['a1','Admin',1,'action','Escolhe o tipo de\nperfil a cadastrar'],
+      ['a2','Admin',2,'action','Informa dados,\ne-mail e senha inicial'],
+      ['d1','Admin',3,'decision','E-mail, CPF ou\nCRMV já usado?'],
+      ['a3','Admin',4,'auto','Conta criada\ne ativa'],
+      ['s2','Admin',7,'start'],
+      ['a4','Admin',8,'action','Desativa a conta\n(colaborador saiu)'],
+      ['c1','Colaborador',5,'action','Informa e-mail\ne senha'],
+      ['d2','Colaborador',6,'decision','Credenciais\ncorretas?'],
+      ['d3','Colaborador',7,'decision','Conta\nativa?'],
+      ['c2','Colaborador',8,'action','Usa o Plantão\ncom seu perfil'],
+      ['e1','Colaborador',9,'end'],
+      ['x1','Colaborador',7,'action','Acesso negado',1],
+      ['e2','Colaborador',8,'end','',1],
+      ['n1','Colaborador',10,'auto','Sessão invalidada;\nperde o acesso'],
+      ['e3','Colaborador',11,'end']
+    ],
+    edges:[
+      ['s','a1'],['a1','a2'],['a2','d1'],['d1','a2','sim · corrige','loop'],['d1','a3','não'],['a3','c1','','hv'],
+      ['c1','d2'],['d2','c1','não','loop'],['d2','d3','sim'],['d3','c2','sim'],['d3','x1','não','v'],['x1','e2'],['c2','e1'],
+      ['s2','a4'],['a4','n1','','hv'],['n1','e3']
+    ],
+    notes:[
+      'Só o Admin cadastra veterinário, auxiliar, recepcionista e outros admins; o primeiro admin nasce na subida do sistema.',
+      'Tutor não faz login: é cadastrado pela recepção, sem conta de acesso (o cadastro de tutores e animais já existe no código, mas não está mapeado aqui).',
+      'Desativar a conta invalida na hora os acessos já abertos, não só os próximos logins.'
+    ]
+  },
+  {
+    id:'medicamentos', num:'2', title:'Cadastro de medicamentos', eyebrow:'Tela 3 · Sprint 1 · octopus-msmedications',
+    actors:'Veterinário',
+    lanes:['Veterinário'], rows:[2],
+    nodes:[
+      ['s','Veterinário',0,'start'],
+      ['v1','Veterinário',1,'action','Informa nome, princípio\nativo e concentração'],
+      ['d1','Veterinário',2,'decision','Já existe\ncadastro?'],
+      ['v1b','Veterinário',2,'action','Mantém o cadastro\nexistente',1],
+      ['e2','Veterinário',3,'end','',1],
+      ['v2','Veterinário',3,'action','Informa fabricante,\nregistro ANVISA\ne validade'],
+      ['d2','Veterinário',4,'decision','Tipo de\nesquema?'],
+      ['v3','Veterinário',6,'action','Contínuo: intervalo\nfixo; dose perdida\ndesloca as próximas'],
+      ['v4','Veterinário',5,'action','Sintomático: dose\nperdida é descartada',1],
+      ['v5','Veterinário',7,'action','Lista as interações\nproibidas'],
+      ['a1','Veterinário',8,'auto','Medicamento liberado\npara prescrição'],
+      ['e','Veterinário',9,'end']
+    ],
+    edges:[
+      ['s','v1'],['v1','d1'],['d1','v1b','sim','v'],['v1b','e2'],['d1','v2','não'],['v2','d2'],
+      ['d2','v3','contínuo'],['d2','v4','sintomático','vh'],['v3','v5'],['v4','v5','','hv'],['v5','a1'],['a1','e']
+    ],
+    notes:[
+      'O tipo de esquema define o que acontece com uma dose perdida: contínuo desloca as próximas (<span class="tag">RN-07</span>), sintomático descarta (<span class="tag">RN-08</span>). Isso será usado pelo painel de doses (Sprint 3).',
+      'Interações proibidas são pares de medicamentos; a prescrição (Sprint 3) vai bloquear o par (<span class="tag">RN-03</span>).',
+      'Fabricante, registro ANVISA e validade vêm da entidade <code>Medicacao</code> já modelada; o TAP pede só nome, esquema e interações.'
+    ]
+  },
+  {
+    id:'baias', num:'3', title:'Cadastro de baias', eyebrow:'Tela 2 · Sprint 1 · ms-cadastro-baias',
+    actors:'Admin',
+    lanes:['Admin'], rows:[2],
+    nodes:[
+      ['s','Admin',0,'start'],
+      ['a1','Admin',1,'action','Informa nome e\ndescrição da baia'],
+      ['a2','Admin',2,'action','Escolhe o tipo:\ncoletiva, isolamento\nou ninhada'],
+      ['d1','Admin',3,'decision','Tipo é\nisolamento?'],
+      ['a4','Admin',4,'action','Define a capacidade\n(máx. 6 animais)'],
+      ['a3','Admin',4,'auto','Capacidade fixa:\n1 animal',1],
+      ['d2','Admin',5,'decision','Capacidade\nentre 1 e 6?'],
+      ['a5','Admin',6,'auto','Baia cadastrada\ne marcada livre'],
+      ['e','Admin',7,'end']
+    ],
+    edges:[
+      ['s','a1'],['a1','a2'],['a2','d1'],['d1','a4','não'],['d1','a3','sim','vh'],['a4','d2'],['d2','a4','não · ajusta','loop'],
+      ['d2','a5','sim'],['a3','a5','','hv'],['a5','e']
+    ],
+    notes:[
+      'A clínica tem 12 baias; o limite de 6 animais por baia vem do modelo atual (<code>@Max(6)</code>).',
+      'Baia de isolamento com capacidade 1 é <span class="tag warn">premissa</span> da squad, coerente com o isolamento obrigatório do TAP (internação, Sprint 2), mas não está escrito lá.',
+      'Quem cadastra baias (Admin) também é <span class="tag warn">premissa</span>: o TAP não nomeia o responsável.'
+    ]
+  }
+  ];
+
+  // ---------- renderizador ----------
+  const CW=180, RH=120, GUT=150, PADX=24, PADY=16;
+  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const tw=s=>s.length*6.4;
+
+  function render(d){
+    const laneIdx={}; const lanes=[]; let y=PADY;
+    d.lanes.forEach((name,i)=>{const rows=(d.rows&&d.rows[i])||1; const L={name,top:y,h:rows*RH,rows,i}; lanes.push(L); laneIdx[name]=L; y+=L.h;});
+    const H=y+PADY;
+    const N={}; let maxCol=0;
+    d.nodes.forEach(n=>{
+      const [id,lane,col,type,text='',row=0]=n; const L=laneIdx[lane]; const lines=text?text.split('\n'):[];
+      let w,h;
+      if(type==='start'){w=h=16} else if(type==='end'){w=h=22}
+      else if(type==='decision'){w=140;h=Math.max(66,lines.length*13+36)}
+      else {w=136;h=Math.max(46,lines.length*14+18)}
+      N[id]={id,L,col,row,type,lines,w,h,cx:GUT+PADX+col*CW+CW/2,cy:L.top+(row+0.5)*RH};
+      if(col>maxCol)maxCol=col;
+    });
+    const W=GUT+PADX*2+(maxCol+1)*CW;
+    let s='';
+    // raias
+    lanes.forEach((L,i)=>{
+      s+=`<rect x="${PADX}" y="${L.top}" width="${W-2*PADX}" height="${L.h}" class="lane-bg ${i%2?'b':'a'}"/>`;
+      s+=`<rect x="${PADX}" y="${L.top}" width="${GUT}" height="${L.h}" class="lane-gutter"/>`;
+      if(i>0)s+=`<line x1="${PADX}" y1="${L.top}" x2="${W-PADX}" y2="${L.top}" class="lane-line"/>`;
+      const ls=L.name.split('\n'); const y0=L.top+L.h/2-(ls.length-1)*8+4;
+      s+=`<text x="${PADX+14}" y="${y0}" class="lane-label">`+ls.map((t,k)=>`<tspan x="${PADX+14}" dy="${k?16:0}">${esc(t)}</tspan>`).join('')+`</text>`;
+    });
+    s+=`<line x1="${PADX+GUT}" y1="${PADY}" x2="${PADX+GUT}" y2="${H-PADY}" class="lane-line"/>`;
+    s+=`<rect x="${PADX}" y="${PADY}" width="${W-2*PADX}" height="${H-2*PADY}" class="frame"/>`;
+    // arestas
+    const port=(n,side)=>side==='r'?[n.cx+n.w/2,n.cy]:side==='l'?[n.cx-n.w/2,n.cy]:side==='t'?[n.cx,n.cy-n.h/2]:[n.cx,n.cy+n.h/2];
+    const rowTop=n=>n.L.top+n.row*RH, rowBot=n=>n.L.top+(n.row+1)*RH;
+    d.edges.forEach(e=>{
+      const [fa,ta,label='',routeIn]=e; const f=N[fa],t=N[ta];
+      let route=routeIn;
+      if(!route){ if(f.cy===t.cy) route=t.cx>f.cx?'h':'loop'; else if(f.cx===t.cx) route='v'; else route='hv'; }
+      let pts=[], lab=null;
+      const down=t.cy>f.cy, right=t.cx>f.cx;
+      if(route==='h'){ const a=port(f,'r'),b=port(t,'l'); pts=[a,b];
+        const gap=b[0]-a[0], w=tw(label);
+        lab= w>gap-10 ? [ (a[0]+b[0])/2, Math.min(f.cy-f.h/2,t.cy-t.h/2)-6, 'middle'] : [a[0]+4, f.cy-7, 'start'];
+      } else if(route==='v'){ const a=port(f,down?'b':'t'),b=port(t,down?'t':'b'); pts=[a,b]; lab=[a[0]+6,a[1]+(down?16:-8),'start'];
+      } else if(route==='hv'){ const a=port(f,'r'),b=port(t,down?'t':'b'); pts=[a,[t.cx,f.cy],b]; lab=[a[0]+4,f.cy-7,'start'];
+      } else if(route==='vh'){ const a=port(f,down?'b':'t'),b=port(t,right?'l':'r'); pts=[a,[f.cx,t.cy],b]; lab=[a[0]+6,a[1]+(down?16:-8),'start'];
+      } else if(route==='loop'){ const yl=rowBot(f)-10; const a=port(f,'b'),b=port(t,'b'); pts=[a,[f.cx,yl],[t.cx,yl],b]; lab=[(f.cx+t.cx)/2,yl-4,'middle'];
+      } else if(route==='loopup'){ const yl=rowTop(f)+10; const a=port(f,'t'),b=port(t,'t'); pts=[a,[f.cx,yl],[t.cx,yl],b]; lab=[(f.cx+t.cx)/2,yl+13,'middle']; }
+      s+=`<polyline points="${pts.map(p=>p.join(',')).join(' ')}" class="edge" marker-end="url(#arr-${d.id})"/>`;
+      if(label){ const guard=f.type==='decision'; s+=`<text x="${lab[0]}" y="${lab[1]}" text-anchor="${lab[2]}" class="e-label${guard?' guard':''}">${esc(guard?'['+label+']':label)}</text>`; }
+    });
+    // nós
+    Object.values(N).forEach(n=>{
+      if(n.type==='start'){ s+=`<circle cx="${n.cx}" cy="${n.cy}" r="8" class="n-start"/>`; return; }
+      if(n.type==='end'){ s+=`<circle cx="${n.cx}" cy="${n.cy}" r="11" class="n-end-o"/><circle cx="${n.cx}" cy="${n.cy}" r="6" class="n-end-i"/>`; return; }
+      if(n.type==='decision'){ s+=`<polygon points="${n.cx},${n.cy-n.h/2} ${n.cx+n.w/2},${n.cy} ${n.cx},${n.cy+n.h/2} ${n.cx-n.w/2},${n.cy}" class="n-dec"/>`; }
+      else { s+=`<rect x="${n.cx-n.w/2}" y="${n.cy-n.h/2}" width="${n.w}" height="${n.h}" rx="8" class="${n.type==='auto'?'n-auto':'n-action'}"/>`;
+             if(n.type==='auto') s+=`<text x="${n.cx-n.w/2+7}" y="${n.cy-n.h/2+10}" class="n-autotag">AUTO</text>`; }
+      const lh=n.type==='decision'?13:14; const y0=n.cy-(n.lines.length-1)*lh/2+4+(n.type==='auto'?2:0);
+      s+=`<text x="${n.cx}" y="${y0}" text-anchor="middle" class="n-text${n.type==='decision'?' dec':''}">`+n.lines.map((t,k)=>`<tspan x="${n.cx}" dy="${k?lh:0}">${esc(t)}</tspan>`).join('')+`</text>`;
+    });
+    const defs=`<defs><marker id="arr-${d.id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="arrhead"/></marker></defs>`;
+    return `<svg viewBox="0 0 ${W} ${H}" width="${W}" role="img" aria-label="Mapa ${d.num}: ${esc(d.title)}, com raias ${d.lanes.map(l=>l.replace('\n',' ')).join(', ')}">${defs}${s}</svg>`;
+  }
+
+  const main=document.getElementById('maps'), idx=document.getElementById('index');
+  MAPS.forEach(d=>{
+    const sec=document.createElement('section'); sec.className='map'; sec.id='mapa-'+d.id;
+    sec.innerHTML=`<div class="eyebrow">Mapa ${d.num} · ${esc(d.eyebrow)}</div><h2>${esc(d.title)}</h2>
+      <p class="meta"><span><b>Raias:</b> ${esc(d.actors)}</span><span><b>Decisões:</b> ${d.nodes.filter(n=>n[3]==='decision').length}</span><span><b>Etapas automáticas:</b> ${d.nodes.filter(n=>n[3]==='auto').length}</span></p>
+      <figure><div class="scroller">${render(d)}</div><figcaption><span>Mapa ${d.num} — ${esc(d.title)}.</span><span class="hint">↔ role para o lado para ver o fluxo inteiro</span></figcaption></figure>
+      <ul class="notes">${d.notes.map(n=>`<li>${n}</li>`).join('')}</ul>`;
+    main.appendChild(sec);
+    const li=document.createElement('li'); li.innerHTML=`<a href="#mapa-${d.id}"><span class="n">${d.num}</span><span>${esc(d.title)}</span></a>`; idx.appendChild(li);
+  });
+})();
+</script>
+
+</body>
+</html>
