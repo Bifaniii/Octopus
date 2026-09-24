@@ -10,4 +10,6 @@ public interface BaiaRepository extends JpaRepository<Baia, UUID> {
     boolean existsByNomeIgnoreCase(String nome);
 
     boolean existsByNomeIgnoreCaseAndIdNot(String nome, UUID id);
+
+    long countByAtivoTrue();
 }
