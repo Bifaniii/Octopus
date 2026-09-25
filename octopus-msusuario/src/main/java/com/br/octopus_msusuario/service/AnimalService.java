@@ -34,9 +34,21 @@ public class AnimalService {
     }
 
     @Transactional(readOnly = true)
-    private AnimalResponse listarPorId(UUID id) throws AnimalNaoEncontradoException{
+    public AnimalResponse listarPorId(UUID id) throws AnimalNaoEncontradoException{
         Animal animal = animalRepository.findById(id)
             .orElseThrow(() -> new AnimalNaoEncontradoException("Animal não encontrado com o id: " + id));
+        return AnimalResponse.from(animal);
+    }
+
+    @Transactional
+    public AnimalResponse criar(AnimalRequest request) {
+        Animal animal = Animal.builder()
+        .nome(request.nome())
+        .tutor(request.tutor())
+        .especie(request.especie())
+        .dataUltimaAntirrabica(request.dataAntirrabica())
+        .build();
+
         return AnimalResponse.from(animal);
     }
 }
