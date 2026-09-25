@@ -4,6 +4,7 @@ import com.br.octopus_msusuario.domain.Animal;
 import com.br.octopus_msusuario.domain.Tutor;
 import com.br.octopus_msusuario.dto.request.AnimalRequest;
 import com.br.octopus_msusuario.dto.response.AnimalResponse;
+import com.br.octopus_msusuario.exception.AnimalNaoEncontradoException;
 import com.br.octopus_msusuario.repository.AnimalRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,5 +31,12 @@ public class AnimalService {
     @Transactional(readOnly = true)
     public List<AnimalResponse> listar() {
         return animalRepository.findAll().stream().map(AnimalResponse::from).toList();
+    }
+
+    @Transactional(readOnly = true)
+    private AnimalResponse listarPorId(UUID id) throws AnimalNaoEncontradoException{
+        Animal animal = animalRepository.findById(id)
+            .orElseThrow(() -> new AnimalNaoEncontradoException("Animal não encontrado com o id: " + id));
+        return AnimalResponse.from(animal);
     }
 }
