@@ -1,21 +1,26 @@
 package com.br.octopus_msusuario.dto.request;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
-import com.br.octopus_msusuario.domain.Tutor;
-
+import com.br.octopus_msusuario.domain.Animal;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Size;
 
+// O tutor vem da rota (/api/tutores/{id}/animais) ou do TutorRequest que contém o animal.
 public record AnimalRequest(
         @NotBlank @Size(max = 100) String nome,
-
-        @NotBlank(message = "Tutor é obrigatório")
-        Tutor tutor,
-
         @NotBlank(message = "Especie é obrigatório")
+        @Size(max = 250)
         String especie,
-
-        LocalDateTime dataAntirrabica
+        @PastOrPresent
+        LocalDate dataAntirrabica
 ) {
+    public Animal toEntity() {
+        return Animal.builder()
+                .nome(nome)
+                .especie(especie)
+                .dataUltimaAntirrabica(dataAntirrabica)
+                .build();
+    }
 }
