@@ -2,7 +2,7 @@ package com.br.octopus_msusuario.dto.response;
 
 import com.br.octopus_msusuario.domain.Animal;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.UUID;
 
 public record AnimalResponse(
@@ -10,7 +10,7 @@ public record AnimalResponse(
         String nome,
         UUID tutorId,
         String especie,
-        LocalDateTime dataUltimaAntirrabica
+        LocalDate dataUltimaAntirrabica
 ) {
     public static AnimalResponse from(Animal animal) {
         return new AnimalResponse(

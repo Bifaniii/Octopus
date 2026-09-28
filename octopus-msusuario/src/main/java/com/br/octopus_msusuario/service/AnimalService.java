@@ -23,7 +23,7 @@ public class AnimalService {
     @Transactional
     public AnimalResponse criar(UUID tutorId, AnimalRequest request) {
         Tutor tutor = tutorService.obter(tutorId);
-        Animal animal = Animal.builder().nome(request.nome()).build();
+        Animal animal = request.toEntity();
         tutor.adicionarAnimal(animal);
         return AnimalResponse.from(animalRepository.save(animal));
     }
@@ -40,15 +40,4 @@ public class AnimalService {
         return AnimalResponse.from(animal);
     }
 
-    @Transactional
-    public AnimalResponse criar(AnimalRequest request) {
-        Animal animal = Animal.builder()
-        .nome(request.nome())
-        .tutor(request.tutor())
-        .especie(request.especie())
-        .dataUltimaAntirrabica(request.dataAntirrabica())
-        .build();
-
-        return AnimalResponse.from(animal);
-    }
 }

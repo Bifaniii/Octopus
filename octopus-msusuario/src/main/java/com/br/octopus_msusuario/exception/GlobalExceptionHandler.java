@@ -2,8 +2,6 @@ package com.br.octopus_msusuario.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-import org.apache.catalina.connector.Response;
-import org.hibernate.ObjectNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -51,9 +49,9 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.UNAUTHORIZED, msg, req, null);
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErroResponse> handleAnimalNaoEncontrado(ObjectNotFoundException ex, HttpServletRequest req) {
-        return build(HttpStatus.NOT_FOUND, "Animal não encontrado", req, null);
+    @ExceptionHandler(AnimalNaoEncontradoException.class)
+    public ResponseEntity<ErroResponse> handleAnimalNaoEncontrado(AnimalNaoEncontradoException ex, HttpServletRequest req) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage(), req, null);
     }
 
     @ExceptionHandler(AuthenticationException.class)
