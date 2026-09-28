@@ -4,7 +4,7 @@ Este arquivo fornece orientações ao Claude Code (claude.ai/code) ao trabalhar 
 
 > Este arquivo é versionado e vale para toda a squad. Não coloque nele valores de `.env`, senhas ou tokens,
 > só nomes de variáveis. A seção "Estado das branches" é um retrato datado: atualize quando mexer numa branch.
-> Última revisão: 24/09/2026 (fim da Sprint 1).
+> Última revisão: 27/09/2026 (fim da Sprint 1).
 
 ## Visão geral do repositório
 
@@ -43,12 +43,13 @@ sobe um MySQL separado.
 - **Restrições do TAP:** nada de integrações externas, notificações automáticas (e-mail/push) ou apps mobile;
   login simples baseado em perfis, sem infraestrutura de auth avançada.
 
-## Estado das branches (24/09/2026, fim da Sprint 1)
+## Estado das branches (27/09/2026, fim da Sprint 1)
 
 Branch por microsserviço, permanente. O `CLAUDE.md` é mantido igual em todas; o `README.md` de cada uma descreve
 o próprio módulo.
 
-- **`main`**: `octopus-msusuario`, `TAP.md`, `CLAUDE.md`, `README.md`, `docker-compose.yml` e `docs/`. Em `docs/`
+- **`main`**: `octopus-msusuario` (31 testes, CI no GitHub Actions), `TAP.md`, `CLAUDE.md`, `README.md`,
+  `docker-compose.yml` e `docs/`. Em `docs/`
   ficam os mapas de processo UML, numa página HTML autocontida gerada a partir de dados JS no próprio arquivo;
   para mapear algo novo, acrescente um objeto ao array `MAPS`. Esta branch está em produção no free-tier da AWS,
   então mudanças de código afetam o ambiente publicado: combine com a squad antes.

@@ -1,5 +1,7 @@
 # Octopus: Sistema Plantão (VidaPet)
 
+![CI](https://github.com/Bifaniii/Octopus/actions/workflows/ci.yml/badge.svg)
+
 Projeto acadêmico da disciplina **Análise e Projeto de Sistemas II**. O **Plantão** é um sistema de gestão de
 plantões e internações para a clínica veterinária *VidaPet*: um painel de medicação que mostra, a qualquer hora,
 o que está atrasado, o que vence na próxima hora e o que foi perdido.
@@ -27,8 +29,8 @@ MySQL 8.4 com Flyway, H2 só nos testes e springdoc OpenAPI.
 
 - [Panorama da Sprint 1](https://claude.ai/artifact/AZfbHYkBdQNs2ZBWSrMZ8U): o que está funcionando, como o
   login e o banco se encaixam, endpoints por perfil e o que falta publicar.
-- [Mapas de processo](https://claude.ai/artifact/WyTGNbR9fVCytDNhxibdDq): diagramas de atividade em UML, com
-  raias, das funcionalidades prontas. Há uma cópia versionada em [`docs/mapas-processo.html`](docs/mapas-processo.html).
+- [Mapas de processo](docs/mapas-processo.html): diagramas de atividade em UML, com raias, das
+  funcionalidades prontas. Página HTML autocontida, versionada no repositório.
 - [`TAP.md`](TAP.md), o Termo de Abertura do Projeto.
 - [`CLAUDE.md`](CLAUDE.md), com arquitetura, convenções e decisões técnicas.
 
@@ -87,12 +89,25 @@ cd octopus-msusuario
 | `POST /api/veterinarios` | Cadastra veterinário, com CRMV único por UF | `ADMIN` |
 | `POST /api/auxiliares`, `/api/recepcionistas`, `/api/admins` | Cadastra os demais perfis | `ADMIN` |
 | `PATCH /api/<perfil>/{id}/desativar` | Arquiva a conta e derruba os tokens dela | `ADMIN` |
-| `POST /api/tutores` | Cadastra tutor | `ADMIN`, `RECEPCIONISTA` |
-| `POST /api/tutores/{id}/animais` | Cadastra animal sob o tutor | `ADMIN`, `RECEPCIONISTA` |
+| `POST /api/tutores` | Cadastra tutor, opcionalmente já com os animais | `ADMIN`, `RECEPCIONISTA` |
+| `POST /api/tutores/{id}/animais` | Cadastra animal (nome, espécie e data da última antirrábica) sob o tutor | `ADMIN`, `RECEPCIONISTA` |
 | `GET /api/animais`, `/api/tutores` | Lista animais e tutores | `ADMIN`, `RECEPCIONISTA` |
 
 Nada é apagado no sistema: o que sai de uso é desativado (`ativo = false`) e continua no banco, para preservar
 o histórico.
+
+## Testes
+
+```bash
+cd octopus-msusuario && ./mvnw test
+```
+
+- Unitários com JUnit 5 e Mockito para os services (login, cadastro de usuário e veterinário, tutores, animais)
+  e para o `JwtService`.
+- `AutenticacaoEAutorizacaoTest` sobe a aplicação inteira com H2 e MockMvc e cobre login, 401/403 em JSON,
+  `@PreAuthorize` por perfil, e-mail duplicado (409), desativação derrubando tokens já emitidos e o cadastro de
+  tutor com animais.
+- O GitHub Actions roda a suíte a cada push na `main` e em pull requests.
 
 ## Convenções
 
@@ -104,11 +119,15 @@ o histórico.
 - Arquitetura e convenções para novos módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 24/09/2026 na branch `main`_
-- `CLAUDE.md` e `README.md` reescritos para o modelo de uma branch por microsserviço, sem merge nem PR entre
-  módulos, e para a regra de arquivar em vez de excluir.
-- Seção "Documentação" com o panorama da Sprint 1 e os mapas de processo.
-- Nenhuma mudança de código nesta branch. O `octopus-msusuario` publicado na AWS continua como está.
+_Push de 27/09/2026 na branch `main`_
+- Corrige a subida do `octopus-msusuario`: o `@ExceptionHandler(Exception.class)` do animal não encontrado
+  ficava ambíguo com o handler genérico e derrubava o contexto. Agora trata `AnimalNaoEncontradoException` (404).
+- `Animal.dataUltimaAntirrabica` passa a ser `LocalDate`, batendo com a coluna `DATE` da `V4` no
+  `ddl-auto=validate`. Validado subindo a aplicação contra MySQL 8.4 com as quatro migrations.
+- Espécie e data da vacina passam a ser gravadas no cadastro de tutor com animais e em
+  `POST /api/tutores/{id}/animais`. O `AnimalRequest` não recebe mais a entidade `Tutor` no corpo.
+- Testes: 31 no total, entre unitários com JUnit 5 e Mockito e integração com MockMvc. CI no GitHub Actions.
+- Mapas de processo linkados pela cópia versionada em `docs/`.
 
 ## Próximos passos
 - [ ] Publicar `ms-cadastro-baias` e `octopus-msmedications` no mesmo ambiente, com o mesmo `JWT_SECRET`.
@@ -116,5 +135,5 @@ _Push de 24/09/2026 na branch `main`_
       módulo já tem tabela de histórico própria no Flyway.
 - [ ] Sprint 2: microsserviço de internação, com alocação em baia e as validações RN-01 (capacidade) e RN-02
       (vacinação antirrábica irregular exige isolamento).
-- [ ] Completar a entidade `Animal` com espécie e data da última vacina antirrábica, via nova migration.
+- [ ] Expor `GET /api/animais/{id}`, que já existe no `AnimalService.listarPorId`.
 - [ ] Apagar a branch remota `feature/cadastro_login_usuario`, que já foi mergeada.
