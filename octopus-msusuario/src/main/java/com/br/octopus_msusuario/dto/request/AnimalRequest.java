@@ -9,10 +9,13 @@ import jakarta.validation.constraints.Size;
 
 // O tutor vem da rota (/api/tutores/{id}/animais) ou do TutorRequest que contém o animal.
 public record AnimalRequest(
-        @NotBlank @Size(max = 100) String nome,
+        @NotBlank @Size(max = 100)
+        String nome,
+       
         @NotBlank(message = "Especie é obrigatório")
         @Size(max = 250)
         String especie,
+       
         @PastOrPresent
         LocalDate dataAntirrabica
 ) {

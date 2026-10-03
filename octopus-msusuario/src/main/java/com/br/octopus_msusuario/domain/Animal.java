@@ -6,7 +6,6 @@ import lombok.*;
 import java.time.LocalDate;
 import java.util.UUID;
 
-// Stub mínimo: o cadastro completo de Animal (espécie, vacina antirrábica etc.) é outra tela do TAP.
 @Entity
 @Table(name = "tb_animais")
 @Getter
