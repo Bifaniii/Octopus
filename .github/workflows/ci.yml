@@ -1,0 +1,24 @@
+name: CI
+
+# O GitHub só roda um workflow que exista na branch empurrada. Como cada branch é um microsserviço,
+# cada uma tem o seu arquivo, apontando para a própria pasta.
+on:
+  push:
+    branches: [feature/register_medications]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: octopus-msmedications
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Testes
+        run: mvn -B verify

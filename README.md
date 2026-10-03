@@ -92,20 +92,15 @@ o histórico.
 - Arquitetura e convenções para novos módulos: `CLAUDE.md`.
 
 ## Últimas alterações
-_Push de 24/09/2026 na branch `feature/register_medications`_
-- `DELETE /api/medicacoes/{id}` virou `PATCH /api/medicacoes/{id}/desativar`. O medicamento sai de uso
-  arquivado, com o campo `ativo` e a migration `V2__medicacoes_ativo.sql`.
-- Cadastro completo em `/api/medicacoes`: listar com filtro, buscar, criar, alterar por PATCH e desativar.
-- `Medicacao` com `UUID`, tipo de esquema (`CONTINUO` ou `SINTOMATICO`) e interações proibidas simétricas entre
-  medicamentos, que são os dois itens que o TAP pede nesta tela.
-- Spring Security com JWT validando o token do `octopus-msusuario`, e erros padronizados pelo
-  `GlobalExceptionHandler` (400, 401, 403, 404, 409 e 422).
-- Flyway com `V1__medicacoes.sql` e tabela de histórico própria. São 12 testes automatizados.
-- O módulo ficou autocontido: `docker-compose.yml` e `.env.example` próprios, subindo a aplicação com o seu
-  MySQL na porta 3309.
+_Push de 03/10/2026 na branch `feature/register_medications`_
+- CI próprio em `.github/workflows/ci.yml`, rodando `mvn -B verify` a cada push nesta branch. O GitHub só
+  executa workflows que existam na branch empurrada, e como as branches não se mesclam, cada uma precisa do seu.
+- Campo `quantidade` na `Medicacao`, com a coluna no banco.
+- 12 testes passando.
 
 ## Próximos passos
-- [ ] Publicar este módulo no mesmo ambiente do `octopus-msusuario`, com o mesmo `JWT_SECRET`.
-- [ ] Sprint 3: microsserviço de prescrição, que vai consultar este cadastro para validar interações (RN-03).
-- [ ] Sprint 3 ou 4: microsserviço de aplicação de doses, separado deste.
-- [ ] Decidir se o item de prescrição terá `tipoEsquema` próprio, nascendo com o valor do catálogo.
+- [ ] Corrigir a migration: o `ALTER TABLE` da coluna `quantidade` foi posto dentro do `V2__medicacoes_ativo.sql`,
+      que já tinha rodado, e isso quebra o checksum do Flyway em qualquer banco onde o V2 já foi aplicado.
+      Devolver o V2 ao conteúdo original e criar um `V3__medicacoes_quantidade.sql` com o `ALTER TABLE`.
+- [ ] Expor `quantidade` nos DTOs de request e response, se a tela for usar.
+- [ ] Sprint 2: o `octopus-msplantao` vai consultar este cadastro para validar interações proibidas (RN-03).
