@@ -93,14 +93,17 @@ o histórico.
 
 ## Últimas alterações
 _Push de 03/10/2026 na branch `feature/cadastro-baia`_
-- CI próprio em `.github/workflows/ci.yml`, rodando `mvn -B verify` a cada push nesta branch. O GitHub só
-  executa workflows que existam na branch empurrada, e como as branches não se mesclam, cada uma precisa do seu.
-- Limite de 12 baias ativas, que é o número de baias da clínica no TAP, e `PATCH /api/baias/{id}/ativar` para
-  reativar uma baia arquivada, respeitando o mesmo limite.
+- 13 testes de integração em `BaiaApiTest`, com MockMvc e token JWT no mesmo formato que o `octopus-msusuario`
+  emite. Cobrem 401 sem token e com token inválido, 403 no veterinário tentando cadastrar, 409 em nome repetido
+  ignorando maiúsculas, 422 em capacidade acima do máximo do tipo, 400 com os campos que falharam, 404, edição,
+  desativação que arquiva sem apagar, reativação, o limite de 12 baias ativas e a reativação acima desse limite.
+- Os dois testes do limite foram conferidos trocando 12 por 100 no serviço: ambos falham, então a regra está
+  mesmo coberta.
+- CI próprio em `.github/workflows/ci.yml`, rodando `mvn -B verify` a cada push nesta branch.
 
 ## Próximos passos
 - [ ] Tirar o diretório `.idea/` do versionamento: ele entrou junto com o merge da `main` de 24/09 e já está
       coberto pelo `.gitignore`.
-- [ ] Cobrir com testes o limite de 12 baias e a reativação, que hoje só têm o teste de contexto.
 - [ ] Sprint 2: o `octopus-msinternacao` vai consultar este cadastro para a RN-01 (capacidade) e para exigir
       baia de isolamento na RN-02.
+- [ ] Expor a ocupação atual da baia, quando a internação existir.
