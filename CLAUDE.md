@@ -149,9 +149,7 @@ Portas de host default: 8080/3307 (usuário), 8081/3308 (baias), 8082/3309 (medi
 - Swagger em `/swagger-ui.html`. O botão Authorize aceita o token do `/api/auth/login`, no esquema `bearerAuth`.
 - `Dockerfile` multi-stage (maven, depois temurin 17 JRE, usuário não-root), usado pelo `docker-compose.yml`.
 - Testes: 31 no total, entre unitários com JUnit 5 e Mockito (`service/`) e integração com MockMvc
-  (`security/AutenticacaoEAutorizacaoTest`). O workflow `.github/workflows/ci.yml` roda `mvn -B verify` a cada
-  push na `main` e em pull request. A matriz do workflow lista os módulos: ao criar um novo, acrescente a pasta
-  dele em `matrix.module`.
+  (`security/AutenticacaoEAutorizacaoTest`).
 - `mail/EmailService` envia o e-mail de redefinição de senha via `JavaMailSender`. Ele lê
   `${spring.mail.username}` como remetente, então as propriedades `spring.mail.*` precisam existir, vindas do
   `.env`. Sem elas a aplicação não sobe.
@@ -177,6 +175,21 @@ Os três módulos existentes já seguem o padrão abaixo; use qualquer um deles 
 - Validar o token do `msusuario` com o mesmo `JWT_SECRET`, como está em "Segurança entre módulos".
 - Porta própria via `server.port=${PORT:<porta>}`, `Dockerfile` multi-stage e `docker-compose.yml` com
   `.env.example` dentro da pasta do módulo, usando portas de host que não colidam com as dos outros.
+- Um `.github/workflows/ci.yml` próprio, copiado de outra branch, trocando o nome da branch no filtro de `push`
+  e a pasta do módulo em `working-directory`.
+
+## Integração contínua
+
+Cada branch tem o seu `.github/workflows/ci.yml`, que roda `mvn -B verify` dentro da pasta do módulo daquela
+branch. O arquivo é praticamente igual nas três, mudando só duas linhas: o nome da branch no filtro de `push` e
+o `working-directory`.
+
+A duplicação é necessária, não descuido. O GitHub só executa um workflow que exista **na branch empurrada**, e
+como nenhuma branch é mesclada com outra, o arquivo da `main` não cobriria as demais. Também não há gatilho de
+`pull_request`, porque o projeto não usa PR: cada microsserviço fica na sua branch. O `workflow_dispatch`
+permite rodar manualmente pela aba Actions.
+
+Ao criar um módulo novo, copie o arquivo de qualquer branch e troque essas duas linhas.
 
 ## Segurança entre módulos
 
