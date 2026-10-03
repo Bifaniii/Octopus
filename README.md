@@ -120,13 +120,15 @@ cd octopus-msusuario && ./mvnw test
 
 ## Últimas alterações
 _Push de 03/10/2026 na branch `main`_
+- CI agora existe nas três branches, uma cópia por microsserviço. O GitHub só executa workflows que existam na
+  branch empurrada, então o arquivo da `main` não cobria as outras. O desta branch perdeu a matriz de módulos,
+  que não faz sentido com um módulo por branch, e o gatilho de pull request, que o projeto não usa.
 - Destrava o build: o `EmailService` pedia um `JavaMailSender`, mas não havia nenhuma propriedade
   `spring.mail.*` no projeto, então o contexto não subia e 10 dos 31 testes quebravam. Agora o SMTP vem do
-  `.env` via `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME` e `MAIL_PASSWORD`.
+  `.env` via `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME` e `MAIL_PASSWORD`, e o `docker-compose.yml` repassa essas
+  variáveis.
 - Usuário e senha do SMTP ficam vazios por padrão, de propósito: quem não configurou e-mail continua
-  conseguindo subir a aplicação, e só o envio falha. O host tem default porque sem ele o Spring nem cria o
-  `JavaMailSender`.
-- `docker-compose.yml` repassa as variáveis de e-mail para o container.
+  conseguindo subir a aplicação, e só o envio falha.
 - Verificado com os 31 testes passando e subindo a aplicação contra MySQL 8.4 sem nenhuma variável de e-mail
   definida, com as quatro migrations aplicadas.
 
