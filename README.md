@@ -92,17 +92,15 @@ o histórico.
 - Arquitetura e convenções para novos módulos: `CLAUDE.md`.
 
 ## Últimas alterações
-_Push de 24/09/2026 na branch `feature/cadastro-baia`_
-- `DELETE /api/baias/{id}` virou `PATCH /api/baias/{id}/desativar`. A baia sai de uso arquivada, com o campo
-  `ativo` e a migration `V2__baias_ativo.sql`.
-- O módulo ficou autocontido: `docker-compose.yml` e `.env.example` dentro de `ms-cadastro-baias/`, subindo a
-  aplicação com o seu MySQL na porta 3308. O compose antigo, na raiz, apontava para `octopus-msusuario/`, que
-  não existe nesta branch, e por isso não subia.
-- `mvnw` voltou a ser executável. Estava sem a permissão no git, e `./mvnw` falhava.
-- `CLAUDE.md` e `README.md` reescritos junto com as outras branches.
+_Push de 03/10/2026 na branch `feature/cadastro-baia`_
+- CI próprio em `.github/workflows/ci.yml`, rodando `mvn -B verify` a cada push nesta branch. O GitHub só
+  executa workflows que existam na branch empurrada, e como as branches não se mesclam, cada uma precisa do seu.
+- Limite de 12 baias ativas, que é o número de baias da clínica no TAP, e `PATCH /api/baias/{id}/ativar` para
+  reativar uma baia arquivada, respeitando o mesmo limite.
 
 ## Próximos passos
-- [ ] Publicar este módulo no mesmo ambiente do `octopus-msusuario`, com o mesmo `JWT_SECRET`.
-- [ ] Sprint 2: microsserviço de internação, que vai consumir este cadastro para alocar animais e aplicar a
-      RN-01 (capacidade) e a RN-02 (isolamento por vacinação irregular).
-- [ ] Expor a ocupação atual da baia, quando a internação existir.
+- [ ] Tirar o diretório `.idea/` do versionamento: ele entrou junto com o merge da `main` de 24/09 e já está
+      coberto pelo `.gitignore`.
+- [ ] Cobrir com testes o limite de 12 baias e a reativação, que hoje só têm o teste de contexto.
+- [ ] Sprint 2: o `octopus-msinternacao` vai consultar este cadastro para a RN-01 (capacidade) e para exigir
+      baia de isolamento na RN-02.
