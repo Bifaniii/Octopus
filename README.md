@@ -119,21 +119,22 @@ cd octopus-msusuario && ./mvnw test
 - Arquitetura e convenções para novos módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 27/09/2026 na branch `main`_
-- Corrige a subida do `octopus-msusuario`: o `@ExceptionHandler(Exception.class)` do animal não encontrado
-  ficava ambíguo com o handler genérico e derrubava o contexto. Agora trata `AnimalNaoEncontradoException` (404).
-- `Animal.dataUltimaAntirrabica` passa a ser `LocalDate`, batendo com a coluna `DATE` da `V4` no
-  `ddl-auto=validate`. Validado subindo a aplicação contra MySQL 8.4 com as quatro migrations.
-- Espécie e data da vacina passam a ser gravadas no cadastro de tutor com animais e em
-  `POST /api/tutores/{id}/animais`. O `AnimalRequest` não recebe mais a entidade `Tutor` no corpo.
-- Testes: 31 no total, entre unitários com JUnit 5 e Mockito e integração com MockMvc. CI no GitHub Actions.
-- Mapas de processo linkados pela cópia versionada em `docs/`.
+_Push de 03/10/2026 na branch `main`_
+- Destrava o build: o `EmailService` pedia um `JavaMailSender`, mas não havia nenhuma propriedade
+  `spring.mail.*` no projeto, então o contexto não subia e 10 dos 31 testes quebravam. Agora o SMTP vem do
+  `.env` via `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME` e `MAIL_PASSWORD`.
+- Usuário e senha do SMTP ficam vazios por padrão, de propósito: quem não configurou e-mail continua
+  conseguindo subir a aplicação, e só o envio falha. O host tem default porque sem ele o Spring nem cria o
+  `JavaMailSender`.
+- `docker-compose.yml` repassa as variáveis de e-mail para o container.
+- Verificado com os 31 testes passando e subindo a aplicação contra MySQL 8.4 sem nenhuma variável de e-mail
+  definida, com as quatro migrations aplicadas.
 
 ## Próximos passos
-- [ ] Publicar `ms-cadastro-baias` e `octopus-msmedications` no mesmo ambiente, com o mesmo `JWT_SECRET`.
-- [ ] Decidir o banco de produção: um por módulo ou um só para os três. As duas opções funcionam, porque cada
-      módulo já tem tabela de histórico própria no Flyway.
-- [ ] Sprint 2: microsserviço de internação, com alocação em baia e as validações RN-01 (capacidade) e RN-02
+- [ ] Terminar a recuperação de senha: entidade de token com prazo de 30 minutos, `POST /api/auth/esqueci-senha`
+      e `POST /api/auth/redefinir-senha`, os dois respondendo 204.
+- [ ] Preencher `MAIL_USERNAME` e `MAIL_PASSWORD` no ambiente publicado (no Gmail, usar senha de app).
+- [ ] Sprint 2: `octopus-msinternacao`, com alocação em baia e as validações RN-01 (capacidade) e RN-02
       (vacinação antirrábica irregular exige isolamento).
 - [ ] Expor `GET /api/animais/{id}`, que já existe no `AnimalService.listarPorId`.
 - [ ] Apagar a branch remota `feature/cadastro_login_usuario`, que já foi mergeada.
