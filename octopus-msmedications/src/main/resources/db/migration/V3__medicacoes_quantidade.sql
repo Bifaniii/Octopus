@@ -1,0 +1,1 @@
+ALTER TABLE tb_medicacoes ADD COLUMN quantidade INT NOT NULL DEFAULT 0;

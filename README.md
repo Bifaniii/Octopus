@@ -93,14 +93,16 @@ o histórico.
 
 ## Últimas alterações
 _Push de 03/10/2026 na branch `feature/register_medications`_
-- CI próprio em `.github/workflows/ci.yml`, rodando `mvn -B verify` a cada push nesta branch. O GitHub só
-  executa workflows que existam na branch empurrada, e como as branches não se mesclam, cada uma precisa do seu.
-- Campo `quantidade` na `Medicacao`, com a coluna no banco.
-- 12 testes passando.
+- Corrige a migration da coluna `quantidade`. O `ALTER TABLE` tinha sido escrito dentro do
+  `V2__medicacoes_ativo.sql`, que já havia rodado, e isso muda o checksum que o Flyway guardou: em qualquer
+  banco onde o V2 já estava aplicado, a aplicação não subia mais. O V2 voltou ao conteúdo original, byte a byte,
+  e a coluna agora entra pelo `V3__medicacoes_quantidade.sql`.
+- Verificado num MySQL 8.4: primeiro subindo só com V1 e V2, para gravar o histórico como num banco já
+  existente, e depois com o V3, que aplicou em cima sem reclamar do checksum.
+- CI próprio em `.github/workflows/ci.yml`, rodando `mvn -B verify` a cada push nesta branch.
 
 ## Próximos passos
-- [ ] Corrigir a migration: o `ALTER TABLE` da coluna `quantidade` foi posto dentro do `V2__medicacoes_ativo.sql`,
-      que já tinha rodado, e isso quebra o checksum do Flyway em qualquer banco onde o V2 já foi aplicado.
-      Devolver o V2 ao conteúdo original e criar um `V3__medicacoes_quantidade.sql` com o `ALTER TABLE`.
 - [ ] Expor `quantidade` nos DTOs de request e response, se a tela for usar.
+- [ ] Decidir se `quantidade` é estoque ou quantidade por embalagem; hoje o nome não diz, e isso muda o que a
+      prescrição vai fazer com ele.
 - [ ] Sprint 2: o `octopus-msplantao` vai consultar este cadastro para validar interações proibidas (RN-03).
