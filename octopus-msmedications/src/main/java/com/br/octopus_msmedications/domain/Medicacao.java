@@ -53,6 +53,10 @@ public class Medicacao {
     @Builder.Default
     @Column(name = "ativo", nullable = false)
     private boolean ativo = true;
+    
+    @Builder.Default
+    @Column(name = "quantidade", nullable = false)
+    private Integer quantidade = 0;
 
     // Simétrica: o serviço grava os dois sentidos do par, então esta coleção já é a lista completa.
     @Builder.Default
