@@ -4,7 +4,7 @@ Este arquivo fornece orientações ao Claude Code (claude.ai/code) ao trabalhar 
 
 > Este arquivo é versionado e vale para toda a squad. Não coloque nele valores de `.env`, senhas ou tokens,
 > só nomes de variáveis. A seção "Estado das branches" é um retrato datado: atualize quando mexer numa branch.
-> Última revisão: 27/09/2026 (fim da Sprint 1).
+> Última revisão: 03/10/2026 (Sprint 2 em andamento).
 
 ## Visão geral do repositório
 
@@ -17,11 +17,14 @@ RN-08, cronograma das 5 sprints e os papéis da squad.
 O sistema é feito de microsserviços Spring Boot independentes, um por área, cada um em sua pasta, com `pom.xml`,
 `mvnw` e `src/` próprios. Não existe POM agregador.
 
-| Módulo                  | Porta | Branch                                | Estado                                      |
-| :---------------------- | :---- | :------------------------------------ | :------------------------------------------ |
-| `octopus-msusuario/`    | 8080  | `main` (em produção na AWS)           | Login/JWT, perfis, tutores, animais (stub).  |
-| `ms-cadastro-baias/`    | 8081  | `feature/cadastro-baia`               | CRUD completo de baias.                      |
-| `octopus-msmedications/`| 8082  | `feature/register_medications`        | CRUD completo de medicamentos.               |
+| Módulo                  | Porta | Branch                         | Estado                                               |
+| :---------------------- | :---- | :----------------------------- | :--------------------------------------------------- |
+| `octopus-msusuario/`    | 8080  | `main`                         | Login/JWT, perfis, tutores, animais. 31 testes e CI.  |
+| `ms-cadastro-baias/`    | 8081  | `feature/cadastro-baia`        | CRUD de baias, limite de 12 ativas, ativar/desativar. |
+| `octopus-msmedications/`| 8082  | `feature/register_medications` | CRUD de medicamentos, esquema e interações.           |
+
+Os três estão publicados no free tier da AWS, com o MySQL hospedado no Aiven. O front é um projeto Angular
+separado, no repositório `Octopus-front`, que também usa uma branch por funcionalidade.
 
 Cada microsserviço vive na sua branch e fica lá. Não há merge para a `main` nem PR entre módulos, então cada um
 precisa ser autocontido: `Dockerfile`, `docker-compose.yml` e `.env.example` dentro da pasta do módulo, subindo
@@ -43,25 +46,37 @@ sobe um MySQL separado.
 - **Restrições do TAP:** nada de integrações externas, notificações automáticas (e-mail/push) ou apps mobile;
   login simples baseado em perfis, sem infraestrutura de auth avançada.
 
-## Estado das branches (27/09/2026, fim da Sprint 1)
+## Próximos módulos (Sprint 2)
+
+Ordem definida, porque um depende do outro:
+
+1. `octopus-msinternacao` (:8083): internação, alta, RN-01 (capacidade) e RN-02 (vacinação). Guarda `animalId`
+   e `baiaId` como `UUID`, sem `@ManyToOne` e sem FK no banco, porque as tabelas são de outros módulos.
+2. `octopus-msplantao` (:8084): prescrição, itens, geração das doses, painel e relatório. Prescrição e dose
+   ficam no mesmo módulo de propósito: os horários nascem junto com o item prescrito, e separar exigiria
+   transação distribuída ou mensageria, que o TAP não permite.
+
+## Estado das branches (03/10/2026, Sprint 2 em andamento)
 
 Branch por microsserviço, permanente. O `CLAUDE.md` é mantido igual em todas; o `README.md` de cada uma descreve
 o próprio módulo.
 
-- **`main`**: `octopus-msusuario` (31 testes, CI no GitHub Actions), `TAP.md`, `CLAUDE.md`, `README.md`,
-  `docker-compose.yml` e `docs/`. Em `docs/`
-  ficam os mapas de processo UML, numa página HTML autocontida gerada a partir de dados JS no próprio arquivo;
-  para mapear algo novo, acrescente um objeto ao array `MAPS`. Esta branch está em produção no free-tier da AWS,
-  então mudanças de código afetam o ambiente publicado: combine com a squad antes.
+- **`main`**: `octopus-msusuario`, `TAP.md`, `CLAUDE.md`, `README.md`, `docker-compose.yml`, `docs/` e o
+  workflow de CI. Em `docs/` ficam os mapas de processo UML, numa página HTML autocontida gerada a partir de
+  dados JS no próprio arquivo; para mapear algo novo, acrescente um objeto ao array `MAPS`. Esta branch está em
+  produção, então mudanças de código afetam o ambiente publicado: combine com a squad antes.
+  Em andamento: recuperação de senha, com o `mail/EmailService` já pronto e o fluxo ainda por fazer.
 - **`feature/cadastro-baia`** (Douglas): `ms-cadastro-baias/` completo, com entidade `Baia`, DTOs, service,
-  controller `/api/baias`, exceptions, JWT, migrations e compose próprios. Esta branch não tem o diretório
-  `octopus-msusuario/`, removido no commit `fe7c49d`, o que é esperado no modelo de uma branch por microsserviço.
+  controller `/api/baias`, exceptions, JWT, migrations e compose próprios. Em 24/09 entrou um merge de
+  `origin/main` nesta branch, o que foge do modelo de uma branch por microsserviço: ela passou a carregar
+  `TAP.md`, `docs/` e um diretório `.idea/` versionado. O `.idea/` deveria sair, já que está no `.gitignore`.
 - **`feature/register_medications`** (Guilherme Bifani): `octopus-msmedications/` completo, com entidade
-  `Medicacao` (incluindo `TipoEsquema` e interações proibidas), DTOs, service, controller `/api/medicacoes`,
-  exceptions, JWT, migrations, compose próprio e 12 testes. É uma branch órfã, sem ancestral comum com a `main`,
-  o que também é esperado aqui. A versão antiga desse trabalho (`ms-medication/`, com `ApplicationDosage`,
-  `SchemeType`, `StatusDosage`) está em `refs/backup/register_medication`, uma ref que existe só na máquina do
-  Guilherme Bifani e não foi para o remoto.
+  `Medicacao` (incluindo `TipoEsquema`, interações proibidas e `quantidade`), DTOs, service, controller
+  `/api/medicacoes`, exceptions, JWT, migrations, compose próprio e 12 testes. É uma branch órfã, sem ancestral
+  comum com a `main`, o que é esperado aqui.
+  Pendência: a coluna `quantidade` foi acrescentada dentro do `V2__medicacoes_ativo.sql`, que já tinha rodado.
+  Isso quebra o checksum do Flyway em qualquer banco onde o V2 já foi aplicado. O conserto é devolver o V2 ao
+  conteúdo original e criar um `V3__medicacoes_quantidade.sql` com o `ALTER TABLE`.
 
 ## Comandos
 
@@ -118,7 +133,8 @@ Portas de host default: 8080/3307 (usuário), 8081/3308 (baias), 8082/3309 (medi
 - Usuário e perfil se ligam por composição, não por herança. `Usuario` (`tb_usuarios`: email, senha BCrypt,
   `Role`, `ativo`) é uma entidade concreta, e cada perfil (`Admin`, `Veterinario`, `Auxiliar`, `Recepcionista`)
   é uma entidade própria com `@OneToOne(cascade = ALL) Usuario usuario`. `Tutor` é separado e não tem `Usuario`,
-  porque não faz login. `Animal` é um stub mínimo (id, nome, tutor) até existir a tela de Animais.
+  porque não faz login. `Animal` tem id, nome, tutor, espécie e data da última vacina antirrábica; a data é
+  anulável, e é ela que a RN-02 vai consultar na internação.
 - `Role` inclui `ROLE_TUTOR`, reservado e sem uso hoje; o `AuthService.login` rejeita essa role explicitamente.
 - Segurança: JWT stateless (jjwt 0.12, HS384). O `JwtAuthenticationFilter` valida o token, recarrega o usuário e
   ignora tokens de usuários desativados, então `ativo=false` invalida os tokens já emitidos. A autorização é por
@@ -132,6 +148,13 @@ Portas de host default: 8080/3307 (usuário), 8081/3308 (baias), 8082/3309 (medi
 - É o único módulo que emite JWT, em `/api/auth/login`. Os outros só validam.
 - Swagger em `/swagger-ui.html`. O botão Authorize aceita o token do `/api/auth/login`, no esquema `bearerAuth`.
 - `Dockerfile` multi-stage (maven, depois temurin 17 JRE, usuário não-root), usado pelo `docker-compose.yml`.
+- Testes: 31 no total, entre unitários com JUnit 5 e Mockito (`service/`) e integração com MockMvc
+  (`security/AutenticacaoEAutorizacaoTest`). O workflow `.github/workflows/ci.yml` roda `mvn -B verify` a cada
+  push na `main` e em pull request. A matriz do workflow lista os módulos: ao criar um novo, acrescente a pasta
+  dele em `matrix.module`.
+- `mail/EmailService` envia o e-mail de redefinição de senha via `JavaMailSender`. Ele lê
+  `${spring.mail.username}` como remetente, então as propriedades `spring.mail.*` precisam existir, vindas do
+  `.env`. Sem elas a aplicação não sobe.
 
 ## Convenções para novos microsserviços
 
@@ -196,6 +219,10 @@ medicamento. Toda entidade que pode sair de circulação tem um campo `ativo` co
   expirar, como está em "Segurança entre módulos".
 - O `GET` de listagem devolve ativos e inativos, com o campo `ativo` na resposta. Quem consome decide o que
   mostrar.
+- Quando faz sentido reativar, o módulo expõe também `PATCH /api/<recurso>/{id}/ativar`. As baias fazem isso, e
+  a reativação respeita o limite de 12 baias ativas que a clínica tem.
+- Internação será a exceção: lá o ciclo é `ATIVA`, `ALTA` e `CANCELADA`, porque alta é desfecho normal e não
+  arquivamento. O `CANCELADA` cumpre o papel do arquivamento.
 
 ## Migrations (Flyway)
 
