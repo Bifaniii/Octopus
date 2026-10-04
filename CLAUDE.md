@@ -4,7 +4,7 @@ Este arquivo fornece orientações ao Claude Code (claude.ai/code) ao trabalhar 
 
 > Este arquivo é versionado e vale para toda a squad. Não coloque nele valores de `.env`, senhas ou tokens,
 > só nomes de variáveis. A seção "Estado das branches" é um retrato datado: atualize quando mexer numa branch.
-> Última revisão: 03/10/2026 (Sprint 2 em andamento).
+> Última revisão: 04/10/2026 (Sprint 2 em andamento).
 
 ## Visão geral do repositório
 
@@ -19,9 +19,9 @@ O sistema é feito de microsserviços Spring Boot independentes, um por área, c
 
 | Módulo                  | Porta | Branch                         | Estado                                               |
 | :---------------------- | :---- | :----------------------------- | :--------------------------------------------------- |
-| `octopus-msusuario/`    | 8080  | `main`                         | Login/JWT, perfis, tutores, animais. 31 testes e CI.  |
-| `ms-cadastro-baias/`    | 8081  | `feature/cadastro-baia`        | CRUD de baias, limite de 12 ativas, ativar/desativar. |
-| `octopus-msmedications/`| 8082  | `feature/register_medications` | CRUD de medicamentos, esquema e interações.           |
+| `octopus-msusuario/`    | 8080  | `main`                         | Login/JWT, recuperação de senha, perfis, tutores, animais. 42 testes. |
+| `ms-cadastro-baias/`    | 8081  | `feature/cadastro-baia`        | CRUD de baias, limite de 12 ativas, ativar/desativar. 14 testes. |
+| `octopus-msmedications/`| 8082  | `feature/register_medications` | CRUD de medicamentos, esquema e interações. 12 testes. |
 
 Os três estão publicados no free tier da AWS, com o MySQL hospedado no Aiven. O front é um projeto Angular
 separado, no repositório `Octopus-front`, que também usa uma branch por funcionalidade.
@@ -56,7 +56,7 @@ Ordem definida, porque um depende do outro:
    ficam no mesmo módulo de propósito: os horários nascem junto com o item prescrito, e separar exigiria
    transação distribuída ou mensageria, que o TAP não permite.
 
-## Estado das branches (03/10/2026, Sprint 2 em andamento)
+## Estado das branches (04/10/2026, Sprint 2 em andamento)
 
 Branch por microsserviço, permanente. O `CLAUDE.md` é mantido igual em todas; o `README.md` de cada uma descreve
 o próprio módulo.
@@ -65,7 +65,6 @@ o próprio módulo.
   workflow de CI. Em `docs/` ficam os mapas de processo UML, numa página HTML autocontida gerada a partir de
   dados JS no próprio arquivo; para mapear algo novo, acrescente um objeto ao array `MAPS`. Esta branch está em
   produção, então mudanças de código afetam o ambiente publicado: combine com a squad antes.
-  Em andamento: recuperação de senha, com o `mail/EmailService` já pronto e o fluxo ainda por fazer.
 - **`feature/cadastro-baia`** (Douglas): `ms-cadastro-baias/` completo, com entidade `Baia`, DTOs, service,
   controller `/api/baias`, exceptions, JWT, migrations e compose próprios. Em 24/09 entrou um merge de
   `origin/main` nesta branch, o que foge do modelo de uma branch por microsserviço: ela passou a carregar
@@ -74,9 +73,6 @@ o próprio módulo.
   `Medicacao` (incluindo `TipoEsquema`, interações proibidas e `quantidade`), DTOs, service, controller
   `/api/medicacoes`, exceptions, JWT, migrations, compose próprio e 12 testes. É uma branch órfã, sem ancestral
   comum com a `main`, o que é esperado aqui.
-  Pendência: a coluna `quantidade` foi acrescentada dentro do `V2__medicacoes_ativo.sql`, que já tinha rodado.
-  Isso quebra o checksum do Flyway em qualquer banco onde o V2 já foi aplicado. O conserto é devolver o V2 ao
-  conteúdo original e criar um `V3__medicacoes_quantidade.sql` com o `ALTER TABLE`.
 
 ## Comandos
 
@@ -148,11 +144,14 @@ Portas de host default: 8080/3307 (usuário), 8081/3308 (baias), 8082/3309 (medi
 - É o único módulo que emite JWT, em `/api/auth/login`. Os outros só validam.
 - Swagger em `/swagger-ui.html`. O botão Authorize aceita o token do `/api/auth/login`, no esquema `bearerAuth`.
 - `Dockerfile` multi-stage (maven, depois temurin 17 JRE, usuário não-root), usado pelo `docker-compose.yml`.
-- Testes: 31 no total, entre unitários com JUnit 5 e Mockito (`service/`) e integração com MockMvc
-  (`security/AutenticacaoEAutorizacaoTest`).
+- Testes: 42 no total, entre unitários com JUnit 5 e Mockito (`service/`) e integração com MockMvc
+  (`security/AutenticacaoEAutorizacaoTest` e `service/RecuperacaoSenhaTest`).
 - `mail/EmailService` envia o e-mail de redefinição de senha via `JavaMailSender`. Ele lê
-  `${spring.mail.username}` como remetente, então as propriedades `spring.mail.*` precisam existir, vindas do
-  `.env`. Sem elas a aplicação não sobe.
+  `${spring.mail.username}` como remetente, e as propriedades `spring.mail.*` vêm do `.env`. O host tem default
+  porque sem ele o Spring nem cria o bean e a aplicação não sobe; usuário e senha ficam vazios, então quem não
+  configurou SMTP ainda consegue rodar o projeto.
+- Recuperação de senha: `POST /api/auth/esqueci-senha` e `POST /api/auth/redefinir-senha`, os dois públicos na
+  `SecurityConfig` e respondendo 204. Ver "Recuperação de senha".
 
 ## Convenções para novos microsserviços
 
@@ -218,6 +217,26 @@ A autorização fina continua por `@PreAuthorize` no controller:
 Desativar um usuário no `msusuario` não corta na hora o acesso dele aos outros módulos: como eles não consultam
 a tabela de usuários, o token continua válido até expirar. Isso é aceitável para o escopo do TAP; se virar
 problema, a saída é reduzir `JWT_EXPIRATION_MS`.
+
+## Recuperação de senha
+
+A senha mora no `Usuario`, que é compartilhado pelos quatro perfis, então o fluxo não toca em `Veterinario`,
+`Auxiliar` nem `Recepcionista`. Um caminho só atende todo mundo.
+
+`TokenRecuperacaoSenha` (`tb_tokens_recuperacao_senha`) guarda o código, com `StatusTokenSenha` em `ATIVO`,
+`USADO` ou `ARQUIVADO`, prazo de 30 minutos e `usadoEm`. Nada é apagado aqui também: pedir um código novo
+arquiva o anterior, então fica um válido por vez e o histórico de pedidos permanece.
+
+Dois cuidados que estão no código de propósito:
+
+- O `esqueci-senha` responde 204 exista ou não o e-mail, e também quando a conta está desativada. Responder
+  diferente entregaria a quem perguntasse a lista de quem tem conta na clínica.
+- A falha no envio do e-mail é registrada em log e engolida. Um SMTP fora do ar não pode virar erro 500 nem
+  desfazer o token já gravado.
+
+Limitação conhecida: trocar a senha não derruba os tokens JWT já emitidos, porque o filtro não tem como saber
+que a senha mudou. Quem estava logado continua até o token expirar. Se virar problema, o caminho é uma coluna
+de versão da senha no `Usuario`, gravada como claim e conferida no filtro.
 
 ## Nada é apagado
 
