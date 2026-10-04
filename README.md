@@ -120,22 +120,19 @@ cd octopus-msusuario && ./mvnw test
 
 ## Últimas alterações
 _Push de 04/10/2026 na branch `main`_
-- Recuperação de senha pronta: `POST /api/auth/esqueci-senha` e `POST /api/auth/redefinir-senha`, os dois
-  públicos e respondendo 204.
-- `TokenRecuperacaoSenha` guarda o código com prazo de 30 minutos e status `ATIVO`, `USADO` ou `ARQUIVADO`
-  (migration `V5`). Pedir um código novo arquiva o anterior, então vale um por vez e o histórico fica no banco.
-- O `esqueci-senha` responde igual exista ou não o e-mail, para não revelar quem tem conta na clínica. Falha de
-  SMTP vira log, não erro 500, e não desfaz o token gravado.
-- 11 testes novos, cobrindo arquivamento do código anterior, código expirado, código reusado, troca efetiva da
-  senha, conta desativada e SMTP fora do ar. São 42 no total.
-- Verificado em MySQL 8.4: a `V5` aplicou e o fluxo completo funcionou por HTTP, incluindo a senha antiga
-  passando a dar 401 e a nova dando 200.
+- Entrada malformada passa a devolver 400 em vez de 500. Faltavam dois handlers no
+  `GlobalExceptionHandler`: `HttpMessageNotReadableException`, que cobre JSON quebrado, data fora do padrão
+  ISO e valor inexistente no enum, e `MethodArgumentTypeMismatchException`, para um id na URL que não é UUID.
+  Os quatro casos caíam no handler genérico e viravam erro de servidor.
+- A mensagem do corpo inválido diz o formato esperado da data, que era a causa mais comum do 500.
+- 5 testes novos em `EntradaInvalidaTest`, cobrindo os quatro casos e confirmando que campo obrigatório
+  faltando continua em 400 com a lista de campos. São 47 no total.
 
 ## Próximos passos
+- [ ] Completar o `AdminController`: faltam `GET /{id}` e `PATCH /{id}/desativar`, que os outros três perfis já
+      têm. Hoje não existe como desativar um admin pela API.
 - [ ] Preencher `MAIL_USERNAME` e `MAIL_PASSWORD` no ambiente publicado (no Gmail, usar senha de app).
-- [ ] Avaliar guardar o código com hash em vez de texto puro, para que um vazamento do banco não permita
-      trocar a senha de ninguém.
+- [ ] Avaliar guardar o código de redefinição com hash em vez de texto puro.
 - [ ] Sprint 2: `octopus-msinternacao`, com alocação em baia e as validações RN-01 (capacidade) e RN-02
       (vacinação antirrábica irregular exige isolamento).
-- [ ] Expor `GET /api/animais/{id}`, que já existe no `AnimalService.listarPorId`.
 - [ ] Apagar a branch remota `feature/cadastro_login_usuario`, que já foi mergeada.
