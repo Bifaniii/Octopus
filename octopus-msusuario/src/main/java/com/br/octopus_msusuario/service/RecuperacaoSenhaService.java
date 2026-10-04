@@ -24,7 +24,7 @@ import java.util.UUID;
 @Slf4j
 public class RecuperacaoSenhaService {
 
-    // Mesmo prazo que o texto do e-mail promete, no EmailService.
+    // Vai junto para o e-mail, então o prazo prometido no texto nunca diverge do prazo real.
     private static final int VALIDADE_MINUTOS = 30;
 
     private final UsuarioRepository usuarioRepository;
@@ -56,7 +56,7 @@ public class RecuperacaoSenhaService {
 
         // Um SMTP fora do ar não pode virar erro 500 nem desfazer o token já gravado: o usuário pede de novo.
         try {
-            emailService.enviarEmailRedefinicaoSenha(usuario.getEmail(), novo.getToken());
+            emailService.enviarEmailRedefinicaoSenha(usuario.getEmail(), novo.getToken(), VALIDADE_MINUTOS);
         } catch (Exception e) {
             Throwable causa = e.getCause() != null ? e.getCause() : e;
             log.warn("Não foi possível enviar o e-mail de redefinição de senha: {}", causa.getMessage());

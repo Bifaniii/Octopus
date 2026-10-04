@@ -120,17 +120,18 @@ cd octopus-msusuario && ./mvnw test
 
 ## Últimas alterações
 _Push de 04/10/2026 na branch `main`_
-- `MAIL_DEBUG` liga a conversa SMTP no log (`spring.mail.properties.mail.debug`), sem mexer em código. Serve
-  para saber se o servidor de e-mail aceitou a mensagem, que é a pergunta que o log normal não responde:
-  quando o envio dá certo, o serviço não registra nada.
-- Entrada malformada passa a devolver 400 em vez de 500. Faltavam dois handlers no
-  `GlobalExceptionHandler`: `HttpMessageNotReadableException`, que cobre JSON quebrado, data fora do padrão
-  ISO e valor inexistente no enum, e `MethodArgumentTypeMismatchException`, para um id na URL que não é UUID.
-- 5 testes novos em `EntradaInvalidaTest`, cobrindo esses casos. São 47 no total.
+- E-mail de redefinição reescrito com a identidade da clínica: cabeçalho "Plantão | Clínica Veterinária
+  VidaPet", código destacado em caixa própria e rodapé avisando que é mensagem automática.
+- Vai em multipart, com HTML e texto puro na mesma mensagem. Quem usa cliente sem HTML lê a versão em texto, e
+  mandar as duas reduz a chance de o filtro tratar como spam, que foi o que aconteceu com a versão anterior.
+- O remetente passa a ter nome visível ("Plantão VidaPet") em vez de só o endereço, e o assunto ficou
+  específico: "Seu código para redefinir a senha do Plantão".
+- O prazo de validade agora é passado para o e-mail em vez de escrito à mão no texto, então o que a mensagem
+  promete não pode divergir do que o serviço aplica.
+- Tudo em HTML inline, sem imagem externa, porque imagem remota é bloqueada por padrão em boa parte dos
+  clientes e conta como sinal de spam.
 
 ## Próximos passos
-- [ ] Melhorar o corpo do e-mail de redefinição, que hoje é texto puro com um UUID solto e tem cara de spam
-      para os filtros. Assunto mais específico e um texto com o nome da clínica ajudam na entrega.
 - [ ] Completar o `AdminController`: faltam `GET /{id}` e `PATCH /{id}/desativar`, que os outros três perfis já
       têm. Hoje não existe como desativar um admin pela API.
 - [ ] Avaliar guardar o código de redefinição com hash em vez de texto puro.
