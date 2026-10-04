@@ -120,18 +120,19 @@ cd octopus-msusuario && ./mvnw test
 
 ## Últimas alterações
 _Push de 04/10/2026 na branch `main`_
+- `MAIL_DEBUG` liga a conversa SMTP no log (`spring.mail.properties.mail.debug`), sem mexer em código. Serve
+  para saber se o servidor de e-mail aceitou a mensagem, que é a pergunta que o log normal não responde:
+  quando o envio dá certo, o serviço não registra nada.
 - Entrada malformada passa a devolver 400 em vez de 500. Faltavam dois handlers no
   `GlobalExceptionHandler`: `HttpMessageNotReadableException`, que cobre JSON quebrado, data fora do padrão
   ISO e valor inexistente no enum, e `MethodArgumentTypeMismatchException`, para um id na URL que não é UUID.
-  Os quatro casos caíam no handler genérico e viravam erro de servidor.
-- A mensagem do corpo inválido diz o formato esperado da data, que era a causa mais comum do 500.
-- 5 testes novos em `EntradaInvalidaTest`, cobrindo os quatro casos e confirmando que campo obrigatório
-  faltando continua em 400 com a lista de campos. São 47 no total.
+- 5 testes novos em `EntradaInvalidaTest`, cobrindo esses casos. São 47 no total.
 
 ## Próximos passos
+- [ ] Melhorar o corpo do e-mail de redefinição, que hoje é texto puro com um UUID solto e tem cara de spam
+      para os filtros. Assunto mais específico e um texto com o nome da clínica ajudam na entrega.
 - [ ] Completar o `AdminController`: faltam `GET /{id}` e `PATCH /{id}/desativar`, que os outros três perfis já
       têm. Hoje não existe como desativar um admin pela API.
-- [ ] Preencher `MAIL_USERNAME` e `MAIL_PASSWORD` no ambiente publicado (no Gmail, usar senha de app).
 - [ ] Avaliar guardar o código de redefinição com hash em vez de texto puro.
 - [ ] Sprint 2: `octopus-msinternacao`, com alocação em baia e as validações RN-01 (capacidade) e RN-02
       (vacinação antirrábica irregular exige isolamento).
