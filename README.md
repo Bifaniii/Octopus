@@ -119,23 +119,22 @@ cd octopus-msusuario && ./mvnw test
 - Arquitetura e convenções para novos módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 03/10/2026 na branch `main`_
-- CI agora existe nas três branches, uma cópia por microsserviço. O GitHub só executa workflows que existam na
-  branch empurrada, então o arquivo da `main` não cobria as outras. O desta branch perdeu a matriz de módulos,
-  que não faz sentido com um módulo por branch, e o gatilho de pull request, que o projeto não usa.
-- Destrava o build: o `EmailService` pedia um `JavaMailSender`, mas não havia nenhuma propriedade
-  `spring.mail.*` no projeto, então o contexto não subia e 10 dos 31 testes quebravam. Agora o SMTP vem do
-  `.env` via `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME` e `MAIL_PASSWORD`, e o `docker-compose.yml` repassa essas
-  variáveis.
-- Usuário e senha do SMTP ficam vazios por padrão, de propósito: quem não configurou e-mail continua
-  conseguindo subir a aplicação, e só o envio falha.
-- Verificado com os 31 testes passando e subindo a aplicação contra MySQL 8.4 sem nenhuma variável de e-mail
-  definida, com as quatro migrations aplicadas.
+_Push de 04/10/2026 na branch `main`_
+- Recuperação de senha pronta: `POST /api/auth/esqueci-senha` e `POST /api/auth/redefinir-senha`, os dois
+  públicos e respondendo 204.
+- `TokenRecuperacaoSenha` guarda o código com prazo de 30 minutos e status `ATIVO`, `USADO` ou `ARQUIVADO`
+  (migration `V5`). Pedir um código novo arquiva o anterior, então vale um por vez e o histórico fica no banco.
+- O `esqueci-senha` responde igual exista ou não o e-mail, para não revelar quem tem conta na clínica. Falha de
+  SMTP vira log, não erro 500, e não desfaz o token gravado.
+- 11 testes novos, cobrindo arquivamento do código anterior, código expirado, código reusado, troca efetiva da
+  senha, conta desativada e SMTP fora do ar. São 42 no total.
+- Verificado em MySQL 8.4: a `V5` aplicou e o fluxo completo funcionou por HTTP, incluindo a senha antiga
+  passando a dar 401 e a nova dando 200.
 
 ## Próximos passos
-- [ ] Terminar a recuperação de senha: entidade de token com prazo de 30 minutos, `POST /api/auth/esqueci-senha`
-      e `POST /api/auth/redefinir-senha`, os dois respondendo 204.
 - [ ] Preencher `MAIL_USERNAME` e `MAIL_PASSWORD` no ambiente publicado (no Gmail, usar senha de app).
+- [ ] Avaliar guardar o código com hash em vez de texto puro, para que um vazamento do banco não permita
+      trocar a senha de ninguém.
 - [ ] Sprint 2: `octopus-msinternacao`, com alocação em baia e as validações RN-01 (capacidade) e RN-02
       (vacinação antirrábica irregular exige isolamento).
 - [ ] Expor `GET /api/animais/{id}`, que já existe no `AnimalService.listarPorId`.
