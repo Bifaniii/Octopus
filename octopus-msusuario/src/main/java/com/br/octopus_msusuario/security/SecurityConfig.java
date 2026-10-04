@@ -34,7 +34,8 @@ public class SecurityConfig {
                         .authenticationEntryPoint(securityErrorHandlers.entryPoint())
                         .accessDeniedHandler(securityErrorHandlers.accessDeniedHandler()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login",
+                                "/api/auth/esqueci-senha", "/api/auth/redefinir-senha").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated())
