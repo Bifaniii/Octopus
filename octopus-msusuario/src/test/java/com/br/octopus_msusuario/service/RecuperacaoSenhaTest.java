@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -70,7 +71,7 @@ class RecuperacaoSenhaTest {
     /** Lê o código que o serviço mandou para o EmailService. */
     private String codigoEnviado() {
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-        verify(emailService).enviarEmailRedefinicaoSenha(anyString(), captor.capture());
+        verify(emailService).enviarEmailRedefinicaoSenha(anyString(), captor.capture(), anyInt());
         return captor.getValue();
     }
 
@@ -104,7 +105,7 @@ class RecuperacaoSenhaTest {
     void emailInexistenteNaoVazaNemEnvia() throws Exception {
         pedirCodigo("ninguem@teste.local");
 
-        verify(emailService, never()).enviarEmailRedefinicaoSenha(anyString(), anyString());
+        verify(emailService, never()).enviarEmailRedefinicaoSenha(anyString(), anyString(), anyInt());
         assertThat(tokenRepository.findAll()).isEmpty();
     }
 
@@ -214,11 +215,11 @@ class RecuperacaoSenhaTest {
     @DisplayName("SMTP fora do ar não derruba o pedido: o token fica gravado")
     void falhaNoEnvioNaoDerrubaOPedido() throws Exception {
         doThrow(new RuntimeException("conexão recusada"))
-                .when(emailService).enviarEmailRedefinicaoSenha(anyString(), anyString());
+                .when(emailService).enviarEmailRedefinicaoSenha(anyString(), anyString(), anyInt());
 
         pedirCodigo(ADMIN_EMAIL);
 
-        verify(emailService, times(1)).enviarEmailRedefinicaoSenha(anyString(), anyString());
+        verify(emailService, times(1)).enviarEmailRedefinicaoSenha(anyString(), anyString(), anyInt());
         assertThat(tokenRepository.findAll()).hasSize(1);
     }
 
@@ -231,7 +232,7 @@ class RecuperacaoSenhaTest {
 
         try {
             pedirCodigo(ADMIN_EMAIL);
-            verify(emailService, never()).enviarEmailRedefinicaoSenha(anyString(), anyString());
+            verify(emailService, never()).enviarEmailRedefinicaoSenha(anyString(), anyString(), anyInt());
             assertThat(tokenRepository.findAll()).isEmpty();
         } finally {
             usuario.setAtivo(true);
