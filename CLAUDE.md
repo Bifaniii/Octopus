@@ -4,7 +4,7 @@ Este arquivo fornece orientações ao Claude Code (claude.ai/code) ao trabalhar 
 
 > Este arquivo é versionado e vale para toda a squad. Não coloque nele valores de `.env`, senhas ou tokens —
 > só nomes de variáveis. A seção "Estado das branches" é um retrato datado: atualize-a ao integrar uma branch.
-> Última revisão: 19/09/2026 (Sprint 1).
+> Última revisão: 03/10/2026 (Sprint 1).
 
 ## Visão geral do repositório
 
@@ -35,7 +35,7 @@ pasta na raiz (com `pom.xml`, `mvnw` e `src/` próprios — não há POM agregad
 - **Restrições explícitas do TAP:** nada de integrações externas, notificações automáticas (e-mail/push) ou apps
   mobile; login simples baseado em perfis (sem infraestrutura de auth avançada).
 
-## Estado das branches (19/09/2026)
+## Estado das branches (03/10/2026)
 
 `CLAUDE.md` e `README.md` existem nas três branches; ao mergear, fique com a versão da `main` e reescreva as
 seções "Últimas alterações"/"Próximos passos" do README.
@@ -58,6 +58,9 @@ seções "Últimas alterações"/"Próximos passos" do README.
   Flyway nem `ddl-auto=validate` (ver "Migrations"). A versão anterior desse trabalho (`ms-medication/`, com
   `ApplicationDosage`, `SchemeType`, `StatusDosage`) está preservada em `refs/backup/register_medication` — ref
   só na máquina do Guilherme Bifani, não está no remoto.
+- **`copilot/ms-internacao-only-cadastro-baias-folders`** — consolida o conteúdo de `ms-cadastro-baias/src` para
+  `ms-internacao/src` e remove o diretório `ms-cadastro-baias/`, mantendo apenas o módulo `ms-internacao` no
+  workspace desta branch.
 
 ## Comandos
 
