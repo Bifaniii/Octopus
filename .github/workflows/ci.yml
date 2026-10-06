@@ -55,6 +55,15 @@ jobs:
           push: true
           tags: ${{ env.IMAGEM }}:${{ github.sha }},${{ env.IMAGEM }}:latest
 
+            # O secret guarda a chave em base64 (uma linha só): copiar do terminal quebrava a chave.
+      - name: Chave SSH
+        env:
+          CHAVE_B64: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          echo "$CHAVE_B64" | base64 -d > "$RUNNER_TEMP/deploy_key"
+          chmod 600 "$RUNNER_TEMP/deploy_key"
+          ssh-keygen -y -f "$RUNNER_TEMP/deploy_key" > /dev/null && echo "Chave válida"
+
       - name: Atualizar o container na EC2
         uses: appleboy/ssh-action@v1
         env:
@@ -64,7 +73,7 @@ jobs:
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
+          key_path: ${{ runner.temp }}/deploy_key
           envs: GHCR_TOKEN,GHCR_USER,NOVA,CONTAINER,PORTA
           script: |
             set -e
