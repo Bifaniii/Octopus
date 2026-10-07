@@ -101,28 +101,28 @@ class BaiaApiTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenVet)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new BaiaRequest(Tipo.COLETIVA, "Baia 1", null, 4))))
+                                new BaiaRequest(Tipo.COLETIVA, "Baia 1", null, 1))))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     @DisplayName("admin cadastra e busca por id")
     void adminCadastraEBusca() throws Exception {
-        UUID id = criar("Baia 1", Tipo.COLETIVA, 4);
+        UUID id = criar("Baia 1", Tipo.COLETIVA, 1);
 
         mockMvc.perform(get(URL + "/" + id)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nome").value("Baia 1"))
                 .andExpect(jsonPath("$.tipo").value("COLETIVA"))
-                .andExpect(jsonPath("$.capacidade").value(4))
+                .andExpect(jsonPath("$.capacidade").value(1))
                 .andExpect(jsonPath("$.ativo").value(true));
     }
 
     @Test
     @DisplayName("nome repetido, ignorando maiúsculas: 409")
     void nomeDuplicadoRetorna409() throws Exception {
-        criar("Baia 1", Tipo.COLETIVA, 4);
+        criar("Baia 1", Tipo.COLETIVA, 1);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_ADMIN"))
@@ -167,7 +167,7 @@ class BaiaApiTest {
     @Test
     @DisplayName("edição troca tipo, nome e capacidade")
     void atualizarAlteraOsCampos() throws Exception {
-        UUID id = criar("Baia 1", Tipo.COLETIVA, 4);
+        UUID id = criar("Baia 1", Tipo.NINHADA, 4);
 
         mockMvc.perform(put(URL + "/" + id)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_ADMIN"))
@@ -183,7 +183,7 @@ class BaiaApiTest {
     @Test
     @DisplayName("desativar arquiva sem apagar: o registro continua no banco")
     void desativarNaoApaga() throws Exception {
-        UUID id = criar("Baia 1", Tipo.COLETIVA, 4);
+        UUID id = criar("Baia 1", Tipo.COLETIVA, 1);
 
         mockMvc.perform(patch(URL + "/" + id + "/desativar")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_ADMIN")))
@@ -196,7 +196,7 @@ class BaiaApiTest {
     @Test
     @DisplayName("ativar devolve a baia arquivada ao uso")
     void ativarVoltaABaia() throws Exception {
-        UUID id = criar("Baia 1", Tipo.COLETIVA, 4);
+        UUID id = criar("Baia 1", Tipo.COLETIVA, 1);
         String tokenAdmin = token("ROLE_ADMIN");
 
         mockMvc.perform(patch(URL + "/" + id + "/desativar")
@@ -213,14 +213,14 @@ class BaiaApiTest {
     @DisplayName("a clínica tem 12 baias: a décima terceira recebe 422")
     void limiteDeDozeBaiasAtivas() throws Exception {
         for (int i = 1; i <= LIMITE_BAIAS; i++) {
-            criar("Baia " + i, Tipo.COLETIVA, 4);
+            criar("Baia " + i, Tipo.COLETIVA, 1);
         }
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new BaiaRequest(Tipo.COLETIVA, "Baia 13", null, 4))))
+                                new BaiaRequest(Tipo.COLETIVA, "Baia 13", null, 1))))
                 .andExpect(status().isUnprocessableEntity());
     }
 
@@ -229,7 +229,7 @@ class BaiaApiTest {
     void ativarAcimaDoLimiteRetorna422() throws Exception {
         String tokenAdmin = token("ROLE_ADMIN");
         for (int i = 1; i <= LIMITE_BAIAS; i++) {
-            criar("Baia " + i, Tipo.COLETIVA, 4);
+            criar("Baia " + i, Tipo.COLETIVA, 1);
         }
 
         // Abre uma vaga arquivando a primeira, usa a vaga numa baia nova e tenta reativar a arquivada.
@@ -238,7 +238,7 @@ class BaiaApiTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenAdmin))
                 .andExpect(status().isOk());
 
-        criar("Baia 13", Tipo.COLETIVA, 4);
+        criar("Baia 13", Tipo.COLETIVA, 1);
 
         mockMvc.perform(patch(URL + "/" + arquivada + "/ativar")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenAdmin))
