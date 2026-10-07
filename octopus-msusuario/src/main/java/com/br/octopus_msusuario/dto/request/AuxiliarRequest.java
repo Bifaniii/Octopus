@@ -11,7 +11,7 @@ import java.time.LocalDate;
 
 public record AuxiliarRequest(
         @NotBlank @Email @Size(max = 150) String email,
-        @NotBlank @Size(min = 8, max = 72) String senha,
+        @NotBlank @Size(min = 8, max = 100) String senha,
         @NotBlank @Size(max = 100) String nome,
         @NotBlank @Pattern(regexp = "\\d{11}", message = "deve conter 11 dígitos") String cpf,
         @NotNull @Past LocalDate dataNascimento,

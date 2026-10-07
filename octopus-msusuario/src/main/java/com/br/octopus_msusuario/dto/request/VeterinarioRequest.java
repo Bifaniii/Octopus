@@ -13,7 +13,7 @@ import java.time.LocalDate;
 
 public record VeterinarioRequest(
         @NotBlank @Email @Size(max = 150) String email,
-        @NotBlank @Size(min = 8, max = 72) String senha,
+        @NotBlank @Size(min = 8, max = 100) String senha,
         @NotBlank @Size(max = 100) String nome,
         @NotBlank @Pattern(regexp = "\\d{11}|\\d{14}", message = "deve conter 11 dígitos (CPF) ou 14 dígitos (CNPJ)") String cpfCnpj,
         @NotNull TipoPessoa tipoPessoa,
