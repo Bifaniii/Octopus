@@ -1,8 +1,8 @@
 package com.br.octopus_msbaias.domain.enums;
 
-// coletiva e ninhada até 6; isolamento é individual (1 animal).
+// Coletiva e isolamento até 1 animal; Ninhada até 6 animais da mesma família.
 public enum Tipo {
-    COLETIVA(6),
+    COLETIVA(1),
     ISOLAMENTO(1),
     NINHADA(6);
 
