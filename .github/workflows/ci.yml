@@ -2,6 +2,8 @@ name: CI/CD
 
 # O GitHub só roda um workflow que exista na branch empurrada. Como cada branch é um microsserviço,
 # cada uma tem o seu arquivo: mude só o bloco `env` abaixo.
+# Os testes rodam em todo push. O deploy só acontece quando a <version> do pom.xml muda, ou seja,
+# quando ainda não existe no GHCR uma imagem com a tag dessa versão.
 on:
   push:
     branches: [feature/cadastro-baia]
@@ -15,6 +17,12 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      versao: ${{ steps.versao.outputs.versao }}
+      publicar: ${{ steps.registro.outputs.publicar }}
     defaults:
       run:
         working-directory: ${{ env.MODULO }}
@@ -28,14 +36,42 @@ jobs:
       - name: Testes
         run: mvn -B verify
 
+      - name: Versão do pom.xml
+        id: versao
+        run: echo "versao=$(mvn -q help:evaluate -Dexpression=project.version -DforceStdout)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Se a imagem com essa versão já existe, o push só trouxe código sem subir a versão: não publica.
+      - name: Versão já publicada?
+        id: registro
+        env:
+          VERSAO: ${{ steps.versao.outputs.versao }}
+        run: |
+          IMAGEM="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/octopus-${CONTAINER}"
+          if docker manifest inspect "$IMAGEM:$VERSAO" > /dev/null 2>&1; then
+            echo "publicar=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Versão $VERSAO já publicada; suba a <version> do pom.xml para fazer deploy."
+          else
+            echo "publicar=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Versão nova ($VERSAO): vai publicar."
+          fi
+
   deploy:
     needs: test
+    if: needs.test.outputs.publicar == 'true'
     runs-on: ubuntu-latest
     # Um deploy por vez para o mesmo serviço; um push novo espera o anterior terminar.
     concurrency: deploy-${{ github.ref }}
     permissions:
       contents: read
       packages: write
+    env:
+      VERSAO: ${{ needs.test.outputs.versao }}
     steps:
       - uses: actions/checkout@v4
 
@@ -53,9 +89,9 @@ jobs:
         with:
           context: ${{ env.MODULO }}
           push: true
-          tags: ${{ env.IMAGEM }}:${{ github.sha }},${{ env.IMAGEM }}:latest
+          tags: ${{ env.IMAGEM }}:${{ env.VERSAO }},${{ env.IMAGEM }}:latest
 
-            # O secret guarda a chave em base64 (uma linha só): copiar do terminal quebrava a chave.
+      # O secret guarda a chave em base64 (uma linha só): copiar do terminal quebrava a chave.
       - name: Chave SSH
         env:
           CHAVE_B64: ${{ secrets.EC2_SSH_KEY }}
@@ -69,7 +105,7 @@ jobs:
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GHCR_USER: ${{ github.actor }}
-          NOVA: ${{ env.IMAGEM }}:${{ github.sha }}
+          NOVA: ${{ env.IMAGEM }}:${{ env.VERSAO }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
@@ -112,3 +148,11 @@ jobs:
             fi
             docker logout ghcr.io >/dev/null
             exit 1
+
+      # O GHCR de repositório privado tem cota de armazenamento: guarda só as 5 versões mais recentes.
+      - name: Limpar versões antigas no GHCR
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: octopus-${{ env.CONTAINER }}
+          package-type: container
+          min-versions-to-keep: 5
