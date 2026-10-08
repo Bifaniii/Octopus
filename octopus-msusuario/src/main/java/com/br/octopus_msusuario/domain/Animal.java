@@ -31,4 +31,9 @@ public class Animal {
 
     @Column(name = "data_ultima_vacina_antirrabica", nullable = true)
     private LocalDate dataUltimaAntirrabica;
+
+    // Mãe do animal, quando conhecida. O ms-internacao usa na RN-01 (ninhada só com filhotes da mesma mãe).
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "mae_id")
+    private Animal mae;
 }
