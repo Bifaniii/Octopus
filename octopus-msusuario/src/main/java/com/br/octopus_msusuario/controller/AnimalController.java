@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -30,6 +31,13 @@ public class AnimalController {
     @GetMapping
     public List<AnimalResponse> listar() {
         return animalService.listar();
+    }
+
+    // Consumido pelo ms-internacao (RN-01/RN-02), inclusive quando o veterinário transfere para isolamento.
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPCIONISTA', 'VETERINARIO')")
+    public AnimalResponse buscar(@PathVariable UUID id) {
+        return animalService.listarPorId(id);
     }
 
     @PostMapping

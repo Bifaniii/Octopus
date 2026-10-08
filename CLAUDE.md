@@ -56,7 +56,7 @@ Ordem definida, porque um depende do outro:
    ficam no mesmo módulo de propósito: os horários nascem junto com o item prescrito, e separar exigiria
    transação distribuída ou mensageria, que o TAP não permite.
 
-## Estado das branches (04/10/2026, Sprint 2 em andamento)
+## Estado das branches (08/10/2026, Sprint 2 em andamento)
 
 Branch por microsserviço, permanente. O `CLAUDE.md` é mantido igual em todas; o `README.md` de cada uma descreve
 o próprio módulo.
@@ -73,6 +73,10 @@ o próprio módulo.
   `Medicacao` (incluindo `TipoEsquema`, interações proibidas e `quantidade`), DTOs, service, controller
   `/api/medicacoes`, exceptions, JWT, migrations, compose próprio e 12 testes. É uma branch órfã, sem ancestral
   comum com a `main`, o que é esperado aqui.
+- **`feature/animal_mae`** (Douglas): parte da `main` e adiciona ao `octopus-msusuario` a mãe do animal
+  (`mae_id`, migration V6) e o `GET /api/animais/{id}`, ambos para o `ms-internacao` (RN-01 da ninhada e
+  RN-02). Ainda não foi para a `main`, que está em produção.
+- **`feature/internacao`**: `ms-internacao/` em construção (pacote `com.br.octopus_msinternacao`, porta 8083).
 
 ## Comandos
 
