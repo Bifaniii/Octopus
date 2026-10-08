@@ -1,4 +1,4 @@
-package com.br.octopus_msbaias.exception;
+package com.br.octopus_msinternacao.exception;
 
 public class RecursoNaoEncontradoException extends RuntimeException {
 

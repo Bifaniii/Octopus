@@ -1,10 +1,10 @@
-package com.br.octopus_msbaias;
+package com.br.octopus_msinternacao;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class OctopusMsbaiasApplicationTests {
+class OctopusMsinternacaoApplicationTests {
 
     @Test
     void contextLoads() {

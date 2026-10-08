@@ -1,6 +1,6 @@
-package com.br.octopus_msbaias.security;
+package com.br.octopus_msinternacao.security;
 
-import com.br.octopus_msbaias.exception.ErroResponse;
+import com.br.octopus_msinternacao.exception.ErroResponse;
 import tools.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

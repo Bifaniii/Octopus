@@ -1,12 +1,12 @@
-package com.br.octopus_msbaias;
+package com.br.octopus_msinternacao;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class OctopusMsbaiasApplication {
+public class OctopusMsinternacaoApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(OctopusMsbaiasApplication.class, args);
+        SpringApplication.run(OctopusMsinternacaoApplication.class, args);
     }
 }

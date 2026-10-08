@@ -1,4 +1,4 @@
-package com.br.octopus_msbaias.security;
+package com.br.octopus_msinternacao.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
