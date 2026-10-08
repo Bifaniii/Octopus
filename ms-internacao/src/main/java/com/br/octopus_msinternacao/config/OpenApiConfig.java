@@ -1,4 +1,4 @@
-package com.br.octopus_msbaias.config;
+package com.br.octopus_msinternacao.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -13,7 +13,7 @@ public class OpenApiConfig {
     @Bean
     public OpenAPI openAPI() {
         return new OpenAPI()
-                .info(new Info().title("Octopus - MS Baias").version("0.0.1"))
+                .info(new Info().title("Octopus - MS Internação").version("0.0.1"))
                 .components(new Components().addSecuritySchemes("bearerAuth",
                         new SecurityScheme()
                                 .type(SecurityScheme.Type.HTTP)

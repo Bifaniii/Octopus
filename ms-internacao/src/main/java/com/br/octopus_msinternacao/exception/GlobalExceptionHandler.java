@@ -1,4 +1,4 @@
-package com.br.octopus_msbaias.exception;
+package com.br.octopus_msinternacao.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
