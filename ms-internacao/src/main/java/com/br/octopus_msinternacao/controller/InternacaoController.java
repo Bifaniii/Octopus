@@ -48,11 +48,13 @@ public class InternacaoController {
         return internacaoService.admitir(request, usuario);
     }
 
-    // Leitura: qualquer usuário autenticado (exigido pela SecurityConfig). Filtros opcionais.
+    // Leitura: qualquer usuário autenticado (exigido pela SecurityConfig). Filtros opcionais e combináveis; com
+    // animalId, devolve todas as passagens do animal pela clínica.
     @GetMapping
     public List<InternacaoResponse> listar(@RequestParam(required = false) StatusInternacao status,
-                                           @RequestParam(required = false) UUID baiaId) {
-        return internacaoService.listar(status, baiaId);
+                                           @RequestParam(required = false) UUID baiaId,
+                                           @RequestParam(required = false) UUID animalId) {
+        return internacaoService.listar(status, baiaId, animalId);
     }
 
     @GetMapping("/{id}")

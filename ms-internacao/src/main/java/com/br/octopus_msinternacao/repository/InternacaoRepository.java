@@ -26,7 +26,8 @@ public interface InternacaoRepository extends JpaRepository<Internacao, UUID> {
             select i from Internacao i
             where (:status is null or i.status = :status)
               and (:baiaId is null or i.baiaId = :baiaId)
+              and (:animalId is null or i.animalId = :animalId)
             order by i.dataAdmissao desc
             """)
-    List<Internacao> listar(StatusInternacao status, UUID baiaId);
+    List<Internacao> listar(StatusInternacao status, UUID baiaId, UUID animalId);
 }

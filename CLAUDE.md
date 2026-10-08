@@ -22,9 +22,9 @@ O sistema é feito de microsserviços Spring Boot independentes, um por área, c
 | `octopus-msusuario/`    | 8080  | `main`                         | Login/JWT, recuperação de senha, perfis, tutores, animais. 42 testes. |
 | `ms-cadastro-baias/`    | 8081  | `feature/cadastro-baia`        | CRUD de baias, limite de 12 ativas, ativar/desativar. 14 testes. |
 | `octopus-msmedications/`| 8082  | `feature/register_medications` | CRUD de medicamentos, esquema e interações. 12 testes. |
-| `ms-internacao/`        | 8083  | `feature/internacao`           | Admissão, ciclo de vida, RN-01, RN-02 e RN-08. 49 testes. Ainda não publicado. |
+| `ms-internacao/`        | 8083  | `feature/internacao`           | Admissão, ciclo de vida, RN-01, RN-02 e RN-08. 50 testes. |
 
-Os três primeiros estão publicados no free tier da AWS, com o MySQL hospedado no Aiven. O front é um projeto
+Os módulos estão publicados no free tier da AWS (EC2), com o MySQL hospedado no Aiven. O front é um projeto
 Angular separado, no repositório `Octopus-front`, que também usa uma branch por funcionalidade e tem o seu
 próprio `CLAUDE.md`.
 
@@ -93,10 +93,10 @@ o próprio módulo.
   "Animal não encontrado".
 - **`feature/internacao`** (Douglas): `ms-internacao/` com entidade `Internacao` e histórico
   (`InternacaoEvento`), migrations V1 e V2, clients REST para `msbaias` e `msusuario`, service com RN-01, RN-02
-  e RN-08, controller `/api/internacoes`, JWT, compose próprio e 49 testes. O esqueleto veio de uma cópia do
+  e RN-08, controller `/api/internacoes`, JWT, compose próprio e 50 testes. O esqueleto veio de uma cópia do
   módulo de baias (branch `copilot/ms-internacao-only-cadastro-baias-folders`, já mesclada e que pode ser
   apagada); o pacote, a porta e o histórico do Flyway já foram trocados, e o `.idea/` saiu do versionamento.
-  Falta o `.github/workflows/ci.yml` (ver "Integração contínua"). A pasta se chama `ms-internacao/`, e não
+  Tem `pipeline.yml` próprio (container `internacao`, porta 8083). A pasta se chama `ms-internacao/`, e não
   `octopus-msinternacao/`, por herança desse esqueleto.
 
 ## Comandos
@@ -237,7 +237,7 @@ MySQL.
 | Endpoint | Quem pode |
 | :------- | :-------- |
 | `POST /api/internacoes` | `RECEPCIONISTA`, `ADMIN` |
-| `GET /api/internacoes?status=&baiaId=`, `GET /{id}`, `GET /{id}/eventos` | autenticado |
+| `GET /api/internacoes?status=&baiaId=&animalId=`, `GET /{id}`, `GET /{id}/eventos` | autenticado |
 | `PATCH /{id}/iniciar-tratamento`, `/isolar`, `/autorizar-alta` | `VETERINARIO` |
 | `PATCH /{id}/alta-a-pedido-do-tutor`, `/encerrar` | `RECEPCIONISTA`, `VETERINARIO` |
 
@@ -246,7 +246,7 @@ O `ADMIN` fica fora dos atos clínicos de propósito, para o histórico mostrar 
 **Migrations.** `V1__internacoes.sql` cria as duas tabelas; `V2__internacoes_animal.sql` acrescenta nome e
 espécie do animal. Histórico do Flyway em `flyway_schema_history_internacao`.
 
-**Testes.** 49: `InternacaoTest` (máquina de estados), `InternacaoServiceTest` (RN-01 e RN-02 com clients
+**Testes.** 50: `InternacaoTest` (máquina de estados), `InternacaoServiceTest` (RN-01 e RN-02 com clients
 mockados e `Clock` fixo) e `InternacaoApiTest` (MockMvc com tokens de cada perfil e os clients como
 `@MockitoBean`).
 
@@ -271,21 +271,23 @@ Os módulos existentes já seguem o padrão abaixo; use qualquer um deles como r
 - Validar o token do `msusuario` com o mesmo `JWT_SECRET`, como está em "Segurança entre módulos".
 - Porta própria via `server.port=${PORT:<porta>}`, `Dockerfile` multi-stage e `docker-compose.yml` com
   `.env.example` dentro da pasta do módulo, usando portas de host que não colidam com as dos outros.
-- Um `.github/workflows/ci.yml` próprio, copiado de outra branch, trocando o nome da branch no filtro de `push`
-  e a pasta do módulo em `working-directory`.
+- Um `.github/workflows/pipeline.yml` próprio, copiado de outra branch, trocando o nome da branch no filtro de
+  `push` e o bloco `env` (ver "Integração contínua").
 
 ## Integração contínua
 
-Cada branch tem o seu `.github/workflows/ci.yml`, que roda `mvn -B verify` dentro da pasta do módulo daquela
-branch. O arquivo é praticamente igual nas três, mudando só duas linhas: o nome da branch no filtro de `push` e
-o `working-directory`.
+Cada branch tem o seu `.github/workflows/pipeline.yml`. A cada push ele roda os testes do módulo daquela branch;
+o deploy (imagem no GHCR e troca do container na EC2, com volta automática para a versão anterior se o serviço
+não subir) só acontece quando a `<version>` do `pom.xml` muda. Para publicar uma alteração, suba a versão no
+mesmo push. O arquivo é praticamente igual em todas as branches, mudando o nome da branch no filtro de `push` e
+o bloco `env` (`MODULO`, `CONTAINER`, `PORTA`).
 
 A duplicação é necessária, não descuido. O GitHub só executa um workflow que exista **na branch empurrada**, e
 como nenhuma branch é mesclada com outra, o arquivo da `main` não cobriria as demais. Também não há gatilho de
 `pull_request`, porque o projeto não usa PR: cada microsserviço fica na sua branch. O `workflow_dispatch`
 permite rodar manualmente pela aba Actions.
 
-Ao criar um módulo novo, copie o arquivo de qualquer branch e troque essas duas linhas.
+Ao criar um módulo novo, copie o arquivo de qualquer branch e troque a branch e o bloco `env`.
 
 ## Segurança entre módulos
 
