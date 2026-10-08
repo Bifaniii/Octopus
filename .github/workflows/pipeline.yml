@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 env:
-  MODULO: octopus-msinternacao   # pasta do módulo, com o Dockerfile
+  MODULO: ms-internacao          # pasta do módulo, com o Dockerfile   # pasta do módulo, com o Dockerfile
   CONTAINER: internacao            # nome do container na EC2
   PORTA: 8083                 # porta do serviço (host e container)
 
