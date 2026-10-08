@@ -9,7 +9,11 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.dao.PessimisticLockingFailureException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -25,6 +29,17 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, "Dados inválidos", req, campos);
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErroResponse> handleCorpoInvalido(HttpMessageNotReadableException ex, HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, "Corpo da requisição inválido. Datas usam o formato aaaa-MM-ddTHH:mm:ss.", req, null);
+    }
+
+    // Parâmetro da URL com o tipo errado: id que não é UUID ou status que não existe.
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErroResponse> handleTipoInvalido(MethodArgumentTypeMismatchException ex, HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, "Parâmetro '" + ex.getName() + "' inválido.", req, null);
+    }
+
     @ExceptionHandler(RecursoNaoEncontradoException.class)
     public ResponseEntity<ErroResponse> handleNaoEncontrado(RecursoNaoEncontradoException ex, HttpServletRequest req) {
         return build(HttpStatus.NOT_FOUND, ex.getMessage(), req, null);
@@ -38,6 +53,22 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RegraNegocioException.class)
     public ResponseEntity<ErroResponse> handleRegraNegocio(RegraNegocioException ex, HttpServletRequest req) {
         return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), req, null);
+    }
+
+    @ExceptionHandler(ServicoIndisponivelException.class)
+    public ResponseEntity<ErroResponse> handleServicoIndisponivel(ServicoIndisponivelException ex, HttpServletRequest req) {
+        return build(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), req, null);
+    }
+
+    @ExceptionHandler({PessimisticLockingFailureException.class, OptimisticLockingFailureException.class})
+    public ResponseEntity<ErroResponse> handleConcorrencia(RuntimeException ex, HttpServletRequest req) {
+        return build(HttpStatus.CONFLICT, "Outra operação alterou estes dados ao mesmo tempo. Tente novamente.", req, null);
+    }
+
+    // UNIQUE uk_internacoes_animal_internado: duas admissões simultâneas do mesmo animal.
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErroResponse> handleIntegridade(DataIntegrityViolationException ex, HttpServletRequest req) {
+        return build(HttpStatus.CONFLICT, "O animal já tem uma internação aberta.", req, null);
     }
 
     @ExceptionHandler(AuthenticationException.class)
