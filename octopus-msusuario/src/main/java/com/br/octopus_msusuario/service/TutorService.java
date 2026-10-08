@@ -4,6 +4,7 @@ import com.br.octopus_msusuario.domain.Tutor;
 import com.br.octopus_msusuario.dto.request.TutorRequest;
 import com.br.octopus_msusuario.dto.response.TutorResponse;
 import com.br.octopus_msusuario.exception.RecursoNaoEncontradoException;
+import com.br.octopus_msusuario.repository.AnimalRepository;
 import com.br.octopus_msusuario.repository.TutorRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import java.util.UUID;
 public class TutorService {
 
     private final TutorRepository tutorRepository;
+    private final AnimalRepository animalRepository;
 
     @Transactional
     public TutorResponse criar(TutorRequest request) {
@@ -28,7 +30,7 @@ public class TutorService {
                 .build();
 
         if (request.animais() != null) {
-            request.animais().forEach(a -> tutor.adicionarAnimal(a.toEntity()));
+            request.animais().forEach(a -> tutor.adicionarAnimal(a.toEntity(animalRepository.buscarMae(a.maeId()))));
         }
 
         return TutorResponse.from(tutorRepository.save(tutor));

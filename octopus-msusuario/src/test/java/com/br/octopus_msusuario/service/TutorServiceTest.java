@@ -5,6 +5,7 @@ import com.br.octopus_msusuario.dto.request.AnimalRequest;
 import com.br.octopus_msusuario.dto.request.TutorRequest;
 import com.br.octopus_msusuario.dto.response.TutorResponse;
 import com.br.octopus_msusuario.exception.RecursoNaoEncontradoException;
+import com.br.octopus_msusuario.repository.AnimalRepository;
 import com.br.octopus_msusuario.repository.TutorRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,6 +31,9 @@ class TutorServiceTest {
     @Mock
     private TutorRepository tutorRepository;
 
+    @Mock
+    private AnimalRepository animalRepository;
+
     @InjectMocks
     private TutorService tutorService;
 
@@ -37,7 +41,7 @@ class TutorServiceTest {
     void criar_deveVincularOsAnimaisAoTutor() {
         when(tutorRepository.save(any(Tutor.class))).thenAnswer(inv -> inv.getArgument(0));
         var request = new TutorRequest("João", "Rua A, 10", LocalDate.of(1985, 1, 1), "11988887777",
-                List.of(new AnimalRequest("Rex", "Cão", null), new AnimalRequest("Mia", "Gato", null)));
+                List.of(new AnimalRequest("Rex", "Cão", null, null), new AnimalRequest("Mia", "Gato", null, null)));
 
         TutorResponse response = tutorService.criar(request);
 

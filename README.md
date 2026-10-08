@@ -90,8 +90,9 @@ cd octopus-msusuario
 | `POST /api/auxiliares`, `/api/recepcionistas`, `/api/admins` | Cadastra os demais perfis | `ADMIN` |
 | `PATCH /api/<perfil>/{id}/desativar` | Arquiva a conta e derruba os tokens dela | `ADMIN` |
 | `POST /api/tutores` | Cadastra tutor, opcionalmente já com os animais | `ADMIN`, `RECEPCIONISTA` |
-| `POST /api/tutores/{id}/animais` | Cadastra animal (nome, espécie e data da última antirrábica) sob o tutor | `ADMIN`, `RECEPCIONISTA` |
+| `POST /api/tutores/{id}/animais` | Cadastra animal (nome, espécie, data da última antirrábica e, opcionalmente, a mãe) sob o tutor | `ADMIN`, `RECEPCIONISTA` |
 | `GET /api/animais`, `/api/tutores` | Lista animais e tutores | `ADMIN`, `RECEPCIONISTA` |
+| `GET /api/animais/{id}` | Busca um animal (usado pelo `ms-internacao` nas RN-01 e RN-02) | `ADMIN`, `RECEPCIONISTA`, `VETERINARIO` |
 
 Nada é apagado no sistema: o que sai de uso é desativado (`ativo = false`) e continua no banco, para preservar
 o histórico.
@@ -119,22 +120,19 @@ cd octopus-msusuario && ./mvnw test
 - Arquitetura e convenções para novos módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 04/10/2026 na branch `main`_
-- E-mail de redefinição reescrito com a identidade da clínica: cabeçalho "Plantão | Clínica Veterinária
-  VidaPet", código destacado em caixa própria e rodapé avisando que é mensagem automática.
-- Vai em multipart, com HTML e texto puro na mesma mensagem. Quem usa cliente sem HTML lê a versão em texto, e
-  mandar as duas reduz a chance de o filtro tratar como spam, que foi o que aconteceu com a versão anterior.
-- O remetente passa a ter nome visível ("Plantão VidaPet") em vez de só o endereço, e o assunto ficou
-  específico: "Seu código para redefinir a senha do Plantão".
-- O prazo de validade agora é passado para o e-mail em vez de escrito à mão no texto, então o que a mensagem
-  promete não pode divergir do que o serviço aplica.
-- Tudo em HTML inline, sem imagem externa, porque imagem remota é bloqueada por padrão em boa parte dos
-  clientes e conta como sinal de spam.
+_Push de 08/10/2026 na branch `feature/animal_mae`_
+- Animal ganha a mãe (`maeId`, opcional), para a RN-01: a baia de ninhada só aceita filhotes da mesma mãe.
+- Migration `V6__animais_mae.sql`: coluna `mae_id` em `tb_animais`, com índice e FK para a própria tabela.
+- `maeId` aceito no cadastro de animal (pela rota do tutor e no tutor criado já com animais) e devolvido no
+  `AnimalResponse`; mãe inexistente responde 404.
+- Novo `GET /api/animais/{id}`, liberado também para `VETERINARIO`, que o `ms-internacao` consome ao admitir e
+  ao transferir para isolamento.
+- Dois testes novos no `AnimalServiceTest` (mãe vinculada e mãe inexistente).
 
 ## Próximos passos
-- [ ] Completar o `AdminController`: faltam `GET /{id}` e `PATCH /{id}/desativar`, que os outros três perfis já
-      têm. Hoje não existe como desativar um admin pela API.
+- [ ] Validar a V6 contra o MySQL antes de levar à `main` (os testes usam H2 com Flyway desligado).
+- [ ] Levar esta branch para a `main` (em produção) depois de combinar com a squad.
+- [ ] Adicionar o campo de mãe no formulário de animal do `Octopus-front` (tela 1).
+- [ ] Corrigir o `POST /api/animais`, que não tem `@RequestBody` nem `@Valid`.
+- [ ] Completar o `AdminController`: faltam `GET /{id}` e `PATCH /{id}/desativar`.
 - [ ] Avaliar guardar o código de redefinição com hash em vez de texto puro.
-- [ ] Sprint 2: `octopus-msinternacao`, com alocação em baia e as validações RN-01 (capacidade) e RN-02
-      (vacinação antirrábica irregular exige isolamento).
-- [ ] Apagar a branch remota `feature/cadastro_login_usuario`, que já foi mergeada.
