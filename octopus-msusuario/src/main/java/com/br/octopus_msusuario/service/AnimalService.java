@@ -23,7 +23,7 @@ public class AnimalService {
     @Transactional
     public AnimalResponse criar(UUID tutorId, AnimalRequest request) {
         Tutor tutor = tutorService.obter(tutorId);
-        Animal animal = request.toEntity();
+        Animal animal = request.toEntity(animalRepository.buscarMae(request.maeId()));
         tutor.adicionarAnimal(animal);
         return AnimalResponse.from(animalRepository.save(animal));
     }

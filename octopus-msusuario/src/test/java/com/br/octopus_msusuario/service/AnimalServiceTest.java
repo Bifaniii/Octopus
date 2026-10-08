@@ -43,7 +43,7 @@ class AnimalServiceTest {
         when(animalRepository.save(any(Animal.class))).thenAnswer(inv -> inv.getArgument(0));
         LocalDate vacina = LocalDate.of(2026, 3, 1);
 
-        AnimalResponse response = animalService.criar(tutorId, new AnimalRequest("Rex", "Cão", vacina));
+        AnimalResponse response = animalService.criar(tutorId, new AnimalRequest("Rex", "Cão", vacina, null));
 
         ArgumentCaptor<Animal> captor = ArgumentCaptor.forClass(Animal.class);
         verify(animalRepository).save(captor.capture());
@@ -58,8 +58,37 @@ class AnimalServiceTest {
         UUID tutorId = UUID.randomUUID();
         when(tutorService.obter(tutorId)).thenThrow(new RecursoNaoEncontradoException("Tutor não encontrado: " + tutorId));
 
-        assertThatThrownBy(() -> animalService.criar(tutorId, new AnimalRequest("Rex", "Cão", null)))
+        assertThatThrownBy(() -> animalService.criar(tutorId, new AnimalRequest("Rex", "Cão", null, null)))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
+        verify(animalRepository, never()).save(any());
+    }
+
+    @Test
+    void criar_deveVincularAMaeInformada() {
+        UUID tutorId = UUID.randomUUID();
+        Tutor tutor = Tutor.builder().id(tutorId).nome("João").build();
+        Animal mae = Animal.builder().id(UUID.randomUUID()).nome("Nina").tutor(tutor).especie("Cão").build();
+        when(tutorService.obter(tutorId)).thenReturn(tutor);
+        when(animalRepository.buscarMae(mae.getId())).thenCallRealMethod();
+        when(animalRepository.findById(mae.getId())).thenReturn(Optional.of(mae));
+        when(animalRepository.save(any(Animal.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        AnimalResponse response = animalService.criar(tutorId, new AnimalRequest("Bidu", "Cão", null, mae.getId()));
+
+        assertThat(response.maeId()).isEqualTo(mae.getId());
+    }
+
+    @Test
+    void criar_naoDeveSalvarQuandoMaeNaoExiste() {
+        UUID tutorId = UUID.randomUUID();
+        UUID maeId = UUID.randomUUID();
+        when(tutorService.obter(tutorId)).thenReturn(Tutor.builder().id(tutorId).nome("João").build());
+        when(animalRepository.buscarMae(maeId)).thenCallRealMethod();
+        when(animalRepository.findById(maeId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> animalService.criar(tutorId, new AnimalRequest("Bidu", "Cão", null, maeId)))
+                .isInstanceOf(AnimalNaoEncontradoException.class)
+                .hasMessageContaining(maeId.toString());
         verify(animalRepository, never()).save(any());
     }
 

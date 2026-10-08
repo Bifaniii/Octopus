@@ -10,7 +10,8 @@ public record AnimalResponse(
         String nome,
         UUID tutorId,
         String especie,
-        LocalDate dataUltimaAntirrabica
+        LocalDate dataUltimaAntirrabica,
+        UUID maeId
 ) {
     public static AnimalResponse from(Animal animal) {
         return new AnimalResponse(
@@ -18,7 +19,8 @@ public record AnimalResponse(
                 animal.getNome(),
                 animal.getTutor().getId(),
                 animal.getEspecie(),
-                animal.getDataUltimaAntirrabica()
+                animal.getDataUltimaAntirrabica(),
+                animal.getMae() != null ? animal.getMae().getId() : null
         );
     }
 }
