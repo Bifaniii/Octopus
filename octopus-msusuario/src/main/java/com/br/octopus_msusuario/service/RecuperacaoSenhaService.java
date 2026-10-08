@@ -46,10 +46,12 @@ public class RecuperacaoSenhaService {
         Usuario usuario = encontrado.get();
 
         arquivarTokensAtivos(usuario);
+        
+        String codigoNumero = String.format("%06d", new java.util.Random().nextInt(1000000));
 
         TokenRecuperacaoSenha novo = TokenRecuperacaoSenha.builder()
                 .usuario(usuario)
-                .token(UUID.randomUUID().toString())
+                .token(codigoNumero)
                 .expiraEm(LocalDateTime.now().plusMinutes(VALIDADE_MINUTOS))
                 .build();
         tokenRepository.save(novo);
