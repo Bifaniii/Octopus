@@ -119,8 +119,8 @@ public class InternacaoService {
     }
 
     @Transactional(readOnly = true)
-    public List<InternacaoResponse> listar(StatusInternacao status, UUID baiaId) {
-        return internacaoRepository.listar(status, baiaId).stream().map(InternacaoResponse::from).toList();
+    public List<InternacaoResponse> listar(StatusInternacao status, UUID baiaId, UUID animalId) {
+        return internacaoRepository.listar(status, baiaId, animalId).stream().map(InternacaoResponse::from).toList();
     }
 
     @Transactional(readOnly = true)

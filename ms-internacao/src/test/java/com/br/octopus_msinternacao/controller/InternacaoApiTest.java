@@ -213,6 +213,24 @@ class InternacaoApiTest {
                 .andExpect(jsonPath("$.length()").value(0));
     }
 
+    @Test
+    @DisplayName("filtro por animal: devolve só as passagens daquele animal")
+    void listarPorAnimal() throws Exception {
+        admitir();
+        AnimalDto outro = new AnimalDto(UUID.randomUUID(), "Nina", "Gato", LocalDate.now(clock), null);
+        BaiaDto outraBaia = new BaiaDto(UUID.randomUUID(), TipoBaia.COLETIVA, "B-02", 1, true);
+        when(animalClient.buscar(outro.id())).thenReturn(outro);
+        when(baiaClient.buscar(outraBaia.id())).thenReturn(outraBaia);
+        comoRecepcao(json(post(URL), new AdmissaoRequest(outro.id(), outraBaia.id(), "Fratura")))
+                .andExpect(status().isCreated());
+
+        comoVet(get(URL).param("animalId", animal.id().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].animalNome").value("Thor"));
+        comoVet(get(URL)).andExpect(jsonPath("$.length()").value(2));
+    }
+
     // ---------- erros ----------
 
     @Test
