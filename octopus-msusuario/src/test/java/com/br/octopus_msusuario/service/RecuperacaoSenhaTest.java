@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -52,6 +53,9 @@ class RecuperacaoSenhaTest {
 
     @MockitoBean
     private EmailService emailService;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void limpar() {
@@ -120,6 +124,19 @@ class RecuperacaoSenhaTest {
         assertThat(tokens.get(0).getToken()).isEqualTo(codigo);
         assertThat(tokens.get(0).getStatus()).isEqualTo(StatusTokenSenha.ATIVO);
         assertThat(tokens.get(0).getExpiraEm()).isAfter(LocalDateTime.now());
+    }
+
+    @Test
+    @DisplayName("o código tem sempre 6 dígitos, inclusive quando sorteia um número pequeno")
+    void codigoTemSeisDigitos() throws Exception {
+        // Roda algumas vezes porque o zero à esquerda só aparece em parte dos sorteios: sem o %06d,
+        // um sorteio como 4821 viraria um código de 4 dígitos.
+        for (int i = 0; i < 20; i++) {
+            jdbcTemplate.execute("DELETE FROM tb_tokens_recuperacao_senha");
+            reset(emailService);
+            pedirCodigo(ADMIN_EMAIL);
+            assertThat(codigoEnviado()).matches("\\d{6}");
+        }
     }
 
     @Test

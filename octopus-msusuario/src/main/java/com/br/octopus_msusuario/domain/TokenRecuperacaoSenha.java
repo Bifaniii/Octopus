@@ -24,7 +24,7 @@ public class TokenRecuperacaoSenha {
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
-    @Column(name = "token", length = 100, unique = true, nullable = false)
+    @Column(name = "token", length = 6, unique = true, nullable = false)
     private String token;
 
     @Builder.Default
