@@ -6,7 +6,6 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Entity
 @Table(name = "tb_prescricoes")
@@ -18,12 +17,12 @@ import java.util.UUID;
 public class Prescricao {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     // Id da internação (octopus-msinternacao). Sem @ManyToOne e sem FK: a tabela é de outro módulo.
     @Column(name = "internacao_id", nullable = false)
-    private UUID internacaoId;
+    private Long internacaoId;
 
     // Quem prescreveu, vindo do claim "sub" do JWT. O token não traz o id do veterinário.
     @Column(name = "veterinario_email", length = 150, nullable = false)

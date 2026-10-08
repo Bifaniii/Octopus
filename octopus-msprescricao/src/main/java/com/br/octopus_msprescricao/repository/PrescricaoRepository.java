@@ -4,9 +4,8 @@ import com.br.octopus_msprescricao.domain.Prescricao;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
-import java.util.UUID;
 
-public interface PrescricaoRepository extends JpaRepository<Prescricao, UUID> {
+public interface PrescricaoRepository extends JpaRepository<Prescricao, Long> {
 
-    List<Prescricao> findByInternacaoIdOrderByCriadoEmDesc(UUID internacaoId);
+    List<Prescricao> findByInternacaoIdOrderByCriadoEmDesc(Long internacaoId);
 }
