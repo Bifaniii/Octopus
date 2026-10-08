@@ -121,13 +121,12 @@ cd octopus-msusuario && ./mvnw test
 
 ## Últimas alterações
 _Push de 08/10/2026 na branch `feature/animal_mae`_
-- Animal ganha a mãe (`maeId`, opcional), para a RN-01: a baia de ninhada só aceita filhotes da mesma mãe.
-- Migration `V6__animais_mae.sql`: coluna `mae_id` em `tb_animais`, com índice e FK para a própria tabela.
-- `maeId` aceito no cadastro de animal (pela rota do tutor e no tutor criado já com animais) e devolvido no
-  `AnimalResponse`; mãe inexistente responde 404.
-- Novo `GET /api/animais/{id}`, liberado também para `VETERINARIO`, que o `ms-internacao` consome ao admitir e
-  ao transferir para isolamento.
-- Dois testes novos no `AnimalServiceTest` (mãe vinculada e mãe inexistente).
+- Animal ganha a mãe (`maeId`, opcional), para a RN-01: a baia de ninhada só aceita filhotes da mesma mãe
+  (migration `V6__animais_mae.sql`, coluna `mae_id` com FK para a própria tabela; mãe inexistente responde 404).
+- Novo `GET /api/animais/{id}`, liberado também para `VETERINARIO`, que o `ms-internacao` consome na admissão e
+  na transferência para isolamento.
+- Versão do `octopus-msusuario` em `0.0.2-SNAPSHOT`: ao chegar na `main`, o pipeline publica a nova versão.
+- `CLAUDE.md` atualizado com a arquitetura do `ms-internacao` e o pipeline de deploy por versão.
 
 ## Próximos passos
 - [ ] Validar a V6 contra o MySQL antes de levar à `main` (os testes usam H2 com Flyway desligado).
@@ -135,4 +134,3 @@ _Push de 08/10/2026 na branch `feature/animal_mae`_
 - [ ] Adicionar o campo de mãe no formulário de animal do `Octopus-front` (tela 1).
 - [ ] Corrigir o `POST /api/animais`, que não tem `@RequestBody` nem `@Valid`.
 - [ ] Completar o `AdminController`: faltam `GET /{id}` e `PATCH /{id}/desativar`.
-- [ ] Avaliar guardar o código de redefinição com hash em vez de texto puro.

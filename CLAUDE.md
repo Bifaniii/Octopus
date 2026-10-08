@@ -4,7 +4,7 @@ Este arquivo fornece orientações ao Claude Code (claude.ai/code) ao trabalhar 
 
 > Este arquivo é versionado e vale para toda a squad. Não coloque nele valores de `.env`, senhas ou tokens,
 > só nomes de variáveis. A seção "Estado das branches" é um retrato datado: atualize quando mexer numa branch.
-> Última revisão: 04/10/2026 (Sprint 2 em andamento).
+> Última revisão: 08/10/2026 (Sprint 2 em andamento).
 
 ## Visão geral do repositório
 
@@ -22,9 +22,11 @@ O sistema é feito de microsserviços Spring Boot independentes, um por área, c
 | `octopus-msusuario/`    | 8080  | `main`                         | Login/JWT, recuperação de senha, perfis, tutores, animais. 42 testes. |
 | `ms-cadastro-baias/`    | 8081  | `feature/cadastro-baia`        | CRUD de baias, limite de 12 ativas, ativar/desativar. 14 testes. |
 | `octopus-msmedications/`| 8082  | `feature/register_medications` | CRUD de medicamentos, esquema e interações. 12 testes. |
+| `ms-internacao/`        | 8083  | `feature/internacao`           | Admissão, ciclo de vida, RN-01, RN-02 e RN-08. 50 testes. |
 
-Os três estão publicados no free tier da AWS, com o MySQL hospedado no Aiven. O front é um projeto Angular
-separado, no repositório `Octopus-front`, que também usa uma branch por funcionalidade.
+Os módulos estão publicados no free tier da AWS (EC2), com o MySQL hospedado no Aiven. O front é um projeto
+Angular separado, no repositório `Octopus-front`, que também usa uma branch por funcionalidade e tem o seu
+próprio `CLAUDE.md`.
 
 Cada microsserviço vive na sua branch e fica lá. Não há merge para a `main` nem PR entre módulos, então cada um
 precisa ser autocontido: `Dockerfile`, `docker-compose.yml` e `.env.example` dentro da pasta do módulo, subindo
@@ -46,15 +48,26 @@ sobe um MySQL separado.
 - **Restrições do TAP:** nada de integrações externas, notificações automáticas (e-mail/push) ou apps mobile;
   login simples baseado em perfis, sem infraestrutura de auth avançada.
 
-## Próximos módulos (Sprint 2)
+O enunciado do professor (PDF "Projeto Octopus") é mais detalhado que o TAP e prevalece quando os dois
+divergem. Dele vêm as regras que o código da internação segue:
 
-Ordem definida, porque um depende do outro:
+- **Perfis:** a recepcionista cadastra tutor e animal e registra a internação; o veterinário prescreve e dá
+  alta; o auxiliar registra a aplicação das doses.
+- **RN-01:** coletiva e isolamento comportam 1 animal; ninhada, até 6 filhotes da mesma mãe.
+- **RN-02:** antirrábica vencida (mais de 12 meses) ou sem registro, só baia de isolamento.
+- **RN-08:** a baia só é liberada com a saída física do animal. Atenção: no TAP o par RN-07/RN-08 aparece ligado
+  aos esquemas contínuo e sintomático; confira a numeração no PDF antes de citar uma RN.
+- **Ciclo de vida da internação:** Admitida → Em tratamento → Alta autorizada → Encerrada, com os alternativos
+  Isolamento e Alta a pedido do tutor (tabela completa em "Arquitetura do `ms-internacao`").
 
-1. `octopus-msinternacao` (:8083): internação, alta, RN-01 (capacidade) e RN-02 (vacinação). Guarda `animalId`
-   e `baiaId` como `UUID`, sem `@ManyToOne` e sem FK no banco, porque as tabelas são de outros módulos.
-2. `octopus-msplantao` (:8084): prescrição, itens, geração das doses, painel e relatório. Prescrição e dose
-   ficam no mesmo módulo de propósito: os horários nascem junto com o item prescrito, e separar exigiria
-   transação distribuída ou mensageria, que o TAP não permite.
+## Próximos módulos
+
+1. `ms-internacao` (:8083): em construção na `feature/internacao`; ver "Arquitetura do `ms-internacao`".
+2. `octopus-msplantao` (:8084, Sprint 3): prescrição, itens, geração das doses, painel e relatório. Prescrição e
+   dose ficam no mesmo módulo de propósito: os horários nascem junto com o item prescrito, e separar exigiria
+   transação distribuída ou mensageria, que o TAP não permite. Ao criar a primeira prescrição de uma
+   internação, ele chama `PATCH /api/internacoes/{id}/iniciar-tratamento` (idempotente) com o token do
+   veterinário.
 
 ## Estado das branches (08/10/2026, Sprint 2 em andamento)
 
@@ -75,8 +88,16 @@ o próprio módulo.
   comum com a `main`, o que é esperado aqui.
 - **`feature/animal_mae`** (Douglas): parte da `main` e adiciona ao `octopus-msusuario` a mãe do animal
   (`mae_id`, migration V6) e o `GET /api/animais/{id}`, ambos para o `ms-internacao` (RN-01 da ninhada e
-  RN-02). Ainda não foi para a `main`, que está em produção.
-- **`feature/internacao`**: `ms-internacao/` em construção (pacote `com.br.octopus_msinternacao`, porta 8083).
+  RN-02). Ainda não foi para a `main`, que está em produção. Enquanto não for, o `ms-internacao` não consegue
+  admitir contra o `msusuario` publicado: o endpoint que ele consulta não existe lá e a admissão responde
+  "Animal não encontrado".
+- **`feature/internacao`** (Douglas): `ms-internacao/` com entidade `Internacao` e histórico
+  (`InternacaoEvento`), migrations V1 e V2, clients REST para `msbaias` e `msusuario`, service com RN-01, RN-02
+  e RN-08, controller `/api/internacoes`, JWT, compose próprio e 50 testes. O esqueleto veio de uma cópia do
+  módulo de baias (branch `copilot/ms-internacao-only-cadastro-baias-folders`, já mesclada e que pode ser
+  apagada); o pacote, a porta e o histórico do Flyway já foram trocados, e o `.idea/` saiu do versionamento.
+  Tem `pipeline.yml` próprio (container `internacao`, porta 8083). A pasta se chama `ms-internacao/`, e não
+  `octopus-msinternacao/`, por herança desse esqueleto.
 
 ## Comandos
 
@@ -98,13 +119,18 @@ docker compose up --build             # aplicação + MySQL
 docker compose up -d mysql            # só o banco, para rodar com ./mvnw spring-boot:run
 ```
 
-Portas de host default: 8080/3307 (usuário), 8081/3308 (baias), 8082/3309 (medicações).
+Portas de host default: 8080/3307 (usuário), 8081/3308 (baias), 8082/3309 (medicações), 8083/3310 (internação).
 
 ### Configuração via `.env`
 
 - Nenhum `application.properties` tem credencial default: tudo vem do `.env`, lido da pasta do próprio módulo ou
   da raiz do repositório (`spring.config.import=optional:file:./.env[.properties],optional:file:../.env[.properties]`).
   Sem `.env` a aplicação não sobe local. Copie o `.env.example` do módulo para `.env` e preencha.
+- Os dois caminhos são relativos à pasta de trabalho. Pelo terminal, rode de dentro da pasta do módulo. No
+  IntelliJ, a configuração de execução precisa de *Working directory* `$MODULE_WORKING_DIR$`; sem isso ele usa a
+  raiz do repositório, não acha o `.env` e a subida falha com `Could not resolve placeholder 'JWT_SECRET'`.
+- Para desenvolver, aponte o `DB_URL` para o MySQL do compose, não para o Aiven. Subir um módulo contra o banco
+  publicado aplica as migrations nele, e a partir daí elas não podem mais ser editadas.
 - O arquivo precisa se chamar exatamente `.env`. O `.gitignore` cobre `*.env*`, e um arquivo chamado só `env`
   não é lido pela aplicação nem ignorado pelo git.
 - `JWT_SECRET` é base64 com no mínimo 48 bytes (`openssl rand -base64 48`).
@@ -157,9 +183,76 @@ Portas de host default: 8080/3307 (usuário), 8081/3308 (baias), 8082/3309 (medi
 - Recuperação de senha: `POST /api/auth/esqueci-senha` e `POST /api/auth/redefinir-senha`, os dois públicos na
   `SecurityConfig` e respondendo 204. Ver "Recuperação de senha".
 
+## Arquitetura do `ms-internacao`
+
+Mesmas camadas e convenções dos outros módulos, com pacote `com.br.octopus_msinternacao`. O que é próprio dele:
+
+**Ciclo de vida.** `StatusInternacao` tem `ADMITIDA`, `EM_TRATAMENTO`, `ISOLAMENTO`, `ALTA_AUTORIZADA`,
+`ALTA_A_PEDIDO_DO_TUTOR` e `ENCERRADA`, e o método `podeIrPara` é a tabela de transições inteira. São 8:
+
+| De | Para | Guarda |
+| :- | :--- | :----- |
+| Admitida | Em tratamento | Prescrição ativa (quem chama é o `msplantao`); idempotente |
+| Em tratamento | Isolamento | RN-02: antirrábica irregular, baia de isolamento com vaga |
+| Em tratamento, Isolamento | Alta autorizada | — |
+| Em tratamento, Isolamento | Alta a pedido do tutor | Termo de responsabilidade obrigatório |
+| Alta autorizada, Alta a pedido | Encerrada | RN-08: saída física entre a alta e agora |
+
+Isolamento não volta para Em tratamento. Um animal que já chega com a vacina vencida é admitido como
+`ADMITIDA` numa baia de isolamento; o status `ISOLAMENTO` é só para quem já estava em tratamento.
+
+**Entidade com invariantes.** `Internacao` não tem `@Setter` nem `@Builder`, o que foge da convenção de
+propósito: o status só muda pelos métodos de negócio (`admitir`, `iniciarTratamento`, `isolar`, `autorizarAlta`,
+`altaAPedidoDoTutor`, `encerrar`), que conferem a transição e gravam um `InternacaoEvento`
+(`tb_internacao_eventos`) com status, baia, usuário (e-mail do token) e hora. O histórico nunca é editado. A
+hora entra por parâmetro, vinda de um `Clock` fixo em `America/Sao_Paulo` (`config/ClockConfig`), porque o
+`DATETIME` não guarda fuso e o container roda em UTC.
+
+**Dados de outros módulos.** `animalId` e `baiaId` são `UUID` sem FK. Na admissão o service busca o animal no
+`msusuario` (`GET /api/animais/{id}`) e a baia no `msbaias` (`GET /api/baias/{id}`) pelos clients do pacote
+`client`, que repassam o JWT de quem chamou, têm timeout de 2 s para conectar e 3 s para ler, devolvem 404
+quando o recurso não existe e 503 (`ServicoIndisponivelException`) em qualquer outra falha. O nome, a espécie e
+a mãe do animal são copiados para a internação (`animal_nome`, `animal_especie`, `mae_id`): o painel mostra o
+nome sem consultar o `msusuario`, cujo `GET /api/animais` é restrito, e a regra da ninhada é conferida sem
+chamada remota. A capacidade usada na RN-01 é o menor valor entre a cadastrada e o máximo do tipo, o que protege
+contra baia gravada antes da correção da coletiva para 1. URLs em `MS_USUARIO_URL` e `MS_BAIAS_URL`.
+
+**Concorrência.** A admissão tem duas fases: as chamadas REST e a RN-02 acontecem fora da transação, e só a
+disputa pela vaga fica dentro de um `TransactionTemplate`, para nenhuma trava esperar a rede.
+
+- Mesma vaga ao mesmo tempo: `findByBaiaIdAndStatusNot` com `@Lock(PESSIMISTIC_WRITE)`. No InnoDB, com o índice
+  `(baia_id, status)` e `REPEATABLE READ`, o `FOR UPDATE` trava a faixa da baia; com a baia vazia o MySQL pode
+  resolver por deadlock, e o perdedor recebe 409.
+- Mesmo animal admitido duas vezes: coluna gerada `animal_internado` (preenchida só enquanto a internação está
+  aberta) com `UNIQUE`. Ela não é mapeada na entidade, então o `validate` a ignora e o H2 dos testes não a tem.
+- Mesma internação editada ao mesmo tempo: `@Version` na coluna `versao`.
+- O `GlobalExceptionHandler` transforma trava, deadlock, versão desatualizada e violação do `UNIQUE` em 409 "tente
+  novamente", em vez de 500.
+
+O H2 não reproduz o `FOR UPDATE` do InnoDB: os testes cobrem as regras, mas a corrida real só se verifica contra
+MySQL.
+
+**Endpoints.** Não há `DELETE`; a internação termina em `ENCERRADA`, que faz o papel do arquivamento.
+
+| Endpoint | Quem pode |
+| :------- | :-------- |
+| `POST /api/internacoes` | `RECEPCIONISTA`, `ADMIN` |
+| `GET /api/internacoes?status=&baiaId=&animalId=`, `GET /{id}`, `GET /{id}/eventos` | autenticado |
+| `PATCH /{id}/iniciar-tratamento`, `/isolar`, `/autorizar-alta` | `VETERINARIO` |
+| `PATCH /{id}/alta-a-pedido-do-tutor`, `/encerrar` | `RECEPCIONISTA`, `VETERINARIO` |
+
+O `ADMIN` fica fora dos atos clínicos de propósito, para o histórico mostrar sempre um veterinário na alta.
+
+**Migrations.** `V1__internacoes.sql` cria as duas tabelas; `V2__internacoes_animal.sql` acrescenta nome e
+espécie do animal. Histórico do Flyway em `flyway_schema_history_internacao`.
+
+**Testes.** 50: `InternacaoTest` (máquina de estados), `InternacaoServiceTest` (RN-01 e RN-02 com clients
+mockados e `Clock` fixo) e `InternacaoApiTest` (MockMvc com tokens de cada perfil e os clients como
+`@MockitoBean`).
+
 ## Convenções para novos microsserviços
 
-Os três módulos existentes já seguem o padrão abaixo; use qualquer um deles como referência ao criar o próximo.
+Os módulos existentes já seguem o padrão abaixo; use qualquer um deles como referência ao criar o próximo.
 
 - Pasta na raiz e artifactId `octopus-ms<area>`, groupId `com.br`, pacote base `com.br.octopus_ms<area>` com
   underscore. Spring Boot 4.1.1, Java 17, Lombok e os mesmos starters "quebrados" do Boot 4.
@@ -178,25 +271,27 @@ Os três módulos existentes já seguem o padrão abaixo; use qualquer um deles 
 - Validar o token do `msusuario` com o mesmo `JWT_SECRET`, como está em "Segurança entre módulos".
 - Porta própria via `server.port=${PORT:<porta>}`, `Dockerfile` multi-stage e `docker-compose.yml` com
   `.env.example` dentro da pasta do módulo, usando portas de host que não colidam com as dos outros.
-- Um `.github/workflows/ci.yml` próprio, copiado de outra branch, trocando o nome da branch no filtro de `push`
-  e a pasta do módulo em `working-directory`.
+- Um `.github/workflows/pipeline.yml` próprio, copiado de outra branch, trocando o nome da branch no filtro de
+  `push` e o bloco `env` (ver "Integração contínua").
 
 ## Integração contínua
 
-Cada branch tem o seu `.github/workflows/ci.yml`, que roda `mvn -B verify` dentro da pasta do módulo daquela
-branch. O arquivo é praticamente igual nas três, mudando só duas linhas: o nome da branch no filtro de `push` e
-o `working-directory`.
+Cada branch tem o seu `.github/workflows/pipeline.yml`. A cada push ele roda os testes do módulo daquela branch;
+o deploy (imagem no GHCR e troca do container na EC2, com volta automática para a versão anterior se o serviço
+não subir) só acontece quando a `<version>` do `pom.xml` muda. Para publicar uma alteração, suba a versão no
+mesmo push. O arquivo é praticamente igual em todas as branches, mudando o nome da branch no filtro de `push` e
+o bloco `env` (`MODULO`, `CONTAINER`, `PORTA`).
 
 A duplicação é necessária, não descuido. O GitHub só executa um workflow que exista **na branch empurrada**, e
 como nenhuma branch é mesclada com outra, o arquivo da `main` não cobriria as demais. Também não há gatilho de
 `pull_request`, porque o projeto não usa PR: cada microsserviço fica na sua branch. O `workflow_dispatch`
 permite rodar manualmente pela aba Actions.
 
-Ao criar um módulo novo, copie o arquivo de qualquer branch e troque essas duas linhas.
+Ao criar um módulo novo, copie o arquivo de qualquer branch e troque a branch e o bloco `env`.
 
 ## Segurança entre módulos
 
-Decidido na Sprint 1 e implementado em `ms-cadastro-baias` e `octopus-msmedications`: só o `octopus-msusuario`
+Decidido na Sprint 1 e implementado em `ms-cadastro-baias`, `octopus-msmedications` e `ms-internacao`: só o `octopus-msusuario`
 emite token, e os demais módulos apenas validam o JWT dele, com o mesmo `JWT_SECRET` (HS384). Nenhum outro
 módulo tem tabela de usuários, então identidade e papel vêm dos claims: `sub` é o e-mail e `role` é a `ROLE_*`.
 
@@ -217,6 +312,7 @@ A autorização fina continua por `@PreAuthorize` no controller:
 | `msusuario`     | conforme o recurso | `ADMIN` (usuários), `ADMIN`/`RECEPCIONISTA` (tutor, animal) |
 | `msbaias`       | autenticado        | `ADMIN`                              |
 | `msmedications` | autenticado        | `ADMIN`/`VETERINARIO`; desativar só `ADMIN` |
+| `msinternacao`  | autenticado        | por transição; ver "Arquitetura do `ms-internacao`" |
 
 Desativar um usuário no `msusuario` não corta na hora o acesso dele aos outros módulos: como eles não consultam
 a tabela de usuários, o token continua válido até expirar. Isso é aceitável para o escopo do TAP; se virar
@@ -257,13 +353,13 @@ medicamento. Toda entidade que pode sair de circulação tem um campo `ativo` co
   mostrar.
 - Quando faz sentido reativar, o módulo expõe também `PATCH /api/<recurso>/{id}/ativar`. As baias fazem isso, e
   a reativação respeita o limite de 12 baias ativas que a clínica tem.
-- Internação será a exceção: lá o ciclo é `ATIVA`, `ALTA` e `CANCELADA`, porque alta é desfecho normal e não
-  arquivamento. O `CANCELADA` cumpre o papel do arquivamento.
+- A internação é a exceção: não tem `ativo`, tem ciclo de vida. Ela termina em `ENCERRADA`, que faz o papel do
+  arquivamento, e cada passo fica gravado em `tb_internacao_eventos`.
 
 ## Migrations (Flyway)
 
 O schema de cada microsserviço é criado por migrations SQL em `src/main/resources/db/migration/`, nunca pelo
-Hibernate. A configuração já está feita nos três módulos:
+Hibernate. A configuração já está feita em todos os módulos:
 
 - POM: `spring-boot-starter-flyway` e `org.flywaydb:flyway-mysql` (runtime). As versões vêm do parent do Boot.
 - `application.properties`: `spring.jpa.hibernate.ddl-auto=validate` e `spring.flyway.enabled=true`. Com
@@ -282,7 +378,10 @@ Regras de escrita das migrations:
   `V2__perfis.sql`.
 - Migration já aplicada é imutável. O Flyway guarda o checksum na tabela de histórico, e editar um `V<n>` já
   rodado faz a próxima subida falhar. Toda mudança de tabela é uma nova versão com `ALTER TABLE`. Enquanto o
-  banco de dev for descartável, `docker compose down -v` zera tudo.
+  banco de dev for descartável, `docker compose down -v` zera tudo. Uma migration que nunca rodou em banco
+  nenhum ainda pode ser editada; na dúvida, crie a próxima versão.
+- Coluna que só o banco usa (gerada, de controle) pode ficar fora do mapeamento: o `validate` confere as colunas
+  das entidades, não as que sobram na tabela.
 - Uma migration por unidade lógica, uma tabela ou um grupo coeso, com um comentário `--` no topo quando a
   intenção não for evidente.
 - Não há herança JPA: a ligação entre perfil e `Usuario` é uma FK 1:1 (`usuario_id BINARY(16) NOT NULL`, mais
