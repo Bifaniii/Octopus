@@ -10,7 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import java.util.List;
 import java.util.UUID;
 
-public interface InternacaoRepository extends JpaRepository<Internacao, UUID> {
+public interface InternacaoRepository extends JpaRepository<Internacao, Long> {
 
     // RN-01: trava as internações abertas da baia até o fim da transação. No MySQL (REPEATABLE READ), com o
     // índice (baia_id, status), o FOR UPDATE também trava a faixa da baia, então outra admissão concorrente

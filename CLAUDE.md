@@ -4,7 +4,7 @@ Este arquivo fornece orientações ao Claude Code (claude.ai/code) ao trabalhar 
 
 > Este arquivo é versionado e vale para toda a squad. Não coloque nele valores de `.env`, senhas ou tokens,
 > só nomes de variáveis. A seção "Estado das branches" é um retrato datado: atualize quando mexer numa branch.
-> Última revisão: 08/10/2026 (Sprint 2 em andamento).
+> Última revisão: 09/10/2026 (Sprint 2 em andamento).
 
 ## Visão geral do repositório
 
@@ -23,6 +23,7 @@ O sistema é feito de microsserviços Spring Boot independentes, um por área, c
 | `ms-cadastro-baias/`    | 8081  | `feature/cadastro-baia`        | CRUD de baias, limite de 12 ativas, ativar/desativar. 14 testes. |
 | `octopus-msmedications/`| 8082  | `feature/register_medications` | CRUD de medicamentos, esquema e interações. 12 testes. |
 | `ms-internacao/`        | 8083  | `feature/internacao`           | Admissão, ciclo de vida, RN-01, RN-02 e RN-08. 50 testes. |
+| `octopus-msprescricao/` | 8084  | `feature/prescricao`           | Prescrição e itens (sem doses), ligada à internação, RN-03. 37 testes. |
 
 Os módulos estão publicados no free tier da AWS (EC2), com o MySQL hospedado no Aiven. O front é um projeto
 Angular separado, no repositório `Octopus-front`, que também usa uma branch por funcionalidade e tem o seu
@@ -63,13 +64,16 @@ divergem. Dele vêm as regras que o código da internação segue:
 ## Próximos módulos
 
 1. `ms-internacao` (:8083): em construção na `feature/internacao`; ver "Arquitetura do `ms-internacao`".
-2. `octopus-msplantao` (:8084, Sprint 3): prescrição, itens, geração das doses, painel e relatório. Prescrição e
-   dose ficam no mesmo módulo de propósito: os horários nascem junto com o item prescrito, e separar exigiria
-   transação distribuída ou mensageria, que o TAP não permite. Ao criar a primeira prescrição de uma
-   internação, ele chama `PATCH /api/internacoes/{id}/iniciar-tratamento` (idempotente) com o token do
-   veterinário.
+2. `octopus-msprescricao` (:8084, Sprint 3): prescrição e itens, na `feature/prescricao`; ver "Arquitetura do
+   `octopus-msprescricao`".
+3. Módulo de doses (Sprint 3, ainda sem nome nem branch): gera os horários a partir dos itens prescritos e
+   alimenta o painel (atrasadas, próximas, perdidas) e o relatório. A squad decidiu separar as doses da
+   prescrição (09/10/2026). Como não há transação entre módulos (o TAP proíbe mensageria e transação
+   distribuída), o contrato precisa ser: a prescrição grava e depois manda os itens ao módulo de doses; a geração
+   é idempotente por id do item, e há um caminho para gerar de novo quando o módulo de doses estiver fora do ar.
+   Sem isso, o painel mostra prescrição sem nenhuma dose.
 
-## Estado das branches (08/10/2026, Sprint 2 em andamento)
+## Estado das branches (09/10/2026, Sprint 2 em andamento)
 
 Branch por microsserviço, permanente. O `CLAUDE.md` é mantido igual em todas; o `README.md` de cada uma descreve
 o próprio módulo.
@@ -98,6 +102,10 @@ o próprio módulo.
   apagada); o pacote, a porta e o histórico do Flyway já foram trocados, e o `.idea/` saiu do versionamento.
   Tem `pipeline.yml` próprio (container `internacao`, porta 8083). A pasta se chama `ms-internacao/`, e não
   `octopus-msinternacao/`, por herança desse esqueleto.
+- **`feature/prescricao`** (Vitor Kimany e Guilherme Bifani; ajustes de Douglas): `octopus-msprescricao/` só com
+  prescrição e itens; as doses foram tiradas daqui de propósito (ver "Próximos módulos"). Branch órfã, com
+  `pipeline.yml` próprio (container `prescricao`, porta 8084); o primeiro deploy precisa do arquivo
+  `~/octopus-env/prescricao.env` na EC2 e da porta 8084 liberada.
 
 ## Comandos
 
@@ -119,7 +127,8 @@ docker compose up --build             # aplicação + MySQL
 docker compose up -d mysql            # só o banco, para rodar com ./mvnw spring-boot:run
 ```
 
-Portas de host default: 8080/3307 (usuário), 8081/3308 (baias), 8082/3309 (medicações), 8083/3310 (internação).
+Portas de host default: 8080/3307 (usuário), 8081/3308 (baias), 8082/3309 (medicações), 8083/3310 (internação),
+8084/3311 (prescrição).
 
 ### Configuração via `.env`
 
@@ -242,13 +251,43 @@ MySQL.
 | `PATCH /{id}/alta-a-pedido-do-tutor`, `/encerrar` | `RECEPCIONISTA`, `VETERINARIO` |
 
 O `ADMIN` fica fora dos atos clínicos de propósito, para o histórico mostrar sempre um veterinário na alta.
+O id da internação é `Long` (`/api/internacoes/42`); `animalId`, `baiaId` e `maeId` continuam `UUID`.
 
 **Migrations.** `V1__internacoes.sql` cria as duas tabelas; `V2__internacoes_animal.sql` acrescenta nome e
-espécie do animal. Histórico do Flyway em `flyway_schema_history_internacao`.
+espécie do animal; `V3__internacoes_id_long.sql` recria as duas com id `BIGINT AUTO_INCREMENT` (as tabelas só
+tinham dados de teste). Histórico do Flyway em `flyway_schema_history_internacao`.
 
 **Testes.** 50: `InternacaoTest` (máquina de estados), `InternacaoServiceTest` (RN-01 e RN-02 com clients
 mockados e `Clock` fixo) e `InternacaoApiTest` (MockMvc com tokens de cada perfil e os clients como
 `@MockitoBean`).
+
+## Arquitetura do `octopus-msprescricao`
+
+Pacote `com.br.octopus_msprescricao`, mesmas camadas dos outros módulos.
+
+- `Prescricao` (`tb_prescricoes`): `internacaoId` (`Long`, sem FK), e-mail do veterinário (do token), observação,
+  `ativo` e `criadoEm` (do `Clock` de São Paulo). `ItemPrescricao` (`tb_itens_prescricao`): `medicacaoId`
+  (`UUID`, do msmedications), dosagem em texto, `intervaloHoras`, `quantidadeDoses`, `inicio` e observação. Não
+  há dose aqui: os horários são `inicio + n * intervaloHoras` e serão gerados pelo módulo de doses.
+- Criar prescrição: busca a internação no `ms-internacao` (`InternacaoClient`, mesmo padrão de clients com token
+  repassado, timeouts, 404 e 503), aceita só `ADMITIDA`, `EM_TRATAMENTO` ou `ISOLAMENTO` (senão 422), chama
+  `PATCH /api/internacoes/{id}/iniciar-tratamento` e só então grava. O `iniciar-tratamento` é idempotente, então
+  vem antes da gravação: se falhar, nada é gravado. O método não é `@Transactional`, para nenhuma transação
+  esperar a rede. URL em `MS_INTERNACAO_URL`.
+- Só o `VETERINARIO` prescreve e desativa (o enunciado diz que é ele quem prescreve, e é o único perfil que o
+  `ms-internacao` aceita no `iniciar-tratamento`). Leitura liberada para qualquer perfil autenticado.
+- RN-03: antes de iniciar o tratamento e gravar, o `MedicacaoClient` busca cada medicamento novo no
+  msmedications (`GET /api/medicacoes/{id}`, uma vez por medicamento) e a prescrição é recusada com 422 se dois
+  deles têm interação proibida entre si, ou se algum tem interação proibida com um medicamento das prescrições
+  ativas da mesma internação (o animal recebe todas). Basta olhar a lista do medicamento novo, porque o
+  msmedications grava o par nos dois sentidos. URL em `MS_MEDICACOES_URL`.
+- Falta: o item "se necessário" da mudança contratada de 01/11, sem intervalo nem quantidade.
+
+| Endpoint | Quem pode |
+| :------- | :-------- |
+| `POST /api/prescricoes` | `VETERINARIO` |
+| `GET /api/prescricoes?internacaoId=`, `GET /{id}` | autenticado |
+| `PATCH /{id}/desativar` | `VETERINARIO` |
 
 ## Convenções para novos microsserviços
 
@@ -260,6 +299,10 @@ Os módulos existentes já seguem o padrão abaixo; use qualquer um deles como r
   Tabelas `tb_<plural>` (`tb_baias`, `tb_medicacoes`) e colunas `@Column(name = "snake_case")`.
 - Id `UUID` com `GenerationType.UUID`, imports wildcard `jakarta.persistence.*` e `lombok.*`, mais `@Builder`,
   `@NoArgsConstructor` e `@AllArgsConstructor`. Enums em `domain.enums`, em minúsculo.
+- Exceção decidida pela squad em 09/10/2026: internação, prescrição (com seus itens) e dose usam id `Long` com
+  `GenerationType.IDENTITY` (`BIGINT AUTO_INCREMENT`), assim como as referências entre eles (`internacaoId`,
+  `itemId`). Usuários, tutores, animais, baias e medicamentos continuam `UUID`, e as referências a eles também.
+  Com `IDENTITY` o id só existe depois do `INSERT`.
 - Mesma estrutura de camadas (`domain`, `dto.request`, `dto.response`, `repository`, `service`, `controller`,
   `exception`) e o mesmo par `GlobalExceptionHandler` e `ErroResponse`.
 - Credenciais e URLs de banco só via `.env`, com `src/test/resources/application.properties` autocontido para os
@@ -313,6 +356,7 @@ A autorização fina continua por `@PreAuthorize` no controller:
 | `msbaias`       | autenticado        | `ADMIN`                              |
 | `msmedications` | autenticado        | `ADMIN`/`VETERINARIO`; desativar só `ADMIN` |
 | `msinternacao`  | autenticado        | por transição; ver "Arquitetura do `ms-internacao`" |
+| `msprescricao`  | autenticado        | `VETERINARIO` (prescrever e desativar)  |
 
 Desativar um usuário no `msusuario` não corta na hora o acesso dele aos outros módulos: como eles não consultam
 a tabela de usuários, o token continua válido até expirar. Isso é aceitável para o escopo do TAP; se virar
@@ -391,6 +435,8 @@ Regras de escrita das migrations:
 | Java                               | MySQL                     |
 | :--------------------------------- | :------------------------ |
 | `UUID`                             | `BINARY(16)`              |
+| `Long` com `IDENTITY`              | `BIGINT NOT NULL AUTO_INCREMENT` |
+| `Long` (referência)                | `BIGINT`                  |
 | `String` com `length = N`          | `VARCHAR(N)`; sem `length`, `VARCHAR(255)` |
 | enum `@Enumerated(STRING)`         | `VARCHAR(<length>)`       |
 | `LocalDate`                        | `DATE`                    |

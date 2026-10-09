@@ -64,7 +64,7 @@ public class InternacaoService {
     }
 
     // Em tratamento → Isolamento (RN-02): só com vacinação irregular e para uma baia de isolamento com vaga.
-    public InternacaoResponse isolar(UUID id, IsolamentoRequest request, String usuario) {
+    public InternacaoResponse isolar(Long id, IsolamentoRequest request, String usuario) {
         Internacao atual = buscarEntidade(id);
         AnimalDto animal = animalClient.buscar(atual.getAnimalId());
         if (!antirrabicaVencida(animal)) {
@@ -90,21 +90,21 @@ public class InternacaoService {
 
     // Admitida → Em tratamento. Chamada pelo msplantao a cada prescrição criada; idempotente.
     @Transactional
-    public InternacaoResponse iniciarTratamento(UUID id, String usuario) {
+    public InternacaoResponse iniciarTratamento(Long id, String usuario) {
         Internacao internacao = buscarEntidade(id);
         internacao.iniciarTratamento(usuario, agora());
         return InternacaoResponse.from(internacao);
     }
 
     @Transactional
-    public InternacaoResponse autorizarAlta(UUID id, String usuario) {
+    public InternacaoResponse autorizarAlta(Long id, String usuario) {
         Internacao internacao = buscarEntidade(id);
         internacao.autorizarAlta(usuario, agora());
         return InternacaoResponse.from(internacao);
     }
 
     @Transactional
-    public InternacaoResponse altaAPedidoDoTutor(UUID id, AltaAPedidoRequest request, String usuario) {
+    public InternacaoResponse altaAPedidoDoTutor(Long id, AltaAPedidoRequest request, String usuario) {
         Internacao internacao = buscarEntidade(id);
         internacao.altaAPedidoDoTutor(request.termoResponsabilidade(), usuario, agora());
         return InternacaoResponse.from(internacao);
@@ -112,7 +112,7 @@ public class InternacaoService {
 
     // RN-08: com a saída física registrada a internação é encerrada e a vaga da baia é liberada.
     @Transactional
-    public InternacaoResponse encerrar(UUID id, EncerramentoRequest request, String usuario) {
+    public InternacaoResponse encerrar(Long id, EncerramentoRequest request, String usuario) {
         Internacao internacao = buscarEntidade(id);
         internacao.encerrar(request.dataSaida(), usuario, agora());
         return InternacaoResponse.from(internacao);
@@ -124,16 +124,16 @@ public class InternacaoService {
     }
 
     @Transactional(readOnly = true)
-    public InternacaoResponse buscar(UUID id) {
+    public InternacaoResponse buscar(Long id) {
         return InternacaoResponse.from(buscarEntidade(id));
     }
 
     @Transactional(readOnly = true)
-    public List<InternacaoEventoResponse> eventos(UUID id) {
+    public List<InternacaoEventoResponse> eventos(Long id) {
         return buscarEntidade(id).getEventos().stream().map(InternacaoEventoResponse::from).toList();
     }
 
-    private Internacao buscarEntidade(UUID id) {
+    private Internacao buscarEntidade(Long id) {
         return internacaoRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Internação não encontrada: " + id));
     }

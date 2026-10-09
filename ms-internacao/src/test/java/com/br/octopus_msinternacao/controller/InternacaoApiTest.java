@@ -274,16 +274,16 @@ class InternacaoApiTest {
     }
 
     @Test
-    @DisplayName("id que não é UUID e status inexistente: 400, não 500")
+    @DisplayName("id que não é número e status inexistente: 400, não 500")
     void parametrosInvalidos() throws Exception {
-        comoVet(get(URL + "/123")).andExpect(status().isBadRequest());
+        comoVet(get(URL + "/abc")).andExpect(status().isBadRequest());
         comoVet(get(URL).param("status", "XPTO")).andExpect(status().isBadRequest());
     }
 
     @Test
     @DisplayName("internação inexistente: 404")
     void inexistente() throws Exception {
-        comoVet(get(URL + "/" + UUID.randomUUID())).andExpect(status().isNotFound());
+        comoVet(get(URL + "/999999")).andExpect(status().isNotFound());
     }
 
     @Test

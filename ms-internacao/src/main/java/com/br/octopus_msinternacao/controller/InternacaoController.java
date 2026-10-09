@@ -58,37 +58,37 @@ public class InternacaoController {
     }
 
     @GetMapping("/{id}")
-    public InternacaoResponse buscar(@PathVariable UUID id) {
+    public InternacaoResponse buscar(@PathVariable Long id) {
         return internacaoService.buscar(id);
     }
 
     @GetMapping("/{id}/eventos")
-    public List<InternacaoEventoResponse> eventos(@PathVariable UUID id) {
+    public List<InternacaoEventoResponse> eventos(@PathVariable Long id) {
         return internacaoService.eventos(id);
     }
 
     @PatchMapping("/{id}/iniciar-tratamento")
     @PreAuthorize("hasRole('VETERINARIO')")
-    public InternacaoResponse iniciarTratamento(@PathVariable UUID id, @AuthenticationPrincipal String usuario) {
+    public InternacaoResponse iniciarTratamento(@PathVariable Long id, @AuthenticationPrincipal String usuario) {
         return internacaoService.iniciarTratamento(id, usuario);
     }
 
     @PatchMapping("/{id}/isolar")
     @PreAuthorize("hasRole('VETERINARIO')")
-    public InternacaoResponse isolar(@PathVariable UUID id, @Valid @RequestBody IsolamentoRequest request,
+    public InternacaoResponse isolar(@PathVariable Long id, @Valid @RequestBody IsolamentoRequest request,
                                      @AuthenticationPrincipal String usuario) {
         return internacaoService.isolar(id, request, usuario);
     }
 
     @PatchMapping("/{id}/autorizar-alta")
     @PreAuthorize("hasRole('VETERINARIO')")
-    public InternacaoResponse autorizarAlta(@PathVariable UUID id, @AuthenticationPrincipal String usuario) {
+    public InternacaoResponse autorizarAlta(@PathVariable Long id, @AuthenticationPrincipal String usuario) {
         return internacaoService.autorizarAlta(id, usuario);
     }
 
     @PatchMapping("/{id}/alta-a-pedido-do-tutor")
     @PreAuthorize("hasAnyRole('RECEPCIONISTA', 'VETERINARIO')")
-    public InternacaoResponse altaAPedidoDoTutor(@PathVariable UUID id, @Valid @RequestBody AltaAPedidoRequest request,
+    public InternacaoResponse altaAPedidoDoTutor(@PathVariable Long id, @Valid @RequestBody AltaAPedidoRequest request,
                                                  @AuthenticationPrincipal String usuario) {
         return internacaoService.altaAPedidoDoTutor(id, request, usuario);
     }
@@ -96,7 +96,7 @@ public class InternacaoController {
     // RN-08: registra a saída física e libera a baia.
     @PatchMapping("/{id}/encerrar")
     @PreAuthorize("hasAnyRole('RECEPCIONISTA', 'VETERINARIO')")
-    public InternacaoResponse encerrar(@PathVariable UUID id, @Valid @RequestBody EncerramentoRequest request,
+    public InternacaoResponse encerrar(@PathVariable Long id, @Valid @RequestBody EncerramentoRequest request,
                                        @AuthenticationPrincipal String usuario) {
         return internacaoService.encerrar(id, request, usuario);
     }
