@@ -4,18 +4,18 @@ import com.br.octopus_msprescricao.domain.Prescricao;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 public record PrescricaoResponse(
-        UUID id,
-        UUID internacaoId,
+        Long id,
+        Long internacaoId,
         String veterinarioEmail,
         String observacao,
         boolean ativo,
         LocalDateTime criadoEm,
         List<ItemPrescricaoResponse> itens
 ) {
-    // Percorre coleções LAZY: chame sempre dentro de uma transação (open-in-view está desligado).
+    // Percorre a coleção LAZY de itens: chame dentro de uma transação (open-in-view está desligado) ou com a
+    // entidade recém-salva, que já tem os itens em memória.
     public static PrescricaoResponse from(Prescricao prescricao) {
         return new PrescricaoResponse(
                 prescricao.getId(),

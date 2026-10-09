@@ -4,7 +4,10 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
+// Um medicamento da prescrição, com o esquema de horários. As doses (um horário por aplicação) são geradas por
+// outro módulo a partir daqui: inicio + n * intervaloHoras, para n de 0 a quantidadeDoses - 1.
 @Entity
 @Table(name = "tb_itens_prescricao")
 @Getter
@@ -22,9 +25,9 @@ public class ItemPrescricao {
     @JoinColumn(name = "prescricao_id", nullable = false)
     private Prescricao prescricao;
 
-    // Id do medicamento (octopus-msmedications). Sem @ManyToOne e sem FK: a tabela é de outro módulo.
+    // Id do medicamento (octopus-msmedications, que usa UUID). Sem @ManyToOne e sem FK: tabela de outro módulo.
     @Column(name = "medicacao_id", nullable = false)
-    private Long medicacaoId;
+    private UUID medicacaoId;
 
     // Texto livre por enquanto (ex.: "5 mg", "1 comprimido").
     @Column(name = "dosagem", length = 100, nullable = false)
@@ -36,8 +39,10 @@ public class ItemPrescricao {
     @Column(name = "quantidade_doses", nullable = false)
     private int quantidadeDoses;
 
-    @Builder.Default
+    // Horário da primeira dose.
     @Column(name = "inicio", nullable = false)
-    private LocalDateTime inicio = LocalDateTime.now();
- 
+    private LocalDateTime inicio;
+
+    @Column(name = "observacao", length = 500)
+    private String observacao;
 }

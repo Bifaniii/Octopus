@@ -20,7 +20,7 @@ public class Prescricao {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Id da internação (octopus-msinternacao). Sem @ManyToOne e sem FK: a tabela é de outro módulo.
+    // Id da internação (ms-internacao). Sem @ManyToOne e sem FK: a tabela é de outro módulo.
     @Column(name = "internacao_id", nullable = false)
     private Long internacaoId;
 
@@ -36,9 +36,9 @@ public class Prescricao {
     @Column(name = "ativo", nullable = false)
     private boolean ativo = true;
 
-    @Builder.Default
+    // Vem do Clock (hora da clínica), não de LocalDateTime.now(): o container roda em UTC.
     @Column(name = "criado_em", nullable = false, updatable = false)
-    private LocalDateTime criadoEm = LocalDateTime.now();
+    private LocalDateTime criadoEm;
 
     @Builder.Default
     @OneToMany(mappedBy = "prescricao", cascade = CascadeType.ALL, orphanRemoval = true)

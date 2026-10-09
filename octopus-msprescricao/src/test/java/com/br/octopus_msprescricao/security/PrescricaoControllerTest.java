@@ -1,15 +1,27 @@
 package com.br.octopus_msprescricao.security;
 
+import com.br.octopus_msprescricao.client.InternacaoClient;
+import com.br.octopus_msprescricao.client.MedicacaoClient;
+import com.br.octopus_msprescricao.client.dto.InternacaoDto;
+import com.br.octopus_msprescricao.client.dto.MedicacaoDto;
+import com.br.octopus_msprescricao.exception.ServicoIndisponivelException;
 import com.jayway.jsonpath.JsonPath;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -18,8 +30,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * Sobe a aplicação inteira com H2 (ver src/test/resources/application.properties) e exercita o filtro JWT,
- * o @PreAuthorize e o fluxo de prescrição de ponta a ponta. Os tokens são emitidos por {@link TokensDeTeste},
- * como o msusuario faria. UUIDs aleatórios de internação isolam um teste do outro.
+ * o @PreAuthorize e o fluxo de prescrição de ponta a ponta, com o ms-internacao mockado. Os tokens são emitidos
+ * por {@link TokensDeTeste}, como o msusuario faria. Ids de internação diferentes isolam um teste do outro.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -27,27 +39,49 @@ class PrescricaoControllerTest {
 
     private static final String VET = TokensDeTeste.bearer("vet@teste.local", "ROLE_VETERINARIO");
     private static final String AUXILIAR = TokensDeTeste.bearer("aux@teste.local", "ROLE_AUXILIAR");
+    private static final String ADMIN = TokensDeTeste.bearer("admin@teste.local", "ROLE_ADMIN");
+    private static final AtomicLong PROXIMA_INTERNACAO = new AtomicLong(1000);
 
     @Autowired
     private MockMvc mockMvc;
 
-    private static String corpoValido(UUID internacaoId) {
+    @MockitoBean
+    private InternacaoClient internacaoClient;
+
+    @MockitoBean
+    private MedicacaoClient medicacaoClient;
+
+    @BeforeEach
+    void internacoesAbertas() {
+        // Qualquer internação consultada existe e está admitida, salvo quando o teste diz o contrário.
+        when(internacaoClient.buscar(anyLong()))
+                .thenAnswer(inv -> new InternacaoDto(inv.getArgument(0), "ADMITIDA", "Thor"));
+        // E qualquer medicamento existe, sem interação proibida.
+        when(medicacaoClient.buscar(any(UUID.class)))
+                .thenAnswer(inv -> new MedicacaoDto(inv.getArgument(0), "Medicamento", true, List.of()));
+    }
+
+    private static long novaInternacao() {
+        return PROXIMA_INTERNACAO.incrementAndGet();
+    }
+
+    private static String corpoValido(long internacaoId) {
         return """
-                {"internacaoId": "%s", "observacao": "Animal agitado",
+                {"internacaoId": %d, "observacao": "Animal agitado",
                  "itens": [{"medicacaoId": "%s", "dosagem": "5 mg", "intervaloHoras": 8,
                             "quantidadeDoses": 3, "inicio": "2026-10-10T08:00:00"}]}
                 """.formatted(internacaoId, UUID.randomUUID());
     }
 
     /** Cria uma prescrição como veterinário e devolve o id. */
-    private String criarPrescricao(UUID internacaoId) throws Exception {
+    private String criarPrescricao(long internacaoId) throws Exception {
         String body = mockMvc.perform(post("/api/prescricoes")
                         .header("Authorization", VET)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(corpoValido(internacaoId)))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
-        return JsonPath.read(body, "$.id");
+        return String.valueOf((Object) JsonPath.read(body, "$.id"));
     }
 
     @Test
@@ -68,7 +102,7 @@ class PrescricaoControllerTest {
         mockMvc.perform(post("/api/prescricoes")
                         .header("Authorization", AUXILIAR)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(corpoValido(UUID.randomUUID())))
+                        .content(corpoValido(novaInternacao())))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status").value(403));
 
@@ -77,17 +111,76 @@ class PrescricaoControllerTest {
     }
 
     @Test
-    void veterinarioPrescreveEAsDosesSaoGeradas() throws Exception {
+    void adminNaoPrescreve() throws Exception {
+        mockMvc.perform(post("/api/prescricoes")
+                        .header("Authorization", ADMIN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(corpoValido(novaInternacao())))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void veterinarioPrescreve() throws Exception {
+        long internacaoId = novaInternacao();
         mockMvc.perform(post("/api/prescricoes")
                         .header("Authorization", VET)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(corpoValido(UUID.randomUUID())))
+                        .content(corpoValido(internacaoId)))
                 .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").isNumber())
+                .andExpect(jsonPath("$.internacaoId").value(internacaoId))
                 .andExpect(jsonPath("$.veterinarioEmail").value("vet@teste.local"))
                 .andExpect(jsonPath("$.ativo").value(true))
                 .andExpect(jsonPath("$.itens.length()").value(1))
-                .andExpect(jsonPath("$.itens[0].doses.length()").value(3))
-                .andExpect(jsonPath("$.itens[0].doses[0].status").value("PENDENTE"));
+                .andExpect(jsonPath("$.itens[0].intervaloHoras").value(8))
+                .andExpect(jsonPath("$.itens[0].quantidadeDoses").value(3));
+    }
+
+    @Test
+    void internacaoEncerradaRecebe422() throws Exception {
+        long internacaoId = novaInternacao();
+        when(internacaoClient.buscar(internacaoId)).thenReturn(new InternacaoDto(internacaoId, "ENCERRADA", "Thor"));
+
+        mockMvc.perform(post("/api/prescricoes")
+                        .header("Authorization", VET)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(corpoValido(internacaoId)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.mensagem").value(org.hamcrest.Matchers.containsString("ENCERRADA")));
+    }
+
+    @Test
+    void interacaoProibidaRecebe422ComARegra() throws Exception {
+        UUID meloxicam = UUID.randomUUID();
+        UUID cetoprofeno = UUID.randomUUID();
+        when(medicacaoClient.buscar(meloxicam)).thenReturn(new MedicacaoDto(meloxicam, "Meloxicam", true,
+                List.of(new MedicacaoDto.Interacao(cetoprofeno, "Cetoprofeno"))));
+
+        mockMvc.perform(post("/api/prescricoes")
+                        .header("Authorization", VET)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"internacaoId": %d,
+                                 "itens": [{"medicacaoId": "%s", "dosagem": "0,1 mg/kg", "intervaloHoras": 24,
+                                            "quantidadeDoses": 3, "inicio": "2026-10-10T08:00:00"},
+                                           {"medicacaoId": "%s", "dosagem": "1 mg/kg", "intervaloHoras": 24,
+                                            "quantidadeDoses": 3, "inicio": "2026-10-10T08:00:00"}]}
+                                """.formatted(novaInternacao(), meloxicam, cetoprofeno)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.mensagem").value(org.hamcrest.Matchers.containsString("RN-03")));
+    }
+
+    @Test
+    void internacaoForaDoArRecebe503() throws Exception {
+        long internacaoId = novaInternacao();
+        when(internacaoClient.buscar(internacaoId)).thenThrow(new ServicoIndisponivelException("ms-internacao não respondeu."));
+
+        mockMvc.perform(post("/api/prescricoes")
+                        .header("Authorization", VET)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(corpoValido(internacaoId)))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.mensagem").value("ms-internacao não respondeu."));
     }
 
     @Test
@@ -109,10 +202,10 @@ class PrescricaoControllerTest {
                         .header("Authorization", VET)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"internacaoId": "%s",
+                                {"internacaoId": %d,
                                  "itens": [{"medicacaoId": "%s", "dosagem": "5 mg", "intervaloHoras": 0,
                                             "quantidadeDoses": 3, "inicio": "2026-10-10T08:00:00"}]}
-                                """.formatted(UUID.randomUUID(), UUID.randomUUID())))
+                                """.formatted(novaInternacao(), UUID.randomUUID())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.campos['itens[0].intervaloHoras']").exists());
     }
@@ -123,52 +216,52 @@ class PrescricaoControllerTest {
                         .header("Authorization", VET)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"internacaoId": "%s",
+                                {"internacaoId": %d,
                                  "itens": [{"medicacaoId": "%s", "dosagem": "5 mg", "intervaloHoras": 8,
                                             "quantidadeDoses": 3, "inicio": "amanhã cedo"}]}
-                                """.formatted(UUID.randomUUID(), UUID.randomUUID())))
+                                """.formatted(novaInternacao(), UUID.randomUUID())))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void listarPorInternacaoDevolveSoAsDaquelaInternacao() throws Exception {
-        UUID internacaoId = UUID.randomUUID();
+        long internacaoId = novaInternacao();
         criarPrescricao(internacaoId);
-        criarPrescricao(UUID.randomUUID());
+        criarPrescricao(novaInternacao());
 
-        mockMvc.perform(get("/api/prescricoes").param("internacaoId", internacaoId.toString())
+        mockMvc.perform(get("/api/prescricoes").param("internacaoId", String.valueOf(internacaoId))
                         .header("Authorization", AUXILIAR))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].internacaoId").value(internacaoId.toString()));
+                .andExpect(jsonPath("$[0].internacaoId").value(internacaoId));
     }
 
     @Test
-    void buscarPorIdDevolveAPrescricaoComItensEDoses() throws Exception {
-        String id = criarPrescricao(UUID.randomUUID());
+    void buscarPorIdDevolveAPrescricaoComItens() throws Exception {
+        String id = criarPrescricao(novaInternacao());
 
         mockMvc.perform(get("/api/prescricoes/" + id).header("Authorization", AUXILIAR))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(id))
-                .andExpect(jsonPath("$.itens[0].doses.length()").value(3));
+                .andExpect(jsonPath("$.id").value(Long.parseLong(id)))
+                .andExpect(jsonPath("$.itens.length()").value(1));
     }
 
     @Test
     void buscarInexistenteRecebe404() throws Exception {
-        mockMvc.perform(get("/api/prescricoes/" + UUID.randomUUID()).header("Authorization", VET))
+        mockMvc.perform(get("/api/prescricoes/999999").header("Authorization", VET))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
 
     @Test
-    void idQueNaoEUuidRecebe400() throws Exception {
+    void idQueNaoENumeroRecebe400() throws Exception {
         mockMvc.perform(get("/api/prescricoes/abc").header("Authorization", VET))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void desativarArquivaAPrescricaoSemApagar() throws Exception {
-        String id = criarPrescricao(UUID.randomUUID());
+        String id = criarPrescricao(novaInternacao());
 
         mockMvc.perform(patch("/api/prescricoes/" + id + "/desativar").header("Authorization", AUXILIAR))
                 .andExpect(status().isForbidden());

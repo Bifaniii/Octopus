@@ -21,9 +21,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.UUID;
 
-// Leitura: qualquer perfil autenticado (o auxiliar precisa ver o que aplicar). Escrita: ADMIN e VETERINARIO.
+// Leitura: qualquer perfil autenticado (o auxiliar precisa ver o que aplicar). Escrita: só VETERINARIO, que é quem
+// prescreve (enunciado) e o único perfil que o ms-internacao aceita no iniciar-tratamento.
 @RestController
 @RequestMapping("/api/prescricoes")
 @RequiredArgsConstructor
@@ -35,25 +35,25 @@ public class PrescricaoController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyRole('ADMIN', 'VETERINARIO')")
+    @PreAuthorize("hasRole('VETERINARIO')")
     public PrescricaoResponse criar(@Valid @RequestBody PrescricaoRequest request, Authentication authentication) {
         // O principal é o e-mail do claim "sub" (ver JwtAuthenticationFilter).
         return prescricaoService.criar(request, authentication.getName());
     }
 
     @GetMapping
-    public List<PrescricaoResponse> listar(@RequestParam(required = false) UUID internacaoId) {
+    public List<PrescricaoResponse> listar(@RequestParam(required = false) Long internacaoId) {
         return prescricaoService.listar(internacaoId);
     }
 
     @GetMapping("/{id}")
-    public PrescricaoResponse buscar(@PathVariable UUID id) {
+    public PrescricaoResponse buscar(@PathVariable Long id) {
         return prescricaoService.buscar(id);
     }
 
     @PatchMapping("/{id}/desativar")
-    @PreAuthorize("hasAnyRole('ADMIN', 'VETERINARIO')")
-    public PrescricaoResponse desativar(@PathVariable UUID id) {
+    @PreAuthorize("hasRole('VETERINARIO')")
+    public PrescricaoResponse desativar(@PathVariable Long id) {
         return prescricaoService.desativar(id);
     }
 }
