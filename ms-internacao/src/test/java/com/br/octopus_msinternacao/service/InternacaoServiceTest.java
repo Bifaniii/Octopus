@@ -262,7 +262,7 @@ class InternacaoServiceTest {
         Internacao internacao = Internacao.admitir(animal.id(), animal.nome(), animal.especie(), null, baiaId, "Cinomose", RECEPCAO, AGORA.minusDays(1));
         internacao.iniciarTratamento(VET, AGORA.minusHours(20));
         // Fora do banco o id não é gerado; o service só precisa achar a internação por ele.
-        ReflectionTestUtils.setField(internacao, "id", UUID.randomUUID());
+        ReflectionTestUtils.setField(internacao, "id", 42L);
         when(repository.findById(internacao.getId())).thenReturn(Optional.of(internacao));
         return internacao;
     }
@@ -332,11 +332,10 @@ class InternacaoServiceTest {
     @Test
     @DisplayName("internação inexistente: 404")
     void internacaoInexistente() {
-        UUID id = UUID.randomUUID();
-        when(repository.findById(id)).thenReturn(Optional.empty());
+        when(repository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.buscar(id))
+        assertThatThrownBy(() -> service.buscar(999L))
                 .isInstanceOf(RecursoNaoEncontradoException.class)
-                .hasMessageContaining(id.toString());
+                .hasMessageContaining("999");
     }
 }

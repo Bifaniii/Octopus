@@ -69,19 +69,17 @@ Nada é apagado: a internação termina em `ENCERRADA` e cada passo fica no hist
 - Detalhes de arquitetura e convenções para novos módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 08/10/2026 na branch `feature/internacao`_
-- Nome e espécie do animal copiados para a internação na admissão (migration `V2__internacoes_animal.sql`), para
-  o painel mostrar quem está internado sem consultar o `msusuario`.
-- Filtro `animalId` em `GET /api/internacoes`, combinável com `status` e `baiaId`: lista todas as passagens de
-  um animal pela clínica.
-- Teste do filtro por animal (50 testes no total).
-- `CLAUDE.md` atualizado: arquitetura do `ms-internacao`, regras do enunciado do professor, pipeline de deploy
-  por versão e armadilhas de configuração (pasta de trabalho do IntelliJ, banco de desenvolvimento).
-- README reescrito para este módulo.
+_Push de 09/10/2026 na branch `feature/internacao`_
+- Id da internação e do histórico passa de `UUID` para `Long` (`BIGINT AUTO_INCREMENT`), por decisão da squad:
+  migration `V3__internacoes_id_long.sql` recria as duas tabelas (só tinham dados de teste). `animalId`, `baiaId`
+  e `maeId` continuam `UUID`.
+- Endpoints passam a receber o id numérico (`/api/internacoes/42`); testes ajustados (50).
+- `CLAUDE.md`: convenção de ids `Long` para internação, prescrição e dose; arquitetura do `octopus-msprescricao`
+  (RN-03, ligação com a internação) e a decisão de separar as doses da prescrição.
 
 ## Próximos passos
-- [ ] Subir a `<version>` do `pom.xml` para publicar a V2 e o filtro na EC2.
+- [ ] Subir a `<version>` do `pom.xml` para publicar a V3 (e a V2) na EC2.
 - [ ] Levar a `feature/animal_mae` para a `main`: sem o `GET /api/animais/{id}` publicado, a admissão responde
       "Animal não encontrado".
 - [ ] Testar a corrida de duas admissões simultâneas contra MySQL (o H2 não reproduz o `FOR UPDATE` do InnoDB).
-- [ ] Sprint 3: `octopus-msplantao` chamando `PATCH /{id}/iniciar-tratamento` ao criar a prescrição.
+- [ ] Criar a tela de animais e tutores no front, com o campo "mãe".

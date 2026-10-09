@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record InternacaoResponse(
-        UUID id,
+        Long id,
         UUID animalId,
         String animalNome,
         String animalEspecie,

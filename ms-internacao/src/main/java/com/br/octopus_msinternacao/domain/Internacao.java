@@ -21,8 +21,8 @@ import static com.br.octopus_msinternacao.domain.enums.StatusInternacao.*;
 public class Internacao {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(name = "animal_id", nullable = false)
     private UUID animalId;
