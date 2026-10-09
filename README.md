@@ -74,11 +74,12 @@ _Push de 09/10/2026 na branch `feature/internacao`_
   migration `V3__internacoes_id_long.sql` recria as duas tabelas (só tinham dados de teste). `animalId`, `baiaId`
   e `maeId` continuam `UUID`.
 - Endpoints passam a receber o id numérico (`/api/internacoes/42`); testes ajustados (50).
+- Versão do `ms-internacao` em `0.0.2-SNAPSHOT`: este push publica na EC2 a V2 (nome e espécie do animal), o
+  filtro por animal e a V3.
 - `CLAUDE.md`: convenção de ids `Long` para internação, prescrição e dose; arquitetura do `octopus-msprescricao`
   (RN-03, ligação com a internação) e a decisão de separar as doses da prescrição.
 
 ## Próximos passos
-- [ ] Subir a `<version>` do `pom.xml` para publicar a V3 (e a V2) na EC2.
 - [ ] Levar a `feature/animal_mae` para a `main`: sem o `GET /api/animais/{id}` publicado, a admissão responde
       "Animal não encontrado".
 - [ ] Testar a corrida de duas admissões simultâneas contra MySQL (o H2 não reproduz o `FOR UPDATE` do InnoDB).
