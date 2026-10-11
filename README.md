@@ -96,7 +96,8 @@ _Push de 11/10/2026 na branch `feature/register_medications`_
 - Id do medicamento passa de `UUID` para `Long` na `V4__medicacoes_id_long.sql`, que preserva os medicamentos e
   remapeia os pares de interação proibida.
 - Testes ajustados ao id numérico (12).
+- Workflow trocado do `ci.yml` antigo (deploy a cada push) pelo `pipeline.yml`, que só publica quando a versão
+  ainda não está no GHCR. Como as imagens antigas não têm tag de versão, o próximo push publica: combine antes.
 
 ## Próximos passos
-- [ ] Trocar o `ci.yml` pelo `pipeline.yml` das outras branches, que só publica quando a `<version>` muda.
 - [ ] Publicar a `V4` na EC2 junto com o `octopus-msprescricao`, que já envia `medicacaoId` numérico.
