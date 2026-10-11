@@ -19,7 +19,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.Date;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -65,7 +64,7 @@ class BaiaApiTest {
                 .compact();
     }
 
-    private UUID criar(String nome, Tipo tipo, int capacidade) throws Exception {
+    private Long criar(String nome, Tipo tipo, int capacidade) throws Exception {
         String corpo = mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -73,7 +72,7 @@ class BaiaApiTest {
                                 new BaiaRequest(tipo, nome, "descrição", capacidade))))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
-        return UUID.fromString(objectMapper.readTree(corpo).get("id").asString());
+        return objectMapper.readTree(corpo).get("id").asLong();
     }
 
     @Test
@@ -108,7 +107,7 @@ class BaiaApiTest {
     @Test
     @DisplayName("admin cadastra e busca por id")
     void adminCadastraEBusca() throws Exception {
-        UUID id = criar("Baia 1", Tipo.COLETIVA, 1);
+        Long id = criar("Baia 1", Tipo.COLETIVA, 1);
 
         mockMvc.perform(get(URL + "/" + id)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_ADMIN")))
@@ -159,7 +158,7 @@ class BaiaApiTest {
     @Test
     @DisplayName("id inexistente: 404")
     void buscaInexistenteRetorna404() throws Exception {
-        mockMvc.perform(get(URL + "/" + UUID.randomUUID())
+        mockMvc.perform(get(URL + "/" + 999_999L)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_ADMIN")))
                 .andExpect(status().isNotFound());
     }
@@ -167,7 +166,7 @@ class BaiaApiTest {
     @Test
     @DisplayName("edição troca tipo, nome e capacidade")
     void atualizarAlteraOsCampos() throws Exception {
-        UUID id = criar("Baia 1", Tipo.NINHADA, 4);
+        Long id = criar("Baia 1", Tipo.NINHADA, 4);
 
         mockMvc.perform(put(URL + "/" + id)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_ADMIN"))
@@ -183,7 +182,7 @@ class BaiaApiTest {
     @Test
     @DisplayName("desativar arquiva sem apagar: o registro continua no banco")
     void desativarNaoApaga() throws Exception {
-        UUID id = criar("Baia 1", Tipo.COLETIVA, 1);
+        Long id = criar("Baia 1", Tipo.COLETIVA, 1);
 
         mockMvc.perform(patch(URL + "/" + id + "/desativar")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_ADMIN")))
@@ -196,7 +195,7 @@ class BaiaApiTest {
     @Test
     @DisplayName("ativar devolve a baia arquivada ao uso")
     void ativarVoltaABaia() throws Exception {
-        UUID id = criar("Baia 1", Tipo.COLETIVA, 1);
+        Long id = criar("Baia 1", Tipo.COLETIVA, 1);
         String tokenAdmin = token("ROLE_ADMIN");
 
         mockMvc.perform(patch(URL + "/" + id + "/desativar")
@@ -233,7 +232,7 @@ class BaiaApiTest {
         }
 
         // Abre uma vaga arquivando a primeira, usa a vaga numa baia nova e tenta reativar a arquivada.
-        UUID arquivada = repository.findAll().get(0).getId();
+        Long arquivada = repository.findAll().get(0).getId();
         mockMvc.perform(patch(URL + "/" + arquivada + "/desativar")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenAdmin))
                 .andExpect(status().isOk());

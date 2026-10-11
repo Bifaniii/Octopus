@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -47,12 +46,12 @@ public class BaiaService {
     }
 
     @Transactional(readOnly = true)
-    public BaiaResponse buscar(UUID id) {
+    public BaiaResponse buscar(Long id) {
         return BaiaResponse.from(buscarEntidade(id));
     }
 
     @Transactional
-    public BaiaResponse atualizar(UUID id, BaiaRequest request) {
+    public BaiaResponse atualizar(Long id, BaiaRequest request) {
         Baia baia = buscarEntidade(id);
         if (baiaRepository.existsByNomeIgnoreCaseAndIdNot(request.nome(), id)) {
             throw new RecursoDuplicadoException("Já existe uma baia com o nome '" + request.nome() + "'");
@@ -67,14 +66,14 @@ public class BaiaService {
 
     // Nada é apagado: a baia fora de uso é arquivada, preservando o histórico de internações.
     @Transactional
-    public BaiaResponse desativar(UUID id) {
+    public BaiaResponse desativar(Long id) {
         Baia baia = buscarEntidade(id);
         baia.setAtivo(false);
         return BaiaResponse.from(baia);
     }
 
     @Transactional
-    public BaiaResponse ativar(UUID id) {
+    public BaiaResponse ativar(Long id) {
         Baia baia = buscarEntidade(id);
         if (baia.isAtivo()) {
             return BaiaResponse.from(baia);
@@ -86,7 +85,7 @@ public class BaiaService {
         return BaiaResponse.from(baia);
     }
 
-    private Baia buscarEntidade(UUID id) {
+    private Baia buscarEntidade(Long id) {
         return baiaRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Baia não encontrada: " + id));
     }

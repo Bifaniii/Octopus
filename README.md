@@ -86,24 +86,17 @@ o histórico.
 
 - Uma branch por microsserviço, permanente. Os módulos não se mesclam.
 - Cada microsserviço na sua pasta, com `pom.xml`, `mvnw`, `Dockerfile` e compose próprios.
-- Pacote base `com.br.octopus_ms<area>`, entidades em português conforme o TAP, tabelas `tb_<plural>`, id `UUID`.
+- Pacote base `com.br.octopus_ms<area>`, entidades em português conforme o TAP, tabelas `tb_<plural>`, id `Long` (só usuários e perfis usam `UUID`).
 - Schema por migrations Flyway em `src/main/resources/db/migration/V<n>__<descricao>.sql`. O Hibernate roda em
   `validate` e nunca cria tabela. Migration aplicada não se edita: mudança de tabela é uma nova versão.
 - Arquitetura e convenções para novos módulos: `CLAUDE.md`.
 
 ## Últimas alterações
-_Push de 03/10/2026 na branch `feature/cadastro-baia`_
-- 13 testes de integração em `BaiaApiTest`, com MockMvc e token JWT no mesmo formato que o `octopus-msusuario`
-  emite. Cobrem 401 sem token e com token inválido, 403 no veterinário tentando cadastrar, 409 em nome repetido
-  ignorando maiúsculas, 422 em capacidade acima do máximo do tipo, 400 com os campos que falharam, 404, edição,
-  desativação que arquiva sem apagar, reativação, o limite de 12 baias ativas e a reativação acima desse limite.
-- Os dois testes do limite foram conferidos trocando 12 por 100 no serviço: ambos falham, então a regra está
-  mesmo coberta.
-- CI próprio em `.github/workflows/ci.yml`, rodando `mvn -B verify` a cada push nesta branch.
+_Push de 11/10/2026 na branch `feature/cadastro-baia`_
+- Id da baia passa de `UUID` para `Long` na `V3__baias_id_long.sql`, que preserva as baias existentes.
+- Testes ajustados ao id numérico (14).
 
 ## Próximos passos
-- [ ] Tirar o diretório `.idea/` do versionamento: ele entrou junto com o merge da `main` de 24/09 e já está
-      coberto pelo `.gitignore`.
-- [ ] Sprint 2: o `octopus-msinternacao` vai consultar este cadastro para a RN-01 (capacidade) e para exigir
-      baia de isolamento na RN-02.
-- [ ] Expor a ocupação atual da baia, quando a internação existir.
+- [ ] Subir a `<version>` do `pom.xml` para publicar a `V3` na EC2, junto com o `ms-internacao`, que já espera
+      `baiaId` numérico.
+- [ ] Tirar o `.idea/` versionado desta branch.

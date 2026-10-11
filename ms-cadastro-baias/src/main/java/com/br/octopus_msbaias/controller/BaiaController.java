@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/baias")
@@ -46,25 +45,25 @@ public class BaiaController {
     }
 
     @GetMapping("/{id}")
-    public BaiaResponse buscar(@PathVariable UUID id) {
+    public BaiaResponse buscar(@PathVariable Long id) {
         return baiaService.buscar(id);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public BaiaResponse atualizar(@PathVariable UUID id, @Valid @RequestBody BaiaRequest request) {
+    public BaiaResponse atualizar(@PathVariable Long id, @Valid @RequestBody BaiaRequest request) {
         return baiaService.atualizar(id, request);
     }
 
     @PatchMapping("/{id}/desativar")
     @PreAuthorize("hasRole('ADMIN')")
-    public BaiaResponse desativar(@PathVariable UUID id) {
+    public BaiaResponse desativar(@PathVariable Long id) {
         return baiaService.desativar(id);
     }
 
     @PatchMapping("/{id}/ativar")
     @PreAuthorize("hasRole('ADMIN')")
-    public BaiaResponse ativar(@PathVariable UUID id) {
+    public BaiaResponse ativar(@PathVariable Long id) {
         return baiaService.ativar(id);
     }
 }

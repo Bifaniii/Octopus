@@ -3,13 +3,12 @@ package com.br.octopus_msbaias.repository;
 import com.br.octopus_msbaias.domain.Baia;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.UUID;
 
-public interface BaiaRepository extends JpaRepository<Baia, UUID> {
+public interface BaiaRepository extends JpaRepository<Baia, Long> {
 
     boolean existsByNomeIgnoreCase(String nome);
 
-    boolean existsByNomeIgnoreCaseAndIdNot(String nome, UUID id);
+    boolean existsByNomeIgnoreCaseAndIdNot(String nome, Long id);
 
     long countByAtivoTrue();
 }

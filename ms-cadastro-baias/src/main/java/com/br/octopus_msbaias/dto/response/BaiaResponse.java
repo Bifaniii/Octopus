@@ -3,10 +3,9 @@ package com.br.octopus_msbaias.dto.response;
 import com.br.octopus_msbaias.domain.Baia;
 import com.br.octopus_msbaias.domain.enums.Tipo;
 
-import java.util.UUID;
 
 public record BaiaResponse(
-        UUID id,
+        Long id,
         Tipo tipo,
         String nome,
         String descricao,

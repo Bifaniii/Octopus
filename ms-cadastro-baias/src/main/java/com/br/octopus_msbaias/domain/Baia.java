@@ -4,7 +4,6 @@ import com.br.octopus_msbaias.domain.enums.Tipo;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.UUID;
 
 @Entity
 @Table(name = "tb_baias")
@@ -16,8 +15,8 @@ import java.util.UUID;
 public class Baia {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo", length = 20, nullable = false)
