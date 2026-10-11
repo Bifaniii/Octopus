@@ -86,23 +86,17 @@ o histórico.
 
 - Uma branch por microsserviço, permanente. Os módulos não se mesclam.
 - Cada microsserviço na sua pasta, com `pom.xml`, `mvnw`, `Dockerfile` e compose próprios.
-- Pacote base `com.br.octopus_ms<area>`, entidades em português conforme o TAP, tabelas `tb_<plural>`, id `UUID`.
+- Pacote base `com.br.octopus_ms<area>`, entidades em português conforme o TAP, tabelas `tb_<plural>`, id `Long` (só usuários e perfis usam `UUID`).
 - Schema por migrations Flyway em `src/main/resources/db/migration/V<n>__<descricao>.sql`. O Hibernate roda em
   `validate` e nunca cria tabela. Migration aplicada não se edita: mudança de tabela é uma nova versão.
 - Arquitetura e convenções para novos módulos: `CLAUDE.md`.
 
 ## Últimas alterações
-_Push de 03/10/2026 na branch `feature/register_medications`_
-- Corrige a migration da coluna `quantidade`. O `ALTER TABLE` tinha sido escrito dentro do
-  `V2__medicacoes_ativo.sql`, que já havia rodado, e isso muda o checksum que o Flyway guardou: em qualquer
-  banco onde o V2 já estava aplicado, a aplicação não subia mais. O V2 voltou ao conteúdo original, byte a byte,
-  e a coluna agora entra pelo `V3__medicacoes_quantidade.sql`.
-- Verificado num MySQL 8.4: primeiro subindo só com V1 e V2, para gravar o histórico como num banco já
-  existente, e depois com o V3, que aplicou em cima sem reclamar do checksum.
-- CI próprio em `.github/workflows/ci.yml`, rodando `mvn -B verify` a cada push nesta branch.
+_Push de 11/10/2026 na branch `feature/register_medications`_
+- Id do medicamento passa de `UUID` para `Long` na `V4__medicacoes_id_long.sql`, que preserva os medicamentos e
+  remapeia os pares de interação proibida.
+- Testes ajustados ao id numérico (12).
 
 ## Próximos passos
-- [ ] Expor `quantidade` nos DTOs de request e response, se a tela for usar.
-- [ ] Decidir se `quantidade` é estoque ou quantidade por embalagem; hoje o nome não diz, e isso muda o que a
-      prescrição vai fazer com ele.
-- [ ] Sprint 2: o `octopus-msplantao` vai consultar este cadastro para validar interações proibidas (RN-03).
+- [ ] Trocar o `ci.yml` pelo `pipeline.yml` das outras branches, que só publica quando a `<version>` muda.
+- [ ] Publicar a `V4` na EC2 junto com o `octopus-msprescricao`, que já envia `medicacaoId` numérico.

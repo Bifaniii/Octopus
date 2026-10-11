@@ -5,9 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
-public interface MedicacaoRepository extends JpaRepository<Medicacao, UUID> {
+public interface MedicacaoRepository extends JpaRepository<Medicacao, Long> {
 
     List<Medicacao> findByFabricanteIgnoreCase(String fabricante);
 

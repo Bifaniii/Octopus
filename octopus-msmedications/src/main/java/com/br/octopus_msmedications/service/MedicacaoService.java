@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -53,7 +52,7 @@ public class MedicacaoService {
     }
 
     @Transactional(readOnly = true)
-    public MedicacaoResponse buscar(UUID id) {
+    public MedicacaoResponse buscar(Long id) {
         return MedicacaoResponse.from(obter(id));
     }
 
@@ -70,7 +69,7 @@ public class MedicacaoService {
     }
 
     @Transactional
-    public MedicacaoResponse atualizarParcial(UUID id, MedicacaoUpdateRequest request) {
+    public MedicacaoResponse atualizarParcial(Long id, MedicacaoUpdateRequest request) {
         Medicacao medicacao = obter(id);
 
         if (preenchido(request.nomeComercial())) {
@@ -113,15 +112,15 @@ public class MedicacaoService {
 
     // Nada é apagado: o medicamento fora de uso é arquivado, preservando o histórico de prescrições.
     @Transactional
-    public MedicacaoResponse desativar(UUID id) {
+    public MedicacaoResponse desativar(Long id) {
         Medicacao medicacao = obter(id);
         medicacao.setAtivo(false);
         return MedicacaoResponse.from(medicacao);
     }
 
     // Substitui a lista de interações, mantendo a simetria dos pares.
-    private void definirInteracoes(Medicacao medicacao, Set<UUID> idsDesejados) {
-        Set<UUID> ids = idsDesejados == null ? Set.of() : idsDesejados;
+    private void definirInteracoes(Medicacao medicacao, Set<Long> idsDesejados) {
+        Set<Long> ids = idsDesejados == null ? Set.of() : idsDesejados;
 
         if (ids.contains(medicacao.getId())) {
             throw new RegraNegocioException("Um medicamento não pode ter interação proibida consigo mesmo.");
@@ -133,7 +132,7 @@ public class MedicacaoService {
             }
         }
 
-        for (UUID idProibido : ids) {
+        for (Long idProibido : ids) {
             Medicacao proibida = repository.findById(idProibido)
                     .orElseThrow(() -> new RecursoNaoEncontradoException(
                             "Medicação informada como interação proibida não encontrada: " + idProibido));
@@ -141,7 +140,7 @@ public class MedicacaoService {
         }
     }
 
-    private Medicacao obter(UUID id) {
+    private Medicacao obter(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Medicação não encontrada: " + id));
     }

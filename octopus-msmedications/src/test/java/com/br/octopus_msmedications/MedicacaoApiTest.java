@@ -22,7 +22,6 @@ import tools.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -71,19 +70,19 @@ class MedicacaoApiTest {
                 .compact();
     }
 
-    private MedicacaoRequest novaRequest(String nome, String registroAnvisa, Set<UUID> interacoes) {
+    private MedicacaoRequest novaRequest(String nome, String registroAnvisa, Set<Long> interacoes) {
         return new MedicacaoRequest(nome, "Dipirona monoidratada", "500mg", "Comprimido", "mg",
                 TipoEsquema.SINTOMATICO, LocalDateTime.now().plusYears(1), "Sanofi", registroAnvisa, interacoes);
     }
 
-    private UUID criar(String nome, String registroAnvisa) throws Exception {
+    private Long criar(String nome, String registroAnvisa) throws Exception {
         String corpo = mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_VETERINARIO"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(novaRequest(nome, registroAnvisa, null))))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
-        return UUID.fromString(objectMapper.readTree(corpo).get("id").asString());
+        return objectMapper.readTree(corpo).get("id").asLong();
     }
 
     @Test
@@ -144,7 +143,7 @@ class MedicacaoApiTest {
     @Test
     @DisplayName("id inexistente: 404")
     void buscaInexistenteRetorna404() throws Exception {
-        mockMvc.perform(get(URL + "/" + UUID.randomUUID())
+        mockMvc.perform(get(URL + "/" + 999_999L)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_VETERINARIO")))
                 .andExpect(status().isNotFound());
     }
@@ -152,7 +151,7 @@ class MedicacaoApiTest {
     @Test
     @DisplayName("interação proibida vale nos dois sentidos")
     void interacaoESimetrica() throws Exception {
-        UUID dipirona = criar("Novalgina", "12345678901");
+        Long dipirona = criar("Novalgina", "12345678901");
         String tokenVet = token("ROLE_VETERINARIO");
 
         var comInteracao = novaRequest("Tramal", "10987654321", Set.of(dipirona));
@@ -163,7 +162,7 @@ class MedicacaoApiTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.interacoesProibidas[0].id").value(dipirona.toString()))
                 .andReturn().getResponse().getContentAsString();
-        UUID tramal = UUID.fromString(objectMapper.readTree(corpo).get("id").asString());
+        Long tramal = objectMapper.readTree(corpo).get("id").asLong();
 
         mockMvc.perform(get(URL + "/" + dipirona).header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenVet))
                 .andExpect(status().isOk())
@@ -173,7 +172,7 @@ class MedicacaoApiTest {
     @Test
     @DisplayName("interação consigo mesmo: 422")
     void interacaoConsigoMesmoRetorna422() throws Exception {
-        UUID id = criar("Novalgina", "12345678901");
+        Long id = criar("Novalgina", "12345678901");
 
         String corpo = """
                 {"interacoesProibidas": ["%s"]}""".formatted(id);
@@ -188,7 +187,7 @@ class MedicacaoApiTest {
     @Test
     @DisplayName("PATCH altera só o que foi enviado")
     void patchAlteraApenasOsCamposEnviados() throws Exception {
-        UUID id = criar("Novalgina", "12345678901");
+        Long id = criar("Novalgina", "12345678901");
 
         mockMvc.perform(patch(URL + "/" + id)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_VETERINARIO"))
@@ -202,7 +201,7 @@ class MedicacaoApiTest {
     @Test
     @DisplayName("só admin desativa: veterinário recebe 403")
     void desativacaoSoPeloAdmin() throws Exception {
-        UUID id = criar("Novalgina", "12345678901");
+        Long id = criar("Novalgina", "12345678901");
 
         mockMvc.perform(patch(URL + "/" + id + "/desativar")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_VETERINARIO")))
@@ -217,7 +216,7 @@ class MedicacaoApiTest {
     @Test
     @DisplayName("desativar arquiva sem apagar: o registro continua no banco e nas interações")
     void desativarNaoApaga() throws Exception {
-        UUID dipirona = criar("Novalgina", "12345678901");
+        Long dipirona = criar("Novalgina", "12345678901");
         String tokenVet = token("ROLE_VETERINARIO");
 
         var comInteracao = novaRequest("Tramal", "10987654321", Set.of(dipirona));
@@ -227,7 +226,7 @@ class MedicacaoApiTest {
                         .content(objectMapper.writeValueAsString(comInteracao)))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
-        UUID tramal = UUID.fromString(objectMapper.readTree(corpo).get("id").asString());
+        Long tramal = objectMapper.readTree(corpo).get("id").asLong();
 
         mockMvc.perform(patch(URL + "/" + dipirona + "/desativar")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_ADMIN")))

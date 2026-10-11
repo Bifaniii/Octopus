@@ -5,10 +5,9 @@ import com.br.octopus_msmedications.domain.enums.TipoEsquema;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 public record MedicacaoResponse(
-        UUID id,
+        Long id,
         String nomeComercial,
         String principioAtivo,
         String concentracao,
@@ -23,7 +22,7 @@ public record MedicacaoResponse(
 ) {
 
     // Resumida, senão os dois lados do par se referenciam sem fim.
-    public record InteracaoResponse(UUID id, String nomeComercial, String principioAtivo) {
+    public record InteracaoResponse(Long id, String nomeComercial, String principioAtivo) {
     }
 
     public static MedicacaoResponse from(Medicacao medicacao) {

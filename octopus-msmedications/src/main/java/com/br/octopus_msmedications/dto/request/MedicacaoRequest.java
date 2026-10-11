@@ -9,7 +9,6 @@ import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
 import java.util.Set;
-import java.util.UUID;
 
 public record MedicacaoRequest(
 
@@ -48,6 +47,6 @@ public record MedicacaoRequest(
         @Pattern(regexp = "\\d{11}", message = "O registro ANVISA deve conter exatamente 11 dígitos numéricos.")
         String numeroRegistroAnvisa,
 
-        Set<UUID> interacoesProibidas
+        Set<Long> interacoesProibidas
 ) {
 }

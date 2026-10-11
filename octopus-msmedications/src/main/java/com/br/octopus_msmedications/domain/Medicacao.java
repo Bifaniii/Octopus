@@ -7,7 +7,6 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.UUID;
 
 @Entity
 @Table(name = "tb_medicacoes")
@@ -19,8 +18,8 @@ import java.util.UUID;
 public class Medicacao {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(name = "nome_comercial", length = 100, nullable = false)
     private String nomeComercial;

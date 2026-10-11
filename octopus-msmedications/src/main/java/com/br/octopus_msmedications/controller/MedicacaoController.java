@@ -21,7 +21,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/medicacoes")
@@ -54,19 +53,19 @@ public class MedicacaoController {
     }
 
     @GetMapping("/{id}")
-    public MedicacaoResponse buscar(@PathVariable UUID id) {
+    public MedicacaoResponse buscar(@PathVariable Long id) {
         return service.buscar(id);
     }
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','VETERINARIO')")
-    public MedicacaoResponse atualizar(@PathVariable UUID id, @Valid @RequestBody MedicacaoUpdateRequest request) {
+    public MedicacaoResponse atualizar(@PathVariable Long id, @Valid @RequestBody MedicacaoUpdateRequest request) {
         return service.atualizarParcial(id, request);
     }
 
     @PatchMapping("/{id}/desativar")
     @PreAuthorize("hasRole('ADMIN')")
-    public MedicacaoResponse desativar(@PathVariable UUID id) {
+    public MedicacaoResponse desativar(@PathVariable Long id) {
         return service.desativar(id);
     }
 }

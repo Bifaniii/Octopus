@@ -7,7 +7,6 @@ import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
 import java.util.Set;
-import java.util.UUID;
 
 // Campo ausente é mantido como está; interacoesProibidas vazia apaga as ligações existentes.
 public record MedicacaoUpdateRequest(
@@ -38,6 +37,6 @@ public record MedicacaoUpdateRequest(
         @Pattern(regexp = "\\d{11}", message = "O registro ANVISA deve conter exatamente 11 dígitos numéricos.")
         String numeroRegistroAnvisa,
 
-        Set<UUID> interacoesProibidas
+        Set<Long> interacoesProibidas
 ) {
 }
