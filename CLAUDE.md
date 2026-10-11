@@ -19,7 +19,7 @@ O sistema é feito de microsserviços Spring Boot independentes, um por área, c
 
 | Módulo                  | Porta | Branch                         | Estado                                               |
 | :---------------------- | :---- | :----------------------------- | :--------------------------------------------------- |
-| `octopus-msusuario/`    | 8080  | `main`                         | Login/JWT, recuperação de senha, perfis com listagem filtrada e edição, tutores e animais com mãe. 60 testes. |
+| `octopus-msusuario/`    | 8080  | `main`                         | Login/JWT, recuperação de senha, perfis com listagem filtrada e edição, tutores e animais com mãe. 61 testes. |
 | `ms-cadastro-baias/`    | 8081  | `feature/cadastro-baia`        | CRUD de baias, limite de 12 ativas, ativar/desativar. 14 testes. |
 | `octopus-msmedications/`| 8082  | `feature/register_medications` | CRUD de medicamentos, esquema e interações. 12 testes. |
 | `ms-internacao/`        | 8083  | `feature/internacao`           | Admissão, ciclo de vida, RN-01, RN-02 e RN-08. 51 testes. |
@@ -200,7 +200,7 @@ Portas de host default: 8080/3307 (usuário), 8081/3308 (baias), 8082/3309 (medi
 - É o único módulo que emite JWT, em `/api/auth/login`. Os outros só validam.
 - Swagger em `/swagger-ui.html`. O botão Authorize aceita o token do `/api/auth/login`, no esquema `bearerAuth`.
 - `Dockerfile` multi-stage (maven, depois temurin 17 JRE, usuário não-root), usado pelo `docker-compose.yml`.
-- Testes: 60 no total, entre unitários com JUnit 5 e Mockito (`service/`) e integração com MockMvc
+- Testes: 61 no total, entre unitários com JUnit 5 e Mockito (`service/`) e integração com MockMvc
   (`security/AutenticacaoEAutorizacaoTest`, `service/RecuperacaoSenhaTest` e `controller/CadastrosApiTest`).
 - `mail/EmailService` envia o e-mail de redefinição de senha via `JavaMailSender`. Ele lê
   `${spring.mail.username}` como remetente, e as propriedades `spring.mail.*` vêm do `.env`. O host tem default
@@ -417,7 +417,7 @@ A autorização fina continua por `@PreAuthorize` no controller:
 
 | Módulo          | Leitura            | Escrita                              |
 | :-------------- | :----------------- | :----------------------------------- |
-| `msusuario`     | conforme o recurso; `GET /api/usuarios` só `ADMIN` | `ADMIN` (usuários), `ADMIN`/`RECEPCIONISTA` (tutor, animal) |
+| `msusuario`     | conforme o recurso; `GET /api/usuarios` só `ADMIN`; tutores e animais também `VETERINARIO` | `ADMIN` (usuários), `ADMIN`/`RECEPCIONISTA` (tutor, animal) |
 | `msbaias`       | autenticado        | `ADMIN`                              |
 | `msmedications` | autenticado        | `ADMIN`/`VETERINARIO`; desativar só `ADMIN` |
 | `msinternacao`  | autenticado        | por transição; ver "Arquitetura do `ms-internacao`" |

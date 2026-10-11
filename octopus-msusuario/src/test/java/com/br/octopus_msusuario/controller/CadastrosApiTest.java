@@ -313,4 +313,39 @@ class CadastrosApiTest {
                         .content("{\"email\": \"x@teste.local\", \"nome\": \"X\"}"))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    void veterinarioLeTutoresEAnimaisMasNaoCadastra() throws Exception {
+        long cpf = ThreadLocalRandom.current().nextLong(10_000_000_000L, 99_999_999_999L);
+        int crmv = ThreadLocalRandom.current().nextInt(10_000, 99_999);
+        String email = "leitor" + cpf + "@teste.local";
+        mockMvc.perform(post("/api/veterinarios")
+                        .header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email": "%s", "senha": "senha-forte-123", "nome": "Dr. Leitor", "cpfCnpj": "%d",
+                                 "tipoPessoa": "PF", "dataNascimento": "1990-05-10", "telefone": "11999990000",
+                                 "crmv": "%d", "crmvUf": "SP"}
+                                """.formatted(email, cpf, crmv)))
+                .andExpect(status().isCreated());
+        String vet = login(email, "senha-forte-123");
+        long tutor = criarTutor("Tutor Leitura " + sufixo);
+
+        mockMvc.perform(get("/api/tutores").header("Authorization", vet)).andExpect(status().isOk());
+        mockMvc.perform(get("/api/tutores/{id}", tutor).header("Authorization", vet)).andExpect(status().isOk());
+        mockMvc.perform(get("/api/animais").header("Authorization", vet)).andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/tutores")
+                        .header("Authorization", vet)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"nome": "X", "endereco": "Rua", "dataNascimento": "1980-01-01", "telefone": "1199"}
+                                """))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(put("/api/animais/{id}", criarAnimal(tutor, "Rex", null))
+                        .header("Authorization", vet)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(corpoAnimal("Rex", null)))
+                .andExpect(status().isForbidden());
+    }
 }

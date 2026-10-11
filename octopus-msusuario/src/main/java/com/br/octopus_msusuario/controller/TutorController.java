@@ -40,12 +40,15 @@ public class TutorController {
         return tutorService.criar(request);
     }
 
+    // Leitura também para o veterinário, que consulta tutor, animal, mãe e antirrábica. Escrever segue com a recepção.
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPCIONISTA', 'VETERINARIO')")
     public List<TutorResponse> listar() {
         return tutorService.listar();
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPCIONISTA', 'VETERINARIO')")
     public TutorResponse buscar(@PathVariable Long id) {
         return tutorService.buscar(id);
     }

@@ -32,6 +32,7 @@ public class AnimalController {
     private final AnimalService animalService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPCIONISTA', 'VETERINARIO')")
     public List<AnimalResponse> listar() {
         return animalService.listar();
     }

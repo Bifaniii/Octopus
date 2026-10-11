@@ -98,7 +98,13 @@ class AutenticacaoEAutorizacaoTest {
         mockMvc.perform(get("/api/veterinarios").header("Authorization", veterinario))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status").value(403));
-        mockMvc.perform(get("/api/tutores").header("Authorization", veterinario))
+        // Lê tutores (consulta do paciente), mas não cadastra.
+        mockMvc.perform(post("/api/tutores")
+                        .header("Authorization", veterinario)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"nome": "X", "endereco": "Rua", "dataNascimento": "1980-01-01", "telefone": "1199"}
+                                """))
                 .andExpect(status().isForbidden());
     }
 
