@@ -31,7 +31,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Date;
-import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -44,6 +44,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 class InternacaoApiTest {
+
+    private static final AtomicLong IDS = new AtomicLong(100);
+
+    private static Long novoId() {
+        return IDS.incrementAndGet();
+    }
 
     private static final String URL = "/api/internacoes";
     private static final String RECEPCAO = "recepcao@vidapet.local";
@@ -76,8 +82,8 @@ class InternacaoApiTest {
     @BeforeEach
     void setUp() {
         repository.deleteAll();
-        animal = new AnimalDto(UUID.randomUUID(), "Thor", "Cão", LocalDate.now(clock).minusMonths(3), null);
-        baia = new BaiaDto(UUID.randomUUID(), TipoBaia.COLETIVA, "B-01", 1, true);
+        animal = new AnimalDto(novoId(), "Thor", "Cão", LocalDate.now(clock).minusMonths(3), null);
+        baia = new BaiaDto(novoId(), TipoBaia.COLETIVA, "B-01", 1, true);
         when(animalClient.buscar(animal.id())).thenReturn(animal);
         when(baiaClient.buscar(baia.id())).thenReturn(baia);
     }
@@ -176,7 +182,7 @@ class InternacaoApiTest {
                 .andExpect(jsonPath("$.status").value("ALTA_AUTORIZADA"));
 
         // RN-08: enquanto não houver saída física a baia continua ocupada, então outro animal não entra.
-        AnimalDto outro = new AnimalDto(UUID.randomUUID(), "Nina", "Gato", LocalDate.now(clock), null);
+        AnimalDto outro = new AnimalDto(novoId(), "Nina", "Gato", LocalDate.now(clock), null);
         when(animalClient.buscar(outro.id())).thenReturn(outro);
         comoRecepcao(json(post(URL), new AdmissaoRequest(outro.id(), baia.id(), "Fratura")))
                 .andExpect(status().isUnprocessableEntity())
@@ -217,8 +223,8 @@ class InternacaoApiTest {
     @DisplayName("filtro por animal: devolve só as passagens daquele animal")
     void listarPorAnimal() throws Exception {
         admitir();
-        AnimalDto outro = new AnimalDto(UUID.randomUUID(), "Nina", "Gato", LocalDate.now(clock), null);
-        BaiaDto outraBaia = new BaiaDto(UUID.randomUUID(), TipoBaia.COLETIVA, "B-02", 1, true);
+        AnimalDto outro = new AnimalDto(novoId(), "Nina", "Gato", LocalDate.now(clock), null);
+        BaiaDto outraBaia = new BaiaDto(novoId(), TipoBaia.COLETIVA, "B-02", 1, true);
         when(animalClient.buscar(outro.id())).thenReturn(outro);
         when(baiaClient.buscar(outraBaia.id())).thenReturn(outraBaia);
         comoRecepcao(json(post(URL), new AdmissaoRequest(outro.id(), outraBaia.id(), "Fratura")))
@@ -236,7 +242,7 @@ class InternacaoApiTest {
     @Test
     @DisplayName("RN-02 pela API: 422 com a mensagem da regra")
     void rn02PelaApi() throws Exception {
-        AnimalDto semVacina = new AnimalDto(UUID.randomUUID(), "Bidu", "Cão", null, null);
+        AnimalDto semVacina = new AnimalDto(novoId(), "Bidu", "Cão", null, null);
         when(animalClient.buscar(semVacina.id())).thenReturn(semVacina);
 
         comoRecepcao(json(post(URL), new AdmissaoRequest(semVacina.id(), baia.id(), "Tosse")))

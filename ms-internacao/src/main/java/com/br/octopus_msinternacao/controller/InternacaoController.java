@@ -27,7 +27,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.UUID;
 
 // Não há DELETE: internação não se apaga, termina em ENCERRADA. O usuário de cada operação é o e-mail do token
 // (o JwtAuthenticationFilter põe o e-mail como principal) e fica gravado no histórico.
@@ -52,8 +51,8 @@ public class InternacaoController {
     // animalId, devolve todas as passagens do animal pela clínica.
     @GetMapping
     public List<InternacaoResponse> listar(@RequestParam(required = false) StatusInternacao status,
-                                           @RequestParam(required = false) UUID baiaId,
-                                           @RequestParam(required = false) UUID animalId) {
+                                           @RequestParam(required = false) Long baiaId,
+                                           @RequestParam(required = false) Long animalId) {
         return internacaoService.listar(status, baiaId, animalId);
     }
 

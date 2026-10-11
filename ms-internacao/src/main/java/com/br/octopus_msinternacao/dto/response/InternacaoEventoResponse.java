@@ -4,12 +4,11 @@ import com.br.octopus_msinternacao.domain.InternacaoEvento;
 import com.br.octopus_msinternacao.domain.enums.StatusInternacao;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 public record InternacaoEventoResponse(
         StatusInternacao statusAnterior,
         StatusInternacao statusNovo,
-        UUID baiaId,
+        Long baiaId,
         String usuario,
         LocalDateTime dataHora
 ) {

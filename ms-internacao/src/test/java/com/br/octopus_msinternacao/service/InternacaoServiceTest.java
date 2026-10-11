@@ -29,7 +29,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static com.br.octopus_msinternacao.domain.enums.StatusInternacao.ADMITIDA;
 import static com.br.octopus_msinternacao.domain.enums.StatusInternacao.ENCERRADA;
@@ -46,6 +46,12 @@ import static org.mockito.Mockito.when;
 // RN-01 e RN-02 com os outros módulos mockados e o relógio fixo em 08/10/2026 10:00 (São Paulo).
 @ExtendWith(MockitoExtension.class)
 class InternacaoServiceTest {
+
+    private static final AtomicLong IDS = new AtomicLong(100);
+
+    private static Long novoId() {
+        return IDS.incrementAndGet();
+    }
 
     private static final ZoneId SAO_PAULO = ZoneId.of("America/Sao_Paulo");
     private static final LocalDateTime AGORA = LocalDateTime.of(2026, 10, 8, 10, 0);
@@ -73,14 +79,14 @@ class InternacaoServiceTest {
         lenient().when(repository.save(any(Internacao.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
-    private AnimalDto animal(LocalDate vacina, UUID maeId) {
-        AnimalDto animal = new AnimalDto(UUID.randomUUID(), "Thor", "Cão", vacina, maeId);
+    private AnimalDto animal(LocalDate vacina, Long maeId) {
+        AnimalDto animal = new AnimalDto(novoId(), "Thor", "Cão", vacina, maeId);
         lenient().when(animalClient.buscar(animal.id())).thenReturn(animal);
         return animal;
     }
 
     private BaiaDto baia(TipoBaia tipo, int capacidade) {
-        BaiaDto baia = new BaiaDto(UUID.randomUUID(), tipo, "B-01", capacidade, true);
+        BaiaDto baia = new BaiaDto(novoId(), tipo, "B-01", capacidade, true);
         lenient().when(baiaClient.buscar(baia.id())).thenReturn(baia);
         return baia;
     }
@@ -89,8 +95,8 @@ class InternacaoServiceTest {
         when(repository.findByBaiaIdAndStatusNot(baia.id(), ENCERRADA)).thenReturn(List.of(internacoes));
     }
 
-    private Internacao ocupante(BaiaDto baia, UUID maeId) {
-        return Internacao.admitir(UUID.randomUUID(), "Nina", "Cão", maeId, baia.id(), "Internado antes", RECEPCAO, AGORA.minusDays(1));
+    private Internacao ocupante(BaiaDto baia, Long maeId) {
+        return Internacao.admitir(novoId(), "Nina", "Cão", maeId, baia.id(), "Internado antes", RECEPCAO, AGORA.minusDays(1));
     }
 
     private InternacaoResponse admitir(AnimalDto animal, BaiaDto baia) {
@@ -133,7 +139,7 @@ class InternacaoServiceTest {
     @DisplayName("baia desativada: recusada antes de abrir a transação")
     void baiaDesativada() {
         AnimalDto animal = animal(HOJE.minusMonths(3), null);
-        BaiaDto baia = new BaiaDto(UUID.randomUUID(), TipoBaia.COLETIVA, "B-02", 1, false);
+        BaiaDto baia = new BaiaDto(novoId(), TipoBaia.COLETIVA, "B-02", 1, false);
         when(baiaClient.buscar(baia.id())).thenReturn(baia);
 
         assertThatThrownBy(() -> admitir(animal, baia))
@@ -214,7 +220,7 @@ class InternacaoServiceTest {
     @Test
     @DisplayName("RN-01: ninhada aceita mais um filhote da mesma mãe")
     void rn01NinhadaMesmaMae() {
-        UUID mae = UUID.randomUUID();
+        Long mae = novoId();
         AnimalDto filhote = animal(HOJE.minusMonths(1), mae);
         BaiaDto baia = baia(TipoBaia.NINHADA, 6);
         ocupantes(baia, ocupante(baia, mae), ocupante(baia, mae));
@@ -227,9 +233,9 @@ class InternacaoServiceTest {
     @Test
     @DisplayName("RN-01: ninhada recusa filhote de outra mãe")
     void rn01NinhadaOutraMae() {
-        AnimalDto filhote = animal(HOJE.minusMonths(1), UUID.randomUUID());
+        AnimalDto filhote = animal(HOJE.minusMonths(1), novoId());
         BaiaDto baia = baia(TipoBaia.NINHADA, 6);
-        ocupantes(baia, ocupante(baia, UUID.randomUUID()));
+        ocupantes(baia, ocupante(baia, novoId()));
 
         assertThatThrownBy(() -> admitir(filhote, baia)).hasMessageContaining("outra mãe");
     }
@@ -247,7 +253,7 @@ class InternacaoServiceTest {
     @Test
     @DisplayName("RN-01: ninhada com 6 filhotes está lotada")
     void rn01NinhadaLotada() {
-        UUID mae = UUID.randomUUID();
+        Long mae = novoId();
         AnimalDto filhote = animal(HOJE.minusMonths(1), mae);
         BaiaDto baia = baia(TipoBaia.NINHADA, 6);
         ocupantes(baia, ocupante(baia, mae), ocupante(baia, mae), ocupante(baia, mae),
@@ -258,7 +264,7 @@ class InternacaoServiceTest {
 
     // ---------- isolamento ----------
 
-    private Internacao internacaoEmTratamento(AnimalDto animal, UUID baiaId) {
+    private Internacao internacaoEmTratamento(AnimalDto animal, Long baiaId) {
         Internacao internacao = Internacao.admitir(animal.id(), animal.nome(), animal.especie(), null, baiaId, "Cinomose", RECEPCAO, AGORA.minusDays(1));
         internacao.iniciarTratamento(VET, AGORA.minusHours(20));
         // Fora do banco o id não é gerado; o service só precisa achar a internação por ele.
@@ -271,7 +277,7 @@ class InternacaoServiceTest {
     @DisplayName("isolar: vacina irregular vai para baia de isolamento livre")
     void isolarValido() {
         AnimalDto animal = animal(null, null);
-        Internacao internacao = internacaoEmTratamento(animal, UUID.randomUUID());
+        Internacao internacao = internacaoEmTratamento(animal, novoId());
         BaiaDto isolamento = baia(TipoBaia.ISOLAMENTO, 1);
         ocupantes(isolamento);
 
@@ -285,7 +291,7 @@ class InternacaoServiceTest {
     @DisplayName("isolar: animal com vacina em dia não vai para o isolamento (RN-02)")
     void isolarComVacinaEmDia() {
         AnimalDto animal = animal(HOJE.minusMonths(2), null);
-        Internacao internacao = internacaoEmTratamento(animal, UUID.randomUUID());
+        Internacao internacao = internacaoEmTratamento(animal, novoId());
         BaiaDto isolamento = baia(TipoBaia.ISOLAMENTO, 1);
 
         assertThatThrownBy(() -> service.isolar(internacao.getId(), new IsolamentoRequest(isolamento.id()), VET))
@@ -297,7 +303,7 @@ class InternacaoServiceTest {
     @DisplayName("isolar: a baia de destino precisa ser de isolamento")
     void isolarEmBaiaColetiva() {
         AnimalDto animal = animal(null, null);
-        Internacao internacao = internacaoEmTratamento(animal, UUID.randomUUID());
+        Internacao internacao = internacaoEmTratamento(animal, novoId());
         BaiaDto coletiva = baia(TipoBaia.COLETIVA, 1);
 
         assertThatThrownBy(() -> service.isolar(internacao.getId(), new IsolamentoRequest(coletiva.id()), VET))
@@ -308,7 +314,7 @@ class InternacaoServiceTest {
     @DisplayName("isolar: baia de isolamento ocupada por outro animal está lotada (RN-01)")
     void isolarEmBaiaOcupada() {
         AnimalDto animal = animal(null, null);
-        Internacao internacao = internacaoEmTratamento(animal, UUID.randomUUID());
+        Internacao internacao = internacaoEmTratamento(animal, novoId());
         BaiaDto isolamento = baia(TipoBaia.ISOLAMENTO, 1);
         ocupantes(isolamento, ocupante(isolamento, null));
 

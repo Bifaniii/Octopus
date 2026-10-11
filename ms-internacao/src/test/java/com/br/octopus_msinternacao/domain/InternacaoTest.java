@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static com.br.octopus_msinternacao.domain.enums.StatusInternacao.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,14 +17,20 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 // Máquina de estados da internação: transições do enunciado, guardas (termo, saída física) e histórico.
 class InternacaoTest {
 
+    private static final AtomicLong IDS = new AtomicLong(100);
+
+    private static Long novoId() {
+        return IDS.incrementAndGet();
+    }
+
     private static final LocalDateTime T0 = LocalDateTime.of(2026, 10, 8, 10, 0);
     private static final String RECEPCAO = "recepcao@vidapet.local";
     private static final String VET = "vet@vidapet.local";
 
-    private final UUID baiaColetiva = UUID.randomUUID();
+    private final Long baiaColetiva = novoId();
 
     private Internacao admitida() {
-        return Internacao.admitir(UUID.randomUUID(), "Thor", "Cão", null, baiaColetiva, "Gastroenterite", RECEPCAO, T0);
+        return Internacao.admitir(novoId(), "Thor", "Cão", null, baiaColetiva, "Gastroenterite", RECEPCAO, T0);
     }
 
     private Internacao emTratamento() {
@@ -102,7 +108,7 @@ class InternacaoTest {
         internacao.iniciarTratamento(VET, T0.plusHours(5));
         assertThat(internacao.getEventos()).hasSize(2);
 
-        internacao.isolar(UUID.randomUUID(), VET, T0.plusHours(6));
+        internacao.isolar(novoId(), VET, T0.plusHours(6));
         internacao.iniciarTratamento(VET, T0.plusHours(7));
         assertThat(internacao.getStatus()).isEqualTo(ISOLAMENTO);
         assertThat(internacao.getEventos()).hasSize(3);
@@ -112,7 +118,7 @@ class InternacaoTest {
     @DisplayName("isolar troca a baia e o evento registra a baia nova")
     void isolarTrocaBaia() {
         Internacao internacao = emTratamento();
-        UUID baiaIsolamento = UUID.randomUUID();
+        Long baiaIsolamento = novoId();
 
         internacao.isolar(baiaIsolamento, VET, T0.plusHours(3));
 
@@ -125,7 +131,7 @@ class InternacaoTest {
     @DisplayName("do isolamento sai direto para a alta a pedido do tutor, com o termo gravado")
     void isolamentoParaAltaAPedido() {
         Internacao internacao = emTratamento();
-        internacao.isolar(UUID.randomUUID(), VET, T0.plusHours(3));
+        internacao.isolar(novoId(), VET, T0.plusHours(3));
 
         internacao.altaAPedidoDoTutor("Termo 123/2026", RECEPCAO, T0.plusHours(4));
 
@@ -200,6 +206,18 @@ class InternacaoTest {
         assertThatThrownBy(() -> internacao.encerrar(agora.plusMinutes(1), RECEPCAO, agora))
                 .isInstanceOf(RegraNegocioException.class);
         assertThat(internacao.getDataSaida()).isNull();
+    }
+
+    @Test
+    @DisplayName("saída no mesmo minuto da alta, como a tela envia: aceita")
+    void saidaNoMesmoMinutoDaAlta() {
+        Internacao internacao = emTratamento();
+        LocalDateTime alta = T0.plusDays(1).plusSeconds(42);
+        internacao.autorizarAlta(VET, alta);
+
+        internacao.encerrar(alta.truncatedTo(java.time.temporal.ChronoUnit.MINUTES), RECEPCAO, alta.plusSeconds(10));
+
+        assertThat(internacao.getStatus()).isEqualTo(StatusInternacao.ENCERRADA);
     }
 
     @Test

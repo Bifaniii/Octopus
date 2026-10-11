@@ -4,15 +4,14 @@ import com.br.octopus_msinternacao.domain.Internacao;
 import com.br.octopus_msinternacao.domain.enums.StatusInternacao;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 public record InternacaoResponse(
         Long id,
-        UUID animalId,
+        Long animalId,
         String animalNome,
         String animalEspecie,
-        UUID baiaId,
-        UUID maeId,
+        Long baiaId,
+        Long maeId,
         StatusInternacao status,
         String motivo,
         String termoResponsabilidade,

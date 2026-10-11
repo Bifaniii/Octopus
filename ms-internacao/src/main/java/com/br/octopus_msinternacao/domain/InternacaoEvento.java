@@ -5,7 +5,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 // Linha do histórico da internação. Criada só pela própria Internacao; nunca é alterada nem apagada.
 @Entity
@@ -34,7 +33,7 @@ public class InternacaoEvento {
     private StatusInternacao statusNovo;
 
     @Column(name = "baia_id", nullable = false)
-    private UUID baiaId;
+    private Long baiaId;
 
     @Column(name = "usuario", nullable = false)
     private String usuario;

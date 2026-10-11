@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
-import java.util.UUID;
 
 @Component
 public class BaiaClient {
@@ -16,7 +15,7 @@ public class BaiaClient {
         this.restClient = ClientesHttp.criar(baseUrl);
     }
 
-    public BaiaDto buscar(UUID id) {
+    public BaiaDto buscar(Long id) {
         return ClientesHttp.buscar(restClient, "/api/baias/{id}", id, BaiaDto.class,
                 "Baia não encontrada", "msbaias");
     }

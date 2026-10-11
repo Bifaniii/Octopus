@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
-import java.util.UUID;
 
 public interface InternacaoRepository extends JpaRepository<Internacao, Long> {
 
@@ -17,9 +16,9 @@ public interface InternacaoRepository extends JpaRepository<Internacao, Long> {
     // espera (ou perde por deadlock) em vez de ocupar a mesma vaga. Devolve a lista, e não um count, porque a
     // regra da ninhada precisa da mãe de cada ocupante.
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    List<Internacao> findByBaiaIdAndStatusNot(UUID baiaId, StatusInternacao status);
+    List<Internacao> findByBaiaIdAndStatusNot(Long baiaId, StatusInternacao status);
 
-    boolean existsByAnimalIdAndStatusNot(UUID animalId, StatusInternacao status);
+    boolean existsByAnimalIdAndStatusNot(Long animalId, StatusInternacao status);
 
     // Filtros opcionais: parâmetro nulo = não filtra.
     @Query("""
@@ -29,5 +28,5 @@ public interface InternacaoRepository extends JpaRepository<Internacao, Long> {
               and (:animalId is null or i.animalId = :animalId)
             order by i.dataAdmissao desc
             """)
-    List<Internacao> listar(StatusInternacao status, UUID baiaId, UUID animalId);
+    List<Internacao> listar(StatusInternacao status, Long baiaId, Long animalId);
 }

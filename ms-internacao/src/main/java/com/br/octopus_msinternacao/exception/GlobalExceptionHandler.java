@@ -34,7 +34,7 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, "Corpo da requisição inválido. Datas usam o formato aaaa-MM-ddTHH:mm:ss.", req, null);
     }
 
-    // Parâmetro da URL com o tipo errado: id que não é UUID ou status que não existe.
+    // Parâmetro da URL com o tipo errado: id que não é número ou status que não existe.
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ErroResponse> handleTipoInvalido(MethodArgumentTypeMismatchException ex, HttpServletRequest req) {
         return build(HttpStatus.BAD_REQUEST, "Parâmetro '" + ex.getName() + "' inválido.", req, null);

@@ -4,7 +4,7 @@ Este arquivo fornece orientações ao Claude Code (claude.ai/code) ao trabalhar 
 
 > Este arquivo é versionado e vale para toda a squad. Não coloque nele valores de `.env`, senhas ou tokens,
 > só nomes de variáveis. A seção "Estado das branches" é um retrato datado: atualize quando mexer numa branch.
-> Última revisão: 09/10/2026 (Sprint 2 em andamento).
+> Última revisão: 11/10/2026 (fechamento da Sprint 2).
 
 ## Visão geral do repositório
 
@@ -19,11 +19,12 @@ O sistema é feito de microsserviços Spring Boot independentes, um por área, c
 
 | Módulo                  | Porta | Branch                         | Estado                                               |
 | :---------------------- | :---- | :----------------------------- | :--------------------------------------------------- |
-| `octopus-msusuario/`    | 8080  | `main`                         | Login/JWT, recuperação de senha, perfis, tutores, animais. 42 testes. |
+| `octopus-msusuario/`    | 8080  | `main`                         | Login/JWT, recuperação de senha, perfis com listagem filtrada, tutores e animais com mãe. 57 testes. |
 | `ms-cadastro-baias/`    | 8081  | `feature/cadastro-baia`        | CRUD de baias, limite de 12 ativas, ativar/desativar. 14 testes. |
 | `octopus-msmedications/`| 8082  | `feature/register_medications` | CRUD de medicamentos, esquema e interações. 12 testes. |
-| `ms-internacao/`        | 8083  | `feature/internacao`           | Admissão, ciclo de vida, RN-01, RN-02 e RN-08. 50 testes. |
-| `octopus-msprescricao/` | 8084  | `feature/prescricao`           | Prescrição e itens (sem doses), ligada à internação, RN-03. 37 testes. |
+| `ms-internacao/`        | 8083  | `feature/internacao`           | Admissão, ciclo de vida, RN-01, RN-02 e RN-08. 51 testes. |
+| `octopus-msprescricao/` | 8084  | `feature/prescricao`           | Prescrição e itens, horários gerados, RN-06, agenda as doses. 44 testes. |
+| `octopus-msdoses/`      | 8085  | `feature/doses`                | Uma dose por horário, aplicação imutável (RN-05), cancelamento. 23 testes. |
 
 Os módulos estão publicados no free tier da AWS (EC2), com o MySQL hospedado no Aiven. O front é um projeto
 Angular separado, no repositório `Octopus-front`, que também usa uma branch por funcionalidade e tem o seu
@@ -50,30 +51,39 @@ sobe um MySQL separado.
   login simples baseado em perfis, sem infraestrutura de auth avançada.
 
 O enunciado do professor (PDF "Projeto Octopus") é mais detalhado que o TAP e prevalece quando os dois
-divergem. Dele vêm as regras que o código da internação segue:
+divergem. A numeração das RNs que vale no código é a dele:
 
 - **Perfis:** a recepcionista cadastra tutor e animal e registra a internação; o veterinário prescreve e dá
   alta; o auxiliar registra a aplicação das doses.
 - **RN-01:** coletiva e isolamento comportam 1 animal; ninhada, até 6 filhotes da mesma mãe.
 - **RN-02:** antirrábica vencida (mais de 12 meses) ou sem registro, só baia de isolamento.
-- **RN-08:** a baia só é liberada com a saída física do animal. Atenção: no TAP o par RN-07/RN-08 aparece ligado
-  aos esquemas contínuo e sintomático; confira a numeração no PDF antes de citar uma RN.
+- **RN-03:** a dose só pode ser registrada como aplicada até 30 minutos antes ou depois do horário previsto.
+- **RN-04:** dose não aplicada dentro da janela é marcada como perdida automaticamente.
+- **RN-05:** toda aplicação registra o auxiliar, a data e a hora, e não pode ser editada depois.
+- **RN-06:** a prescrição não pode ter dois medicamentos com interação proibida **no mesmo horário**; o bloqueio
+  é no cadastro da prescrição.
+- **RN-07:** dose perdida de esquema contínuo é reaplicada, deslocando o restante; de esquema sintomático é pulada.
+- **RN-08:** a baia só é liberada com a saída física do animal, mesmo com a alta já autorizada.
+- O TAP numera diferente (interação como RN-03, reaplicação como RN-07/RN-08). Cite sempre a numeração do PDF.
+- **Dados de carga:** baias B-01 a B-08 coletivas, B-09 e B-10 isolamento, B-11 ninhada; Thor (antirrábica
+  03/10/2025, na B-02), Nina (15/02/2026) e Bidu (22/11/2024); Antibiótico A contínuo com interação proibida com
+  o Analgésico C, Analgésico B sintomático. A partir de 04/10/2026 a vacina do Thor passou de 12 meses, então pela
+  RN-02 ele não entra mais numa coletiva: para demonstrar o caso 2, a data dele precisa ser ajustada.
+- **Mudança contratada (a partir de 01/11/2026):** prescrição "se necessário", sem horário fixo, só com intervalo
+  mínimo entre doses; fica fora do painel de atrasos, mas o sistema impede aplicar antes do intervalo.
 - **Ciclo de vida da internação:** Admitida → Em tratamento → Alta autorizada → Encerrada, com os alternativos
   Isolamento e Alta a pedido do tutor (tabela completa em "Arquitetura do `ms-internacao`").
 
-## Próximos módulos
+## Próximos passos por sprint
 
-1. `ms-internacao` (:8083): em construção na `feature/internacao`; ver "Arquitetura do `ms-internacao`".
-2. `octopus-msprescricao` (:8084, Sprint 3): prescrição e itens, na `feature/prescricao`; ver "Arquitetura do
-   `octopus-msprescricao`".
-3. Módulo de doses (Sprint 3, ainda sem nome nem branch): gera os horários a partir dos itens prescritos e
-   alimenta o painel (atrasadas, próximas, perdidas) e o relatório. A squad decidiu separar as doses da
-   prescrição (09/10/2026). Como não há transação entre módulos (o TAP proíbe mensageria e transação
-   distribuída), o contrato precisa ser: a prescrição grava e depois manda os itens ao módulo de doses; a geração
-   é idempotente por id do item, e há um caminho para gerar de novo quando o módulo de doses estiver fora do ar.
-   Sem isso, o painel mostra prescrição sem nenhuma dose.
+1. Sprint 3 (15/10 a 28/10): painel de doses (tela 6) no `octopus-msdoses`, com a janela de 30 minutos (RN-03)
+   no `aplicar` e a dose perdida (RN-04). A dose perdida pode ser calculada na consulta (horário + 30 min já
+   passou e a dose segue pendente), sem job agendado.
+2. Sprint 4 (29/10 a 11/11): reaplicação por esquema (RN-07) no `octopus-msdoses`, mudança contratada de 01/11
+   (prescrição "se necessário") e o relatório de doses (tela 7). O relatório deve ficar num serviço Python à
+   parte, que lê os dados dos outros módulos.
 
-## Estado das branches (09/10/2026, Sprint 2 em andamento)
+## Estado das branches (11/10/2026, fechamento da Sprint 2)
 
 Branch por microsserviço, permanente. O `CLAUDE.md` é mantido igual em todas; o `README.md` de cada uma descreve
 o próprio módulo.
@@ -81,31 +91,35 @@ o próprio módulo.
 - **`main`**: `octopus-msusuario`, `TAP.md`, `CLAUDE.md`, `README.md`, `docker-compose.yml`, `docs/` e o
   workflow de CI. Em `docs/` ficam os mapas de processo UML, numa página HTML autocontida gerada a partir de
   dados JS no próprio arquivo; para mapear algo novo, acrescente um objeto ao array `MAPS`. Esta branch está em
-  produção, então mudanças de código afetam o ambiente publicado: combine com a squad antes.
+  produção, então mudanças de código afetam o ambiente publicado: combine com a squad antes. A `feature/animal_mae`
+  já foi mesclada aqui (PR #5, 08/10). Em 11/10 o `msusuario` ganhou ids `Long` em tutor e animal (`V7`), edição
+  de tutor e animal (`PUT`), `POST /api/animais` corrigido e `GET /api/usuarios` com filtros. Em `docs/adr/`
+  ficam as decisões de arquitetura.
 - **`feature/cadastro-baia`** (Douglas): `ms-cadastro-baias/` completo, com entidade `Baia`, DTOs, service,
   controller `/api/baias`, exceptions, JWT, migrations e compose próprios. Em 24/09 entrou um merge de
   `origin/main` nesta branch, o que foge do modelo de uma branch por microsserviço: ela passou a carregar
   `TAP.md`, `docs/` e um diretório `.idea/` versionado. O `.idea/` deveria sair, já que está no `.gitignore`.
+  Ids `Long` desde a `V3__baias_id_long.sql`.
 - **`feature/register_medications`** (Guilherme Bifani): `octopus-msmedications/` completo, com entidade
   `Medicacao` (incluindo `TipoEsquema`, interações proibidas e `quantidade`), DTOs, service, controller
   `/api/medicacoes`, exceptions, JWT, migrations, compose próprio e 12 testes. É uma branch órfã, sem ancestral
-  comum com a `main`, o que é esperado aqui.
-- **`feature/animal_mae`** (Douglas): parte da `main` e adiciona ao `octopus-msusuario` a mãe do animal
-  (`mae_id`, migration V6) e o `GET /api/animais/{id}`, ambos para o `ms-internacao` (RN-01 da ninhada e
-  RN-02). Ainda não foi para a `main`, que está em produção. Enquanto não for, o `ms-internacao` não consegue
-  admitir contra o `msusuario` publicado: o endpoint que ele consulta não existe lá e a admissão responde
-  "Animal não encontrado".
+  comum com a `main`, o que é esperado aqui. Ids `Long` desde a `V4__medicacoes_id_long.sql`, que remapeia os
+  pares de interação. O workflow ainda é o `ci.yml` antigo, que faz deploy a cada push.
+- **`feature/animal_mae`** (Douglas): já mesclada na `main`; pode ser apagada.
 - **`feature/internacao`** (Douglas): `ms-internacao/` com entidade `Internacao` e histórico
   (`InternacaoEvento`), migrations V1 e V2, clients REST para `msbaias` e `msusuario`, service com RN-01, RN-02
   e RN-08, controller `/api/internacoes`, JWT, compose próprio e 50 testes. O esqueleto veio de uma cópia do
   módulo de baias (branch `copilot/ms-internacao-only-cadastro-baias-folders`, já mesclada e que pode ser
   apagada); o pacote, a porta e o histórico do Flyway já foram trocados, e o `.idea/` saiu do versionamento.
   Tem `pipeline.yml` próprio (container `internacao`, porta 8083). A pasta se chama `ms-internacao/`, e não
-  `octopus-msinternacao/`, por herança desse esqueleto.
-- **`feature/prescricao`** (Vitor Kimany e Guilherme Bifani; ajustes de Douglas): `octopus-msprescricao/` só com
-  prescrição e itens; as doses foram tiradas daqui de propósito (ver "Próximos módulos"). Branch órfã, com
-  `pipeline.yml` próprio (container `prescricao`, porta 8084); o primeiro deploy precisa do arquivo
-  `~/octopus-env/prescricao.env` na EC2 e da porta 8084 liberada.
+  `octopus-msinternacao/`, por herança desse esqueleto. Animal, baia e mãe viraram `Long` na `V4`.
+- **`feature/prescricao`** (Vitor Kimany e Guilherme Bifani; ajustes de Douglas): `octopus-msprescricao/`. Em 10/10
+  um force-push deixou só um commit órfão com o módulo na raiz, sem CI e sem `dosagem`/`quantidadeDoses`. Em
+  11/10 um commit de merge (pais `feb71d0` e `90acb19`) devolveu a estrutura do Douglas, manteve o
+  `medicacaoId` `Long` do Vitor e trouxe a RN-06 e o agendamento das doses. Nunca use force-push nas branches.
+  O deploy precisa de `~/octopus-env/prescricao.env` na EC2, agora também com `MS_DOSES_URL`.
+- **`feature/doses`** (11/10): `octopus-msdoses/`, branch órfã com `pipeline.yml` próprio (container `doses`,
+  porta 8085). O primeiro deploy precisa de `~/octopus-env/doses.env` na EC2 e da porta 8085 liberada.
 
 ## Comandos
 
@@ -183,12 +197,19 @@ Portas de host default: 8080/3307 (usuário), 8081/3308 (baias), 8082/3309 (medi
 - É o único módulo que emite JWT, em `/api/auth/login`. Os outros só validam.
 - Swagger em `/swagger-ui.html`. O botão Authorize aceita o token do `/api/auth/login`, no esquema `bearerAuth`.
 - `Dockerfile` multi-stage (maven, depois temurin 17 JRE, usuário não-root), usado pelo `docker-compose.yml`.
-- Testes: 42 no total, entre unitários com JUnit 5 e Mockito (`service/`) e integração com MockMvc
-  (`security/AutenticacaoEAutorizacaoTest` e `service/RecuperacaoSenhaTest`).
+- Testes: 57 no total, entre unitários com JUnit 5 e Mockito (`service/`) e integração com MockMvc
+  (`security/AutenticacaoEAutorizacaoTest`, `service/RecuperacaoSenhaTest` e `controller/CadastrosApiTest`).
 - `mail/EmailService` envia o e-mail de redefinição de senha via `JavaMailSender`. Ele lê
   `${spring.mail.username}` como remetente, e as propriedades `spring.mail.*` vêm do `.env`. O host tem default
   porque sem ele o Spring nem cria o bean e a aplicação não sobe; usuário e senha ficam vazios, então quem não
   configurou SMTP ainda consegue rodar o projeto.
+- `Tutor` e `Animal` têm id `Long` (`V7` converteu preservando os registros e as FKs). A conta (`Usuario`) e os
+  perfis continuam `UUID`. `PUT /api/tutores/{id}` edita só os dados do tutor; `PUT /api/animais/{id}` edita nome,
+  espécie, antirrábica e mãe (a mãe não pode ser o próprio animal nem alguém da linha de ascendência dele: 422).
+  `POST /api/tutores` aceita a lista `animais` e grava tudo numa transação.
+- `GET /api/usuarios?nome=&perfil=&ativo=&cadastradoDe=&cadastradoAte=` (só `ADMIN`) lista os quatro perfis numa
+  resposta só (`UsuarioResumoResponse`, com o id da conta e o `perfilId`). Os filtros rodam no banco, um JPQL
+  por perfil, e o período compara a data de cadastro da conta.
 - Recuperação de senha: `POST /api/auth/esqueci-senha` e `POST /api/auth/redefinir-senha`, os dois públicos na
   `SecurityConfig` e respondendo 204. Ver "Recuperação de senha".
 
@@ -201,11 +222,11 @@ Mesmas camadas e convenções dos outros módulos, com pacote `com.br.octopus_ms
 
 | De | Para | Guarda |
 | :- | :--- | :----- |
-| Admitida | Em tratamento | Prescrição ativa (quem chama é o `msplantao`); idempotente |
+| Admitida | Em tratamento | Prescrição ativa (quem chama é o `msprescricao`); idempotente |
 | Em tratamento | Isolamento | RN-02: antirrábica irregular, baia de isolamento com vaga |
 | Em tratamento, Isolamento | Alta autorizada | — |
 | Em tratamento, Isolamento | Alta a pedido do tutor | Termo de responsabilidade obrigatório |
-| Alta autorizada, Alta a pedido | Encerrada | RN-08: saída física entre a alta e agora |
+| Alta autorizada, Alta a pedido | Encerrada | RN-08: saída física entre a alta (no mesmo minuto vale) e agora |
 
 Isolamento não volta para Em tratamento. Um animal que já chega com a vacina vencida é admitido como
 `ADMITIDA` numa baia de isolamento; o status `ISOLAMENTO` é só para quem já estava em tratamento.
@@ -217,7 +238,7 @@ propósito: o status só muda pelos métodos de negócio (`admitir`, `iniciarTra
 hora entra por parâmetro, vinda de um `Clock` fixo em `America/Sao_Paulo` (`config/ClockConfig`), porque o
 `DATETIME` não guarda fuso e o container roda em UTC.
 
-**Dados de outros módulos.** `animalId` e `baiaId` são `UUID` sem FK. Na admissão o service busca o animal no
+**Dados de outros módulos.** `animalId` e `baiaId` são `Long` sem FK. Na admissão o service busca o animal no
 `msusuario` (`GET /api/animais/{id}`) e a baia no `msbaias` (`GET /api/baias/{id}`) pelos clients do pacote
 `client`, que repassam o JWT de quem chamou, têm timeout de 2 s para conectar e 3 s para ler, devolvem 404
 quando o recurso não existe e 503 (`ServicoIndisponivelException`) em qualquer outra falha. O nome, a espécie e
@@ -251,13 +272,15 @@ MySQL.
 | `PATCH /{id}/alta-a-pedido-do-tutor`, `/encerrar` | `RECEPCIONISTA`, `VETERINARIO` |
 
 O `ADMIN` fica fora dos atos clínicos de propósito, para o histórico mostrar sempre um veterinário na alta.
-O id da internação é `Long` (`/api/internacoes/42`); `animalId`, `baiaId` e `maeId` continuam `UUID`.
+Todos os ids são `Long`: o da internação e as referências `animalId`, `baiaId` e `maeId`.
 
 **Migrations.** `V1__internacoes.sql` cria as duas tabelas; `V2__internacoes_animal.sql` acrescenta nome e
 espécie do animal; `V3__internacoes_id_long.sql` recria as duas com id `BIGINT AUTO_INCREMENT` (as tabelas só
-tinham dados de teste). Histórico do Flyway em `flyway_schema_history_internacao`.
+tinham dados de teste); `V4__internacoes_referencias_long.sql` passa animal, baia e mãe para `BIGINT` e descarta
+as internações de teste, cujos UUIDs não existem mais nos módulos de origem. Histórico do Flyway em
+`flyway_schema_history_internacao`.
 
-**Testes.** 50: `InternacaoTest` (máquina de estados), `InternacaoServiceTest` (RN-01 e RN-02 com clients
+**Testes.** 51: `InternacaoTest` (máquina de estados), `InternacaoServiceTest` (RN-01 e RN-02 com clients
 mockados e `Clock` fixo) e `InternacaoApiTest` (MockMvc com tokens de cada perfil e os clients como
 `@MockitoBean`).
 
@@ -267,20 +290,31 @@ Pacote `com.br.octopus_msprescricao`, mesmas camadas dos outros módulos.
 
 - `Prescricao` (`tb_prescricoes`): `internacaoId` (`Long`, sem FK), e-mail do veterinário (do token), observação,
   `ativo` e `criadoEm` (do `Clock` de São Paulo). `ItemPrescricao` (`tb_itens_prescricao`): `medicacaoId`
-  (`UUID`, do msmedications), dosagem em texto, `intervaloHoras`, `quantidadeDoses`, `inicio` e observação. Não
-  há dose aqui: os horários são `inicio + n * intervaloHoras` e serão gerados pelo módulo de doses.
+  (`Long`, do msmedications), dosagem em texto, `intervaloHoras`, `quantidadeDoses`, `inicio` e observação.
+  `ItemPrescricao.horarios()` gera `inicio + n * intervaloHoras`, para `n` de 0 a `quantidadeDoses - 1`; a
+  resposta traz esses `horarios`. Não há tabela de doses aqui.
 - Criar prescrição: busca a internação no `ms-internacao` (`InternacaoClient`, mesmo padrão de clients com token
   repassado, timeouts, 404 e 503), aceita só `ADMITIDA`, `EM_TRATAMENTO` ou `ISOLAMENTO` (senão 422), chama
   `PATCH /api/internacoes/{id}/iniciar-tratamento` e só então grava. O `iniciar-tratamento` é idempotente, então
   vem antes da gravação: se falhar, nada é gravado. O método não é `@Transactional`, para nenhuma transação
   esperar a rede. URL em `MS_INTERNACAO_URL`.
+- Depois de gravar, manda os horários ao `octopus-msdoses` (`POST /api/doses/agendamentos`, idempotente por
+  prescrição). Se o agendamento falhar ou estourar o tempo, a prescrição é desativada e as doses que o msdoses
+  tenha chegado a gravar são canceladas; o veterinário recebe 503 e prescreve de novo. Desativar a prescrição
+  cancela as doses pendentes (`PATCH /api/doses/prescricoes/{id}/cancelar`). URL em `MS_DOSES_URL`.
+- Os clients usam o `HttpClient` do JDK (`JdkClientHttpRequestFactory`), e não o `SimpleClientHttpRequestFactory`:
+  o `HttpURLConnection` recusa PATCH, e o `iniciar-tratamento` nunca chegava ao ms-internacao. Timeout de leitura
+  de 3 s, e 10 s para o agendamento das doses.
 - Só o `VETERINARIO` prescreve e desativa (o enunciado diz que é ele quem prescreve, e é o único perfil que o
   `ms-internacao` aceita no `iniciar-tratamento`). Leitura liberada para qualquer perfil autenticado.
-- RN-03: antes de iniciar o tratamento e gravar, o `MedicacaoClient` busca cada medicamento novo no
+- RN-06: antes de iniciar o tratamento e gravar, o `MedicacaoClient` busca cada medicamento novo no
   msmedications (`GET /api/medicacoes/{id}`, uma vez por medicamento) e a prescrição é recusada com 422 se dois
-  deles têm interação proibida entre si, ou se algum tem interação proibida com um medicamento das prescrições
-  ativas da mesma internação (o animal recebe todas). Basta olhar a lista do medicamento novo, porque o
-  msmedications grava o par nos dois sentidos. URL em `MS_MEDICACOES_URL`.
+  medicamentos com interação proibida cairiam **no mesmo horário**: entre os itens novos ou entre um item novo e
+  os itens das prescrições ativas da mesma internação. Em horários diferentes o par é aceito, como diz o
+  enunciado. Basta olhar a lista do medicamento novo, porque o msmedications grava o par nos dois sentidos. URL em
+  `MS_MEDICACOES_URL`.
+- Migrations: `V1__prescricoes.sql` (versão do Douglas, já aplicada em produção) e `V2__itens_medicacao_long.sql`,
+  que passa `medicacao_id` a `BIGINT` e descarta as prescrições de teste.
 - Falta: o item "se necessário" da mudança contratada de 01/11, sem intervalo nem quantidade.
 
 | Endpoint | Quem pode |
@@ -288,6 +322,28 @@ Pacote `com.br.octopus_msprescricao`, mesmas camadas dos outros módulos.
 | `POST /api/prescricoes` | `VETERINARIO` |
 | `GET /api/prescricoes?internacaoId=`, `GET /{id}` | autenticado |
 | `PATCH /{id}/desativar` | `VETERINARIO` |
+
+## Arquitetura do `octopus-msdoses`
+
+Pacote `com.br.octopus_msdoses`, mesmas camadas. A squad decidiu (09/10/2026) separar a aplicação das doses da
+prescrição: a prescrição define o esquema e gera os horários; este módulo guarda uma dose por horário e cuida do
+que acontece com ela.
+
+- `Dose` (`tb_doses`): `prescricaoId`, `itemPrescricaoId`, `internacaoId`, `medicacaoId` (todos `Long`, sem FK),
+  `horarioPrevisto`, `status` (`PENDENTE`, `APLICADA`, `CANCELADA`), `aplicadaEm`, `aplicadaPor` (e-mail do
+  token), observação e `@Version`. Como a `Internacao`, não tem `@Setter`: o status só muda por `aplicar` e
+  `cancelar`. `UNIQUE (item_prescricao_id, horario_previsto)` impede agendar o mesmo horário duas vezes.
+- RN-05: `aplicar` grava o auxiliar e a hora do `Clock` uma vez só; a segunda tentativa recebe 422 e não existe
+  endpoint de edição. Duas aplicações simultâneas da mesma dose caem no `@Version` e recebem 409.
+- Ainda não tem: janela de 30 minutos (RN-03), dose perdida (RN-04) e reaplicação (RN-07), que são das Sprints 3
+  e 4. Flyway em `flyway_schema_history_doses`, MySQL do compose na porta 3312.
+
+| Endpoint | Quem pode |
+| :------- | :-------- |
+| `POST /api/doses/agendamentos` | `VETERINARIO` (chamado pelo msprescricao com o token de quem prescreveu) |
+| `PATCH /api/doses/prescricoes/{prescricaoId}/cancelar` | `VETERINARIO` |
+| `GET /api/doses?internacaoId=&prescricaoId=&status=&de=&ate=`, `GET /{id}` | autenticado |
+| `PATCH /api/doses/{id}/aplicar` (corpo opcional com `observacao`) | `AUXILIAR` |
 
 ## Convenções para novos microsserviços
 
@@ -297,12 +353,14 @@ Os módulos existentes já seguem o padrão abaixo; use qualquer um deles como r
   underscore. Spring Boot 4.1.1, Java 17, Lombok e os mesmos starters "quebrados" do Boot 4.
 - Nomes de entidades em português, seguindo o TAP: `Baia`, `Medicacao`, `Internacao`, `Prescricao`, `Dose`.
   Tabelas `tb_<plural>` (`tb_baias`, `tb_medicacoes`) e colunas `@Column(name = "snake_case")`.
-- Id `UUID` com `GenerationType.UUID`, imports wildcard `jakarta.persistence.*` e `lombok.*`, mais `@Builder`,
-  `@NoArgsConstructor` e `@AllArgsConstructor`. Enums em `domain.enums`, em minúsculo.
-- Exceção decidida pela squad em 09/10/2026: internação, prescrição (com seus itens) e dose usam id `Long` com
-  `GenerationType.IDENTITY` (`BIGINT AUTO_INCREMENT`), assim como as referências entre eles (`internacaoId`,
-  `itemId`). Usuários, tutores, animais, baias e medicamentos continuam `UUID`, e as referências a eles também.
-  Com `IDENTITY` o id só existe depois do `INSERT`.
+- Id `Long` com `GenerationType.IDENTITY` (`BIGINT AUTO_INCREMENT`), decisão da squad de 11/10/2026. A única
+  exceção são os usuários: `Usuario` e os perfis (`Admin`, `Veterinario`, `Auxiliar`, `Recepcionista`) continuam
+  `UUID`. Referência a outro módulo é uma coluna `BIGINT` sem FK. Com `IDENTITY` o id só existe depois do
+  `INSERT`. Imports wildcard `jakarta.persistence.*` e `lombok.*`, mais `@Builder`, `@NoArgsConstructor` e
+  `@AllArgsConstructor`. Enums em `domain.enums`, em minúsculo.
+- Client REST para outro módulo: `RestClient` sobre `JdkClientHttpRequestFactory` (o `SimpleClientHttpRequestFactory`
+  não faz PATCH), repassando o `Authorization` de quem chamou, com timeouts curtos, 404 para recurso inexistente
+  e 503 para o resto. Use o `ClientesHttp` da prescrição como modelo.
 - Mesma estrutura de camadas (`domain`, `dto.request`, `dto.response`, `repository`, `service`, `controller`,
   `exception`) e o mesmo par `GlobalExceptionHandler` e `ErroResponse`.
 - Credenciais e URLs de banco só via `.env`, com `src/test/resources/application.properties` autocontido para os
@@ -334,7 +392,7 @@ Ao criar um módulo novo, copie o arquivo de qualquer branch e troque a branch e
 
 ## Segurança entre módulos
 
-Decidido na Sprint 1 e implementado em `ms-cadastro-baias`, `octopus-msmedications` e `ms-internacao`: só o `octopus-msusuario`
+Decidido na Sprint 1 e implementado em todos os módulos: só o `octopus-msusuario`
 emite token, e os demais módulos apenas validam o JWT dele, com o mesmo `JWT_SECRET` (HS384). Nenhum outro
 módulo tem tabela de usuários, então identidade e papel vêm dos claims: `sub` é o e-mail e `role` é a `ROLE_*`.
 
@@ -352,11 +410,12 @@ A autorização fina continua por `@PreAuthorize` no controller:
 
 | Módulo          | Leitura            | Escrita                              |
 | :-------------- | :----------------- | :----------------------------------- |
-| `msusuario`     | conforme o recurso | `ADMIN` (usuários), `ADMIN`/`RECEPCIONISTA` (tutor, animal) |
+| `msusuario`     | conforme o recurso; `GET /api/usuarios` só `ADMIN` | `ADMIN` (usuários), `ADMIN`/`RECEPCIONISTA` (tutor, animal) |
 | `msbaias`       | autenticado        | `ADMIN`                              |
 | `msmedications` | autenticado        | `ADMIN`/`VETERINARIO`; desativar só `ADMIN` |
 | `msinternacao`  | autenticado        | por transição; ver "Arquitetura do `ms-internacao`" |
 | `msprescricao`  | autenticado        | `VETERINARIO` (prescrever e desativar)  |
+| `msdoses`       | autenticado        | `VETERINARIO` (agendar, cancelar), `AUXILIAR` (aplicar) |
 
 Desativar um usuário no `msusuario` não corta na hora o acesso dele aos outros módulos: como eles não consultam
 a tabela de usuários, o token continua válido até expirar. Isso é aceitável para o escopo do TAP; se virar
@@ -398,7 +457,11 @@ medicamento. Toda entidade que pode sair de circulação tem um campo `ativo` co
 - Quando faz sentido reativar, o módulo expõe também `PATCH /api/<recurso>/{id}/ativar`. As baias fazem isso, e
   a reativação respeita o limite de 12 baias ativas que a clínica tem.
 - A internação é a exceção: não tem `ativo`, tem ciclo de vida. Ela termina em `ENCERRADA`, que faz o papel do
-  arquivamento, e cada passo fica gravado em `tb_internacao_eventos`.
+  arquivamento, e cada passo fica gravado em `tb_internacao_eventos`. A dose também tem status em vez de
+  `ativo`: a de uma prescrição desativada fica `CANCELADA`.
+- Única exceção aceita até aqui: a troca de UUID para `Long` (11/10/2026) descartou as internações e prescrições
+  de teste, porque os UUIDs a que elas apontavam deixaram de existir. Os cadastros (tutores, animais, baias,
+  medicamentos) foram convertidos sem perda.
 
 ## Migrations (Flyway)
 
@@ -434,7 +497,7 @@ Regras de escrita das migrations:
 
 | Java                               | MySQL                     |
 | :--------------------------------- | :------------------------ |
-| `UUID`                             | `BINARY(16)`              |
+| `UUID` (só usuários e perfis)      | `BINARY(16)`              |
 | `Long` com `IDENTITY`              | `BIGINT NOT NULL AUTO_INCREMENT` |
 | `Long` (referência)                | `BIGINT`                  |
 | `String` com `length = N`          | `VARCHAR(N)`; sem `length`, `VARCHAR(255)` |

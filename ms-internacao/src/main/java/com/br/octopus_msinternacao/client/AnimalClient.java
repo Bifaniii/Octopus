@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
-import java.util.UUID;
 
 @Component
 public class AnimalClient {
@@ -16,7 +15,7 @@ public class AnimalClient {
         this.restClient = ClientesHttp.criar(baseUrl);
     }
 
-    public AnimalDto buscar(UUID id) {
+    public AnimalDto buscar(Long id) {
         return ClientesHttp.buscar(restClient, "/api/animais/{id}", id, AnimalDto.class,
                 "Animal não encontrado", "msusuario");
     }

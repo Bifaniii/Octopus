@@ -26,7 +26,6 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 import static com.br.octopus_msinternacao.domain.enums.StatusInternacao.ENCERRADA;
 
@@ -119,7 +118,7 @@ public class InternacaoService {
     }
 
     @Transactional(readOnly = true)
-    public List<InternacaoResponse> listar(StatusInternacao status, UUID baiaId, UUID animalId) {
+    public List<InternacaoResponse> listar(StatusInternacao status, Long baiaId, Long animalId) {
         return internacaoRepository.listar(status, baiaId, animalId).stream().map(InternacaoResponse::from).toList();
     }
 
@@ -138,7 +137,7 @@ public class InternacaoService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Internação não encontrada: " + id));
     }
 
-    private BaiaDto buscarBaiaAtiva(UUID baiaId) {
+    private BaiaDto buscarBaiaAtiva(Long baiaId) {
         BaiaDto baia = baiaClient.buscar(baiaId);
         if (!baia.ativo()) {
             throw new RegraNegocioException("A baia " + baia.nome() + " está desativada.");
@@ -147,7 +146,7 @@ public class InternacaoService {
     }
 
     // RN-01. A consulta trava as internações abertas da baia até o commit (ver InternacaoRepository).
-    private void exigirVaga(BaiaDto baia, UUID maeId) {
+    private void exigirVaga(BaiaDto baia, Long maeId) {
         List<Internacao> ocupantes = internacaoRepository.findByBaiaIdAndStatusNot(baia.id(), ENCERRADA);
         if (ocupantes.size() >= baia.capacidadeEfetiva()) {
             throw new RegraNegocioException("RN-01: a baia " + baia.nome() + " está lotada ("

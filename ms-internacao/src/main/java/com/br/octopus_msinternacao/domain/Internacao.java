@@ -6,9 +6,9 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import static com.br.octopus_msinternacao.domain.enums.StatusInternacao.*;
 
@@ -25,7 +25,7 @@ public class Internacao {
     private Long id;
 
     @Column(name = "animal_id", nullable = false)
-    private UUID animalId;
+    private Long animalId;
 
     // Cópia do nome e da espécie na admissão: o painel mostra quem está internado sem consultar o msusuario.
     @Column(name = "animal_nome", length = 100, nullable = false)
@@ -35,11 +35,11 @@ public class Internacao {
     private String animalEspecie;
 
     @Column(name = "baia_id", nullable = false)
-    private UUID baiaId;
+    private Long baiaId;
 
     // Cópia da mãe do animal na admissão (RN-01 da ninhada). Nula quando a mãe não é conhecida.
     @Column(name = "mae_id")
-    private UUID maeId;
+    private Long maeId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 30, nullable = false)
@@ -75,8 +75,8 @@ public class Internacao {
 
     // As validações que dependem de outros módulos (RN-01, RN-02) ficam no service; aqui só o que a
     // própria internação sabe responder.
-    public static Internacao admitir(UUID animalId, String animalNome, String animalEspecie, UUID maeId,
-                                     UUID baiaId, String motivo, String usuario,
+    public static Internacao admitir(Long animalId, String animalNome, String animalEspecie, Long maeId,
+                                     Long baiaId, String motivo, String usuario,
                                      LocalDateTime agora) {
         Internacao internacao = new Internacao();
         internacao.animalId = animalId;
@@ -103,7 +103,7 @@ public class Internacao {
     }
 
     // RN-02: o service já conferiu que a vacina está irregular e que a baia nova é de isolamento com vaga.
-    public void isolar(UUID baiaIsolamentoId, String usuario, LocalDateTime agora) {
+    public void isolar(Long baiaIsolamentoId, String usuario, LocalDateTime agora) {
         exigirTransicao(ISOLAMENTO);
         this.baiaId = baiaIsolamentoId;
         aplicar(ISOLAMENTO, usuario, agora);
@@ -131,7 +131,8 @@ public class Internacao {
         if (saida == null) {
             throw new RegraNegocioException("RN-08: a internação só pode ser encerrada com o registro da saída física.");
         }
-        if (saida.isBefore(dataAlta) || saida.isAfter(agora)) {
+        // A tela informa a saída com precisão de minuto: no mesmo minuto da alta ela vale.
+        if (saida.isBefore(dataAlta.truncatedTo(ChronoUnit.MINUTES)) || saida.isAfter(agora)) {
             throw new RegraNegocioException("A saída física deve estar entre a alta e o momento atual.");
         }
         this.dataSaida = saida;

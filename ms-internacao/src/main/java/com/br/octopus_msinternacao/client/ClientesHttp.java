@@ -16,7 +16,6 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.UUID;
 
 // Montagem e tratamento de erro comuns aos clients dos outros módulos.
 final class ClientesHttp {
@@ -40,7 +39,7 @@ final class ClientesHttp {
 
     // GET de um recurso por id: 404 vira RecursoNaoEncontrado (404 aqui também); qualquer outro erro ou falta de
     // resposta vira ServicoIndisponivel (503), porque não é culpa de quem chamou a internação.
-    static <T> T buscar(RestClient restClient, String caminho, UUID id, Class<T> tipo,
+    static <T> T buscar(RestClient restClient, String caminho, Long id, Class<T> tipo,
                         String naoEncontrado, String servico) {
         try {
             return restClient.get()
