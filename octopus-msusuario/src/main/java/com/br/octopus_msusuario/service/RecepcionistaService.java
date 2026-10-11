@@ -2,6 +2,7 @@ package com.br.octopus_msusuario.service;
 
 import com.br.octopus_msusuario.domain.Recepcionista;
 import com.br.octopus_msusuario.domain.enums.Role;
+import com.br.octopus_msusuario.dto.request.ColaboradorUpdateRequest;
 import com.br.octopus_msusuario.dto.request.RecepcionistaRequest;
 import com.br.octopus_msusuario.dto.response.RecepcionistaResponse;
 import com.br.octopus_msusuario.exception.RecursoDuplicadoException;
@@ -46,6 +47,20 @@ public class RecepcionistaService {
     @Transactional(readOnly = true)
     public RecepcionistaResponse buscar(UUID id) {
         return RecepcionistaResponse.from(obter(id));
+    }
+
+    @Transactional
+    public RecepcionistaResponse atualizar(UUID id, ColaboradorUpdateRequest request) {
+        Recepcionista recepcionista = obter(id);
+        if (recepcionistaRepository.existsByCpfAndIdNot(request.cpf(), id)) {
+            throw new RecursoDuplicadoException("CPF já cadastrado: " + request.cpf());
+        }
+        usuarioService.alterarEmail(recepcionista.getUsuario(), request.email());
+        recepcionista.setNome(request.nome());
+        recepcionista.setCpf(request.cpf());
+        recepcionista.setDataNascimento(request.dataNascimento());
+        recepcionista.setTelefone(request.telefone());
+        return RecepcionistaResponse.from(recepcionista);
     }
 
     @Transactional

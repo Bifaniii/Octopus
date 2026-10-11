@@ -8,4 +8,6 @@ import java.util.UUID;
 public interface AuxiliarRepository extends JpaRepository<Auxiliar, UUID> {
 
     boolean existsByCpf(String cpf);
+
+    boolean existsByCpfAndIdNot(String cpf, UUID id);
 }

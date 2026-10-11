@@ -4,6 +4,7 @@ import com.br.octopus_msusuario.domain.Veterinario;
 import com.br.octopus_msusuario.domain.enums.Especializacao;
 import com.br.octopus_msusuario.domain.enums.Role;
 import com.br.octopus_msusuario.dto.request.VeterinarioRequest;
+import com.br.octopus_msusuario.dto.request.VeterinarioUpdateRequest;
 import com.br.octopus_msusuario.dto.response.VeterinarioResponse;
 import com.br.octopus_msusuario.exception.RecursoDuplicadoException;
 import com.br.octopus_msusuario.exception.RecursoNaoEncontradoException;
@@ -54,6 +55,27 @@ public class VeterinarioService {
     @Transactional(readOnly = true)
     public VeterinarioResponse buscar(UUID id) {
         return VeterinarioResponse.from(obter(id));
+    }
+
+    @Transactional
+    public VeterinarioResponse atualizar(UUID id, VeterinarioUpdateRequest request) {
+        Veterinario veterinario = obter(id);
+        if (veterinarioRepository.existsByCpfCnpjAndIdNot(request.cpfCnpj(), id)) {
+            throw new RecursoDuplicadoException("CPF/CNPJ já cadastrado: " + request.cpfCnpj());
+        }
+        if (veterinarioRepository.existsByCrmvAndCrmvUfAndIdNot(request.crmv(), request.crmvUf(), id)) {
+            throw new RecursoDuplicadoException("CRMV já cadastrado: " + request.crmv() + "/" + request.crmvUf());
+        }
+        usuarioService.alterarEmail(veterinario.getUsuario(), request.email());
+        veterinario.setNome(request.nome());
+        veterinario.setCpfCnpj(request.cpfCnpj());
+        veterinario.setTipoPessoa(request.tipoPessoa());
+        veterinario.setDataNascimento(request.dataNascimento());
+        veterinario.setTelefone(request.telefone());
+        veterinario.setCrmv(request.crmv());
+        veterinario.setCrmvUf(request.crmvUf());
+        veterinario.setEspecializacao(request.especializacao() != null ? request.especializacao() : Especializacao.GERAL);
+        return VeterinarioResponse.from(veterinario);
     }
 
     @Transactional

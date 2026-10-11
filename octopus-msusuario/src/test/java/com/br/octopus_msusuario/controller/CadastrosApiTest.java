@@ -224,4 +224,93 @@ class CadastrosApiTest {
         mockMvc.perform(get("/api/usuarios").header("Authorization", login(email, "senha-forte-123")))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    void putEmVeterinarioTrocaDadosEEmailDeLogin() throws Exception {
+        long cpf = ThreadLocalRandom.current().nextLong(10_000_000_000L, 99_999_999_999L);
+        int crmv = ThreadLocalRandom.current().nextInt(10_000, 99_999);
+        String antigo = "vet" + cpf + "@teste.local";
+        String body = mockMvc.perform(post("/api/veterinarios")
+                        .header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email": "%s", "senha": "senha-forte-123", "nome": "Dra. Ana", "cpfCnpj": "%d",
+                                 "tipoPessoa": "PF", "dataNascimento": "1990-05-10", "telefone": "11999990000",
+                                 "crmv": "%d", "crmvUf": "SP"}
+                                """.formatted(antigo, cpf, crmv)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String id = JsonPath.read(body, "$.id");
+        String novo = "novo" + cpf + "@teste.local";
+
+        mockMvc.perform(put("/api/veterinarios/{id}", id)
+                        .header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email": "%s", "nome": "Dra. Ana Lima", "cpfCnpj": "%d", "tipoPessoa": "PF",
+                                 "dataNascimento": "1990-05-10", "telefone": "11988887777", "crmv": "%d",
+                                 "crmvUf": "RJ", "especializacao": "CIRURGIA"}
+                                """.formatted(novo, cpf, crmv)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nome").value("Dra. Ana Lima"))
+                .andExpect(jsonPath("$.crmvUf").value("RJ"))
+                .andExpect(jsonPath("$.especializacao").value("CIRURGIA"))
+                .andExpect(jsonPath("$.usuario.email").value(novo));
+
+        login(novo, "senha-forte-123");
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email": "%s", "senha": "senha-forte-123"}
+                                """.formatted(antigo)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void putEmAuxiliarComCpfDeOutroRecebe409() throws Exception {
+        String primeiro = cadastrarAuxiliar("Aux Um " + sufixo);
+        String segundo = cadastrarAuxiliar("Aux Dois " + sufixo);
+        String cpfDoPrimeiro = JsonPath.read(mockMvc.perform(get("/api/auxiliares/{id}", primeiro)
+                .header("Authorization", admin)).andReturn().getResponse().getContentAsString(), "$.cpf");
+
+        mockMvc.perform(put("/api/auxiliares/{id}", segundo)
+                        .header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email": "aux-dois-%s@teste.local", "nome": "Aux Dois", "cpf": "%s",
+                                 "dataNascimento": "1995-01-01", "telefone": "11999990000"}
+                                """.formatted(sufixo, cpfDoPrimeiro)))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void putEmAdminTrocaNomeESoOAdminEdita() throws Exception {
+        String body = mockMvc.perform(post("/api/admins")
+                        .header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email": "adm%s@teste.local", "senha": "senha-forte-123", "nome": "Supervisor"}
+                                """.formatted(sufixo)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String id = JsonPath.read(body, "$.id");
+
+        mockMvc.perform(put("/api/admins/{id}", id)
+                        .header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email": "adm%s@teste.local", "nome": "Supervisora TI"}
+                                """.formatted(sufixo)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nome").value("Supervisora TI"));
+
+        String recepcao = cadastrarAuxiliar("Sem Permissão " + sufixo);
+        String email = JsonPath.read(mockMvc.perform(get("/api/auxiliares/{id}", recepcao)
+                .header("Authorization", admin)).andReturn().getResponse().getContentAsString(), "$.usuario.email");
+        mockMvc.perform(put("/api/admins/{id}", id)
+                        .header("Authorization", login(email, "senha-forte-123"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\": \"x@teste.local\", \"nome\": \"X\"}"))
+                .andExpect(status().isForbidden());
+    }
 }

@@ -2,6 +2,7 @@ package com.br.octopus_msusuario.service;
 
 import com.br.octopus_msusuario.domain.Auxiliar;
 import com.br.octopus_msusuario.domain.enums.Role;
+import com.br.octopus_msusuario.dto.request.ColaboradorUpdateRequest;
 import com.br.octopus_msusuario.dto.request.AuxiliarRequest;
 import com.br.octopus_msusuario.dto.response.AuxiliarResponse;
 import com.br.octopus_msusuario.exception.RecursoDuplicadoException;
@@ -46,6 +47,20 @@ public class AuxiliarService {
     @Transactional(readOnly = true)
     public AuxiliarResponse buscar(UUID id) {
         return AuxiliarResponse.from(obter(id));
+    }
+
+    @Transactional
+    public AuxiliarResponse atualizar(UUID id, ColaboradorUpdateRequest request) {
+        Auxiliar auxiliar = obter(id);
+        if (auxiliarRepository.existsByCpfAndIdNot(request.cpf(), id)) {
+            throw new RecursoDuplicadoException("CPF já cadastrado: " + request.cpf());
+        }
+        usuarioService.alterarEmail(auxiliar.getUsuario(), request.email());
+        auxiliar.setNome(request.nome());
+        auxiliar.setCpf(request.cpf());
+        auxiliar.setDataNascimento(request.dataNascimento());
+        auxiliar.setTelefone(request.telefone());
+        return AuxiliarResponse.from(auxiliar);
     }
 
     @Transactional

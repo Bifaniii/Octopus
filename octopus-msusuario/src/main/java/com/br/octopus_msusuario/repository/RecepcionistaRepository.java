@@ -8,4 +8,6 @@ import java.util.UUID;
 public interface RecepcionistaRepository extends JpaRepository<Recepcionista, UUID> {
 
     boolean existsByCpf(String cpf);
+
+    boolean existsByCpfAndIdNot(String cpf, UUID id);
 }

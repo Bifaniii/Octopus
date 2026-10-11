@@ -124,17 +124,15 @@ cd octopus-msusuario && ./mvnw test
 
 ## Últimas alterações
 _Push de 11/10/2026 na branch `main`_
-- Ids de tutor e animal passam a `Long` na `V7__tutores_animais_id_long.sql`, que preserva os registros e remapeia
-  tutor e mãe. Conta e perfis de usuário continuam `UUID`.
-- `POST /api/animais?tutorId=` corrigido: lia o corpo sem `@RequestBody` nem validação.
-- `PUT /api/tutores/{id}` e `PUT /api/animais/{id}` para corrigir cadastro, antirrábica e mãe; a mãe não pode ser o
-  próprio animal nem alguém da sua ascendência (422).
-- `GET /api/usuarios` (só `ADMIN`) com filtros de nome, perfil, situação e período de cadastro, aplicados no banco.
-- ADRs em `docs/adr/`: persistência (MySQL + Flyway), ids `Long` e doses em módulo próprio.
-- 57 testes.
+- `PUT /api/veterinarios/{id}`, `/api/auxiliares/{id}`, `/api/recepcionistas/{id}` e `/api/admins/{id}`, só para
+  `ADMIN`: editam os dados do perfil e o e-mail de login, sem a senha. Duplicidade de CPF, CNPJ, CRMV/UF ou e-mail
+  responde 409.
+- Ids de tutor e animal em `Long` (`V7`), edição de tutor e animal, `GET /api/usuarios` com filtros e ADRs em
+  `docs/adr/` (push anterior do mesmo dia).
+- 60 testes.
 
 ## Próximos passos
-- [ ] Subir a `<version>` do `pom.xml` para publicar a `V7` e os endpoints novos na EC2.
+- [ ] Combinar com o tech lead o deploy coordenado: msusuario, baias, medicamentos, internação, prescrição e doses.
 - [ ] Trocar `java.util.Random` por `SecureRandom` no código de recuperação de senha e tirar o `UNIQUE` global do
       token de 6 dígitos (colisão vira 500).
 - [ ] Limitar as tentativas de `redefinir-senha`.

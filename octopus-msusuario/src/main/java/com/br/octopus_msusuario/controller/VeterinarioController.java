@@ -1,6 +1,7 @@
 package com.br.octopus_msusuario.controller;
 
 import com.br.octopus_msusuario.dto.request.VeterinarioRequest;
+import com.br.octopus_msusuario.dto.request.VeterinarioUpdateRequest;
 import com.br.octopus_msusuario.dto.response.VeterinarioResponse;
 import com.br.octopus_msusuario.service.VeterinarioService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -50,5 +52,11 @@ public class VeterinarioController {
     @PatchMapping("/{id}/desativar")
     public VeterinarioResponse desativar(@PathVariable UUID id) {
         return veterinarioService.desativar(id);
+    }
+
+    // Edita os dados do perfil e o e-mail de login. A senha não muda aqui.
+    @PutMapping("/{id}")
+    public VeterinarioResponse atualizar(@PathVariable UUID id, @Valid @RequestBody VeterinarioUpdateRequest request) {
+        return veterinarioService.atualizar(id, request);
     }
 }

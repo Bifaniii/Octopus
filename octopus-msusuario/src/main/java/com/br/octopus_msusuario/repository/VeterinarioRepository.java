@@ -10,4 +10,8 @@ public interface VeterinarioRepository extends JpaRepository<Veterinario, UUID> 
     boolean existsByCpfCnpj(String cpfCnpj);
 
     boolean existsByCrmvAndCrmvUf(String crmv, String crmvUf);
+
+    boolean existsByCpfCnpjAndIdNot(String cpfCnpj, UUID id);
+
+    boolean existsByCrmvAndCrmvUfAndIdNot(String crmv, String crmvUf, UUID id);
 }

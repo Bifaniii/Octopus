@@ -15,6 +15,21 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
 
+    /**
+     * Troca o e-mail de login. Os tokens já emitidos levam o e-mail antigo no "sub" e deixam de valer, porque o filtro
+     * recarrega o usuário por ele.
+     */
+    public void alterarEmail(Usuario usuario, String novoEmail) {
+        if (usuario.getEmail().equalsIgnoreCase(novoEmail)) {
+            usuario.setEmail(novoEmail);
+            return;
+        }
+        if (usuarioRepository.existsByEmail(novoEmail)) {
+            throw new RecursoDuplicadoException("E-mail já cadastrado: " + novoEmail);
+        }
+        usuario.setEmail(novoEmail);
+    }
+
     public Usuario novoUsuario(String email, String senha, Role role) {
         if (usuarioRepository.existsByEmail(email)) {
             throw new RecursoDuplicadoException("E-mail já cadastrado: " + email);
