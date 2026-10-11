@@ -19,7 +19,7 @@ O sistema é feito de microsserviços Spring Boot independentes, um por área, c
 
 | Módulo                  | Porta | Branch                         | Estado                                               |
 | :---------------------- | :---- | :----------------------------- | :--------------------------------------------------- |
-| `octopus-msusuario/`    | 8080  | `main`                         | Login/JWT, recuperação de senha, perfis com listagem filtrada, tutores e animais com mãe. 57 testes. |
+| `octopus-msusuario/`    | 8080  | `main`                         | Login/JWT, recuperação de senha, perfis com listagem filtrada e edição, tutores e animais com mãe. 60 testes. |
 | `ms-cadastro-baias/`    | 8081  | `feature/cadastro-baia`        | CRUD de baias, limite de 12 ativas, ativar/desativar. 14 testes. |
 | `octopus-msmedications/`| 8082  | `feature/register_medications` | CRUD de medicamentos, esquema e interações. 12 testes. |
 | `ms-internacao/`        | 8083  | `feature/internacao`           | Admissão, ciclo de vida, RN-01, RN-02 e RN-08. 51 testes. |
@@ -99,12 +99,15 @@ o próprio módulo.
   controller `/api/baias`, exceptions, JWT, migrations e compose próprios. Em 24/09 entrou um merge de
   `origin/main` nesta branch, o que foge do modelo de uma branch por microsserviço: ela passou a carregar
   `TAP.md`, `docs/` e um diretório `.idea/` versionado. O `.idea/` deveria sair, já que está no `.gitignore`.
-  Ids `Long` desde a `V3__baias_id_long.sql`.
+  Ids `Long` desde a `V3__baias_id_long.sql`. O workflow foi renomeado de `ci.yml` para `pipeline.yml` (o conteúdo
+  já era o mesmo das outras branches).
 - **`feature/register_medications`** (Guilherme Bifani): `octopus-msmedications/` completo, com entidade
   `Medicacao` (incluindo `TipoEsquema`, interações proibidas e `quantidade`), DTOs, service, controller
   `/api/medicacoes`, exceptions, JWT, migrations, compose próprio e 12 testes. É uma branch órfã, sem ancestral
   comum com a `main`, o que é esperado aqui. Ids `Long` desde a `V4__medicacoes_id_long.sql`, que remapeia os
-  pares de interação. O workflow ainda é o `ci.yml` antigo, que faz deploy a cada push.
+  pares de interação. Desde 11/10 usa o `pipeline.yml`, como as outras branches. Atenção: as imagens antigas desta
+  branch no GHCR só têm tag de commit, nunca de versão, então o **próximo push publica** a versão atual (a troca foi
+  enviada com `[skip ci]` para não publicar sozinha). Combine com o tech lead antes de empurrar algo aqui.
 - **`feature/animal_mae`** (Douglas): já mesclada na `main`; pode ser apagada.
 - **`feature/internacao`** (Douglas): `ms-internacao/` com entidade `Internacao` e histórico
   (`InternacaoEvento`), migrations V1 e V2, clients REST para `msbaias` e `msusuario`, service com RN-01, RN-02
@@ -197,7 +200,7 @@ Portas de host default: 8080/3307 (usuário), 8081/3308 (baias), 8082/3309 (medi
 - É o único módulo que emite JWT, em `/api/auth/login`. Os outros só validam.
 - Swagger em `/swagger-ui.html`. O botão Authorize aceita o token do `/api/auth/login`, no esquema `bearerAuth`.
 - `Dockerfile` multi-stage (maven, depois temurin 17 JRE, usuário não-root), usado pelo `docker-compose.yml`.
-- Testes: 57 no total, entre unitários com JUnit 5 e Mockito (`service/`) e integração com MockMvc
+- Testes: 60 no total, entre unitários com JUnit 5 e Mockito (`service/`) e integração com MockMvc
   (`security/AutenticacaoEAutorizacaoTest`, `service/RecuperacaoSenhaTest` e `controller/CadastrosApiTest`).
 - `mail/EmailService` envia o e-mail de redefinição de senha via `JavaMailSender`. Ele lê
   `${spring.mail.username}` como remetente, e as propriedades `spring.mail.*` vêm do `.env`. O host tem default
@@ -207,6 +210,10 @@ Portas de host default: 8080/3307 (usuário), 8081/3308 (baias), 8082/3309 (medi
   perfis continuam `UUID`. `PUT /api/tutores/{id}` edita só os dados do tutor; `PUT /api/animais/{id}` edita nome,
   espécie, antirrábica e mãe (a mãe não pode ser o próprio animal nem alguém da linha de ascendência dele: 422).
   `POST /api/tutores` aceita a lista `animais` e grava tudo numa transação.
+- `PUT /api/veterinarios/{id}`, `/api/auxiliares/{id}`, `/api/recepcionistas/{id}` e `/api/admins/{id}` (só
+  `ADMIN`) editam os dados do perfil e o e-mail de login, com as mesmas validações do cadastro e sem a senha, que só
+  muda pela recuperação. CPF, CNPJ, CRMV/UF e e-mail continuam únicos (409). Trocar o e-mail derruba os tokens já
+  emitidos para aquela conta, porque o filtro recarrega o usuário pelo `sub`.
 - `GET /api/usuarios?nome=&perfil=&ativo=&cadastradoDe=&cadastradoAte=` (só `ADMIN`) lista os quatro perfis numa
   resposta só (`UsuarioResumoResponse`, com o id da conta e o `perfilId`). Os filtros rodam no banco, um JPQL
   por perfil, e o período compara a data de cadastro da conta.
