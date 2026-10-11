@@ -5,12 +5,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.br.octopus_msusuario.domain.Animal;
 import com.br.octopus_msusuario.exception.AnimalNaoEncontradoException;
 
-import java.util.UUID;
 
-public interface AnimalRepository extends JpaRepository<Animal, UUID> {
+public interface AnimalRepository extends JpaRepository<Animal, Long> {
 
     // Mãe informada no cadastro do animal: null quando não informada, 404 quando o id não existe.
-    default Animal buscarMae(UUID maeId) {
+    default Animal buscarMae(Long maeId) {
         if (maeId == null) {
             return null;
         }

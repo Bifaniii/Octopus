@@ -5,13 +5,13 @@ import com.br.octopus_msusuario.domain.Tutor;
 import com.br.octopus_msusuario.dto.request.AnimalRequest;
 import com.br.octopus_msusuario.dto.response.AnimalResponse;
 import com.br.octopus_msusuario.exception.AnimalNaoEncontradoException;
+import com.br.octopus_msusuario.exception.RegraNegocioException;
 import com.br.octopus_msusuario.repository.AnimalRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +21,7 @@ public class AnimalService {
     private final TutorService tutorService;
 
     @Transactional
-    public AnimalResponse criar(UUID tutorId, AnimalRequest request) {
+    public AnimalResponse criar(Long tutorId, AnimalRequest request) {
         Tutor tutor = tutorService.obter(tutorId);
         Animal animal = request.toEntity(animalRepository.buscarMae(request.maeId()));
         tutor.adicionarAnimal(animal);
@@ -34,10 +34,35 @@ public class AnimalService {
     }
 
     @Transactional(readOnly = true)
-    public AnimalResponse listarPorId(UUID id) throws AnimalNaoEncontradoException{
-        Animal animal = animalRepository.findById(id)
-            .orElseThrow(() -> new AnimalNaoEncontradoException("Animal não encontrado com o id: " + id));
+    public AnimalResponse listarPorId(Long id) {
+        return AnimalResponse.from(obter(id));
+    }
+
+    @Transactional
+    public AnimalResponse atualizar(Long id, AnimalRequest request) {
+        Animal animal = obter(id);
+        Animal mae = animalRepository.buscarMae(request.maeId());
+        exigirMaeValida(animal, mae);
+
+        animal.setNome(request.nome());
+        animal.setEspecie(request.especie());
+        animal.setDataUltimaAntirrabica(request.dataAntirrabica());
+        animal.setMae(mae);
         return AnimalResponse.from(animal);
+    }
+
+    // Subindo pela linha de mães a partir da mãe escolhida, não pode aparecer o próprio animal.
+    private void exigirMaeValida(Animal animal, Animal mae) {
+        for (Animal atual = mae; atual != null; atual = atual.getMae()) {
+            if (atual.getId().equals(animal.getId())) {
+                throw new RegraNegocioException("Um animal não pode ser mãe de si mesmo nem da própria ascendência.");
+            }
+        }
+    }
+
+    private Animal obter(Long id) {
+        return animalRepository.findById(id)
+                .orElseThrow(() -> new AnimalNaoEncontradoException("Animal não encontrado com o id: " + id));
     }
 
 }

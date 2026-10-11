@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -42,11 +41,21 @@ public class TutorService {
     }
 
     @Transactional(readOnly = true)
-    public TutorResponse buscar(UUID id) {
+    public TutorResponse buscar(Long id) {
         return TutorResponse.from(obter(id));
     }
 
-    Tutor obter(UUID id) {
+    @Transactional
+    public TutorResponse atualizar(Long id, TutorRequest request) {
+        Tutor tutor = obter(id);
+        tutor.setNome(request.nome());
+        tutor.setEndereco(request.endereco());
+        tutor.setDataNascimento(request.dataNascimento());
+        tutor.setTelefone(request.telefone());
+        return TutorResponse.from(tutor);
+    }
+
+    Tutor obter(Long id) {
         return tutorRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Tutor não encontrado: " + id));
     }

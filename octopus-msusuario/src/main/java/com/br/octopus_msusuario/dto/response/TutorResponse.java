@@ -4,10 +4,9 @@ import com.br.octopus_msusuario.domain.Tutor;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 public record TutorResponse(
-        UUID id,
+        Long id,
         String nome,
         String endereco,
         LocalDate dataNascimento,

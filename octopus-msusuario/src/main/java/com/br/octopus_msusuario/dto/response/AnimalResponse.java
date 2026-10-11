@@ -3,15 +3,14 @@ package com.br.octopus_msusuario.dto.response;
 import com.br.octopus_msusuario.domain.Animal;
 
 import java.time.LocalDate;
-import java.util.UUID;
 
 public record AnimalResponse(
-        UUID id,
+        Long id,
         String nome,
-        UUID tutorId,
+        Long tutorId,
         String especie,
         LocalDate dataUltimaAntirrabica,
-        UUID maeId
+        Long maeId
 ) {
     public static AnimalResponse from(Animal animal) {
         return new AnimalResponse(

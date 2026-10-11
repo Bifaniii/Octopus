@@ -17,7 +17,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -63,7 +62,7 @@ class TutorServiceTest {
 
     @Test
     void buscar_deveLancarExcecaoQuandoTutorNaoExiste() {
-        UUID id = UUID.randomUUID();
+        Long id = 99L;
         when(tutorRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> tutorService.buscar(id))

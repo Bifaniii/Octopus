@@ -16,7 +16,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -37,7 +36,7 @@ class AnimalServiceTest {
 
     @Test
     void criar_deveSalvarAnimalComEspecieEVacinaVinculadoAoTutor() {
-        UUID tutorId = UUID.randomUUID();
+        Long tutorId = 1L;
         Tutor tutor = Tutor.builder().id(tutorId).nome("João").build();
         when(tutorService.obter(tutorId)).thenReturn(tutor);
         when(animalRepository.save(any(Animal.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -55,7 +54,7 @@ class AnimalServiceTest {
 
     @Test
     void criar_naoDeveSalvarQuandoTutorNaoExiste() {
-        UUID tutorId = UUID.randomUUID();
+        Long tutorId = 1L;
         when(tutorService.obter(tutorId)).thenThrow(new RecursoNaoEncontradoException("Tutor não encontrado: " + tutorId));
 
         assertThatThrownBy(() -> animalService.criar(tutorId, new AnimalRequest("Rex", "Cão", null, null)))
@@ -65,9 +64,9 @@ class AnimalServiceTest {
 
     @Test
     void criar_deveVincularAMaeInformada() {
-        UUID tutorId = UUID.randomUUID();
+        Long tutorId = 1L;
         Tutor tutor = Tutor.builder().id(tutorId).nome("João").build();
-        Animal mae = Animal.builder().id(UUID.randomUUID()).nome("Nina").tutor(tutor).especie("Cão").build();
+        Animal mae = Animal.builder().id(10L).nome("Nina").tutor(tutor).especie("Cão").build();
         when(tutorService.obter(tutorId)).thenReturn(tutor);
         when(animalRepository.buscarMae(mae.getId())).thenCallRealMethod();
         when(animalRepository.findById(mae.getId())).thenReturn(Optional.of(mae));
@@ -80,8 +79,8 @@ class AnimalServiceTest {
 
     @Test
     void criar_naoDeveSalvarQuandoMaeNaoExiste() {
-        UUID tutorId = UUID.randomUUID();
-        UUID maeId = UUID.randomUUID();
+        Long tutorId = 1L;
+        Long maeId = 10L;
         when(tutorService.obter(tutorId)).thenReturn(Tutor.builder().id(tutorId).nome("João").build());
         when(animalRepository.buscarMae(maeId)).thenCallRealMethod();
         when(animalRepository.findById(maeId)).thenReturn(Optional.empty());
@@ -94,7 +93,7 @@ class AnimalServiceTest {
 
     @Test
     void listarPorId_deveLancarAnimalNaoEncontrado() {
-        UUID id = UUID.randomUUID();
+        Long id = 99L;
         when(animalRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> animalService.listarPorId(id))

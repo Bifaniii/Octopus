@@ -76,7 +76,7 @@ class EntradaInvalidaTest {
     }
 
     @Test
-    @DisplayName("id que não é UUID: 400 dizendo qual parâmetro")
+    @DisplayName("id em formato inválido: 400 dizendo qual parâmetro")
     void idInvalidoRetorna400() throws Exception {
         mockMvc.perform(get("/api/veterinarios/abc")
                         .header("Authorization", tokenAdmin()))

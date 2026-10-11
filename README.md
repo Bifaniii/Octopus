@@ -11,15 +11,18 @@ O escopo completo, as regras de negócio (RN-01 a RN-08), a squad e o cronograma
 ## Microsserviços
 
 Cada microsserviço vive na sua própria branch, com `Dockerfile`, `docker-compose.yml` e `.env.example` próprios,
-e sobe sozinho. Esta branch contém o **microsserviço de usuários**, que é o único publicado.
+e sobe sozinho. Esta branch contém o **microsserviço de usuários**.
 
 | Módulo                    | Área                               | Porta | Branch                         |
 | :------------------------ | :--------------------------------- | :---- | :----------------------------- |
 | `octopus-msusuario/`      | Usuários, perfis, tutores, animais | 8080  | `main`                         |
 | `ms-cadastro-baias/`      | Baias                              | 8081  | `feature/cadastro-baia`        |
 | `octopus-msmedications/`  | Medicamentos                       | 8082  | `feature/register_medications` |
+| `ms-internacao/`          | Internação e ciclo de vida         | 8083  | `feature/internacao`           |
+| `octopus-msprescricao/`   | Prescrição e horários              | 8084  | `feature/prescricao`           |
+| `octopus-msdoses/`        | Doses e aplicação                  | 8085  | `feature/doses`                |
 
-O que liga os três é o `JWT_SECRET`. O `msusuario` emite o token no login e os outros dois apenas validam, sem
+O que liga os módulos é o `JWT_SECRET`. O `msusuario` emite o token no login e os outros apenas validam, sem
 tabela de usuários própria.
 
 Stack: Java 17, Spring Boot 4.1.1, Spring Data JPA, Spring Security com JWT (jjwt), Bean Validation, Lombok,
@@ -114,25 +117,24 @@ cd octopus-msusuario && ./mvnw test
 
 - Uma branch por microsserviço, permanente. Os módulos não se mesclam.
 - Cada microsserviço na sua pasta, com `pom.xml`, `mvnw`, `Dockerfile` e compose próprios.
-- Pacote base `com.br.octopus_ms<area>`, entidades em português conforme o TAP, tabelas `tb_<plural>`, id `UUID`.
+- Pacote base `com.br.octopus_ms<area>`, entidades em português conforme o TAP, tabelas `tb_<plural>`, id `Long` (só usuários e perfis usam `UUID`).
 - Schema por migrations Flyway em `src/main/resources/db/migration/V<n>__<descricao>.sql`. O Hibernate roda em
   `validate` e nunca cria tabela. Migration aplicada não se edita: mudança de tabela é uma nova versão.
 - Arquitetura e convenções para novos módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 08/10/2026 na branch `feature/animal_mae`_
-- Animal ganha a mãe (`maeId`, opcional), para a RN-01: a baia de ninhada só aceita filhotes da mesma mãe.
-- Migration `V6__animais_mae.sql`: coluna `mae_id` em `tb_animais`, com índice e FK para a própria tabela.
-- `maeId` aceito no cadastro de animal (pela rota do tutor e no tutor criado já com animais) e devolvido no
-  `AnimalResponse`; mãe inexistente responde 404.
-- Novo `GET /api/animais/{id}`, liberado também para `VETERINARIO`, que o `ms-internacao` consome ao admitir e
-  ao transferir para isolamento.
-- Dois testes novos no `AnimalServiceTest` (mãe vinculada e mãe inexistente).
+_Push de 11/10/2026 na branch `main`_
+- Ids de tutor e animal passam a `Long` na `V7__tutores_animais_id_long.sql`, que preserva os registros e remapeia
+  tutor e mãe. Conta e perfis de usuário continuam `UUID`.
+- `POST /api/animais?tutorId=` corrigido: lia o corpo sem `@RequestBody` nem validação.
+- `PUT /api/tutores/{id}` e `PUT /api/animais/{id}` para corrigir cadastro, antirrábica e mãe; a mãe não pode ser o
+  próprio animal nem alguém da sua ascendência (422).
+- `GET /api/usuarios` (só `ADMIN`) com filtros de nome, perfil, situação e período de cadastro, aplicados no banco.
+- ADRs em `docs/adr/`: persistência (MySQL + Flyway), ids `Long` e doses em módulo próprio.
+- 57 testes.
 
 ## Próximos passos
-- [ ] Validar a V6 contra o MySQL antes de levar à `main` (os testes usam H2 com Flyway desligado).
-- [ ] Levar esta branch para a `main` (em produção) depois de combinar com a squad.
-- [ ] Adicionar o campo de mãe no formulário de animal do `Octopus-front` (tela 1).
-- [ ] Corrigir o `POST /api/animais`, que não tem `@RequestBody` nem `@Valid`.
-- [ ] Completar o `AdminController`: faltam `GET /{id}` e `PATCH /{id}/desativar`.
-- [ ] Avaliar guardar o código de redefinição com hash em vez de texto puro.
+- [ ] Subir a `<version>` do `pom.xml` para publicar a `V7` e os endpoints novos na EC2.
+- [ ] Trocar `java.util.Random` por `SecureRandom` no código de recuperação de senha e tirar o `UNIQUE` global do
+      token de 6 dígitos (colisão vira 500).
+- [ ] Limitar as tentativas de `redefinir-senha`.

@@ -6,7 +6,6 @@ import lombok.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Entity
 @Table(name = "tb_tutores")
@@ -18,8 +17,8 @@ import java.util.UUID;
 public class Tutor {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(name = "nome", length = 100, nullable = false)
     private String nome;

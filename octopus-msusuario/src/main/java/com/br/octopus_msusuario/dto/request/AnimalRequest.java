@@ -1,7 +1,6 @@
 package com.br.octopus_msusuario.dto.request;
 
 import java.time.LocalDate;
-import java.util.UUID;
 
 import com.br.octopus_msusuario.domain.Animal;
 import jakarta.validation.constraints.NotBlank;
@@ -21,7 +20,7 @@ public record AnimalRequest(
         LocalDate dataAntirrabica,
 
         // Opcional: id de um animal já cadastrado.
-        UUID maeId
+        Long maeId
 ) {
     public Animal toEntity(Animal mae) {
         return Animal.builder()

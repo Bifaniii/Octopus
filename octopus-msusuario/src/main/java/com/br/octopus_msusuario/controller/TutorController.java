@@ -15,13 +15,13 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/tutores")
@@ -46,13 +46,19 @@ public class TutorController {
     }
 
     @GetMapping("/{id}")
-    public TutorResponse buscar(@PathVariable UUID id) {
+    public TutorResponse buscar(@PathVariable Long id) {
         return tutorService.buscar(id);
+    }
+
+    // Só os dados do tutor; a lista "animais" do corpo é ignorada aqui (animais têm os próprios endpoints).
+    @PutMapping("/{id}")
+    public TutorResponse atualizar(@PathVariable Long id, @Valid @RequestBody TutorRequest request) {
+        return tutorService.atualizar(id, request);
     }
 
     @PostMapping("/{id}/animais")
     @ResponseStatus(HttpStatus.CREATED)
-    public AnimalResponse adicionarAnimal(@PathVariable UUID id, @Valid @RequestBody AnimalRequest request) {
+    public AnimalResponse adicionarAnimal(@PathVariable Long id, @Valid @RequestBody AnimalRequest request) {
         return animalService.criar(id, request);
     }
 }

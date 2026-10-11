@@ -154,7 +154,7 @@ class AutenticacaoEAutorizacaoTest {
                 .andExpect(jsonPath("$.animais[0].especie").value("Cão"))
                 .andExpect(jsonPath("$.animais[0].dataUltimaAntirrabica").value("2026-03-01"))
                 .andReturn().getResponse().getContentAsString();
-        String tutorId = JsonPath.read(body, "$.id");
+        Integer tutorId = JsonPath.read(body, "$.id");
 
         mockMvc.perform(post("/api/tutores/{id}/animais", tutorId)
                         .header("Authorization", admin)
@@ -185,7 +185,7 @@ class AutenticacaoEAutorizacaoTest {
     void animalParaTutorInexistenteRecebe404() throws Exception {
         String admin = login(ADMIN_EMAIL, ADMIN_SENHA);
 
-        mockMvc.perform(post("/api/tutores/{id}/animais", java.util.UUID.randomUUID())
+        mockMvc.perform(post("/api/tutores/{id}/animais", 999_999L)
                         .header("Authorization", admin)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""

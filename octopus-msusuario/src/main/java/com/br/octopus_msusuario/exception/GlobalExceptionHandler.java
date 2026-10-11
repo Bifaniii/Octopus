@@ -39,7 +39,7 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, "Corpo da requisição inválido. Datas usam o formato aaaa-MM-dd.", req, null);
     }
 
-    // Parâmetro da URL com o tipo errado, por exemplo um id que não é UUID.
+    // Parâmetro da URL com o tipo errado, por exemplo um id que não é número.
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ErroResponse> handleTipoInvalido(MethodArgumentTypeMismatchException ex, HttpServletRequest req) {
         return build(HttpStatus.BAD_REQUEST, "Parâmetro '" + ex.getName() + "' inválido.", req, null);
@@ -53,6 +53,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RecursoDuplicadoException.class)
     public ResponseEntity<ErroResponse> handleDuplicado(RecursoDuplicadoException ex, HttpServletRequest req) {
         return build(HttpStatus.CONFLICT, ex.getMessage(), req, null);
+    }
+
+    @ExceptionHandler(RegraNegocioException.class)
+    public ResponseEntity<ErroResponse> handleRegraNegocio(RegraNegocioException ex, HttpServletRequest req) {
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), req, null);
     }
 
     @ExceptionHandler(LoginNaoPermitidoException.class)
