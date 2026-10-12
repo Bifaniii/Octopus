@@ -92,10 +92,11 @@ o histórico.
 - Arquitetura e convenções para novos módulos: `CLAUDE.md`.
 
 ## Últimas alterações
-_Push de 11/10/2026 na branch `feature/cadastro-baia`_
-- Id da baia passa de `UUID` para `Long` na `V3__baias_id_long.sql`, que preserva as baias existentes.
-- Testes ajustados ao id numérico (14).
-- Workflow renomeado de `ci.yml` para `pipeline.yml`.
+_Push de 12/10/2026 na branch `feature/cadastro-baia`_
+- `ms-cadastro-baias` 0.0.2-SNAPSHOT, para publicar a `V3` (id da baia `Long`).
+- A `V3` foi corrigida para o MySQL do Aiven, que exige chave primária em toda tabela (`sql_require_primary_key`):
+  a PK antiga sai e a nova entra no mesmo `ALTER`. Testada num MySQL com a mesma trava, a partir da versão que
+  está em produção (07/10).
 
 ## Próximos passos
 - [ ] Subir a `<version>` do `pom.xml` para publicar a `V3` na EC2, junto com o `ms-internacao`, que já espera
