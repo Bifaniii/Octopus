@@ -1,0 +1,17 @@
+# Sem MySQL: o módulo não guarda nada. Os outros serviços precisam estar no ar nos endereços do .env
+# (de dentro do container, localhost é o próprio container; use host.docker.internal para o host).
+services:
+  msrelatorios:
+    build: .
+    container_name: octopus-msrelatorios
+    ports:
+      - "8086:8086"
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      MS_USUARIO_URL: ${MS_USUARIO_URL}
+      MS_BAIAS_URL: ${MS_BAIAS_URL}
+      MS_MEDICACOES_URL: ${MS_MEDICACOES_URL}
+      MS_INTERNACAO_URL: ${MS_INTERNACAO_URL}
+      MS_DOSES_URL: ${MS_DOSES_URL}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
