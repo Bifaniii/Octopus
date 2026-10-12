@@ -125,16 +125,14 @@ cd octopus-msusuario && ./mvnw test
 
 ## Últimas alterações
 _Push de 12/10/2026 na branch `main`_
-- `GET /api/usuarios/nomes`, para qualquer perfil logado: só e-mail, nome e perfil de cada conta, inclusive as
-  desativadas. O `octopus-msrelatorios` (branch `feature/relatorios`) usa para mostrar nomes no lugar de e-mails.
-- O veterinário passa a ler tutores e animais (`GET /api/tutores`, `/api/tutores/{id}` e `/api/animais`); cadastro
-  e edição seguem com admin e recepção.
-- ADR 0004: relatórios em Java, sem banco próprio. 61 testes.
-- `CLAUDE.md` com a regra de estoque de medicamentos (reserva na prescrição, devolução ao cancelar a dose).
+- Versão do `octopus-msusuario` sobe para `0.0.3-SNAPSHOT` para publicar em produção o que estava só no
+  repositório desde 08/10: ids `Long` em tutor e animal (`V7`), `GET /api/usuarios` com filtros, edição de
+  usuários, tutores e animais (`PUT`), leitura de tutores e animais pelo veterinário e `GET /api/usuarios/nomes`.
+- 61 testes.
 
 ## Próximos passos
-- [ ] Combinar com o tech lead o deploy coordenado: msusuario, baias, medicamentos, internação, prescrição, doses
-      e relatórios.
+- [ ] Publicar na ordem os outros serviços (baias, medicamentos, doses, internação, prescrição, relatórios); até a
+      internação nova subir, a admissão quebra, porque a antiga ainda espera o id do animal em UUID.
 - [ ] Trocar `java.util.Random` por `SecureRandom` no código de recuperação de senha e tirar o `UNIQUE` global do
       token de 6 dígitos (colisão vira 500).
 - [ ] Limitar as tentativas de `redefinir-senha`.
