@@ -1,6 +1,7 @@
 package com.br.octopus_msusuario.controller;
 
 import com.br.octopus_msusuario.domain.enums.Role;
+import com.br.octopus_msusuario.dto.response.UsuarioNomeResponse;
 import com.br.octopus_msusuario.dto.response.UsuarioResumoResponse;
 import com.br.octopus_msusuario.service.UsuarioConsultaService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -35,5 +36,15 @@ public class UsuarioController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate cadastradoDe,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate cadastradoAte) {
         return usuarioConsultaService.listar(nome, perfil, ativo, cadastradoDe, cadastradoAte);
+    }
+
+    // Qualquer perfil logado: só e-mail, nome e perfil, inclusive de contas desativadas, que continuam no histórico.
+    // Usado pelo octopus-msrelatorios para mostrar quem aplicou uma dose ou registrou uma internação.
+    @GetMapping("/nomes")
+    @PreAuthorize("isAuthenticated()")
+    public List<UsuarioNomeResponse> nomes() {
+        return usuarioConsultaService.listar(null, null, null, null, null).stream()
+                .map(u -> new UsuarioNomeResponse(u.email(), u.nome(), u.role()))
+                .toList();
     }
 }

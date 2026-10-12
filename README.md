@@ -21,6 +21,7 @@ e sobe sozinho. Esta branch contém o **microsserviço de usuários**.
 | `ms-internacao/`          | Internação e ciclo de vida         | 8083  | `feature/internacao`           |
 | `octopus-msprescricao/`   | Prescrição e horários              | 8084  | `feature/prescricao`           |
 | `octopus-msdoses/`        | Doses e aplicação                  | 8085  | `feature/doses`                |
+| `octopus-msrelatorios/`   | Relatórios em PDF e XLSX           | 8086  | `feature/relatorios`           |
 
 O que liga os módulos é o `JWT_SECRET`. O `msusuario` emite o token no login e os outros apenas validam, sem
 tabela de usuários própria.
@@ -123,16 +124,16 @@ cd octopus-msusuario && ./mvnw test
 - Arquitetura e convenções para novos módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 11/10/2026 na branch `main`_
-- `PUT /api/veterinarios/{id}`, `/api/auxiliares/{id}`, `/api/recepcionistas/{id}` e `/api/admins/{id}`, só para
-  `ADMIN`: editam os dados do perfil e o e-mail de login, sem a senha. Duplicidade de CPF, CNPJ, CRMV/UF ou e-mail
-  responde 409.
-- Ids de tutor e animal em `Long` (`V7`), edição de tutor e animal, `GET /api/usuarios` com filtros e ADRs em
-  `docs/adr/` (push anterior do mesmo dia).
-- 60 testes.
+_Push de 12/10/2026 na branch `main`_
+- `GET /api/usuarios/nomes`, para qualquer perfil logado: só e-mail, nome e perfil de cada conta, inclusive as
+  desativadas. O `octopus-msrelatorios` (branch `feature/relatorios`) usa para mostrar nomes no lugar de e-mails.
+- O veterinário passa a ler tutores e animais (`GET /api/tutores`, `/api/tutores/{id}` e `/api/animais`); cadastro
+  e edição seguem com admin e recepção.
+- ADR 0004: relatórios em Java, sem banco próprio. 61 testes.
 
 ## Próximos passos
-- [ ] Combinar com o tech lead o deploy coordenado: msusuario, baias, medicamentos, internação, prescrição e doses.
+- [ ] Combinar com o tech lead o deploy coordenado: msusuario, baias, medicamentos, internação, prescrição, doses
+      e relatórios.
 - [ ] Trocar `java.util.Random` por `SecureRandom` no código de recuperação de senha e tirar o `UNIQUE` global do
       token de 6 dígitos (colisão vira 500).
 - [ ] Limitar as tentativas de `redefinir-senha`.

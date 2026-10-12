@@ -221,8 +221,19 @@ class CadastrosApiTest {
                                 """.formatted(email, nome, cpf)))
                 .andExpect(status().isCreated());
 
-        mockMvc.perform(get("/api/usuarios").header("Authorization", login(email, "senha-forte-123")))
+        String recepcionista = login(email, "senha-forte-123");
+        mockMvc.perform(get("/api/usuarios").header("Authorization", recepcionista))
                 .andExpect(status().isForbidden());
+
+        // Nomes para os relatórios: qualquer perfil, só e-mail, nome e perfil.
+        mockMvc.perform(get("/api/usuarios/nomes").header("Authorization", recepcionista))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].nome", hasItem(nome)))
+                .andExpect(jsonPath("$[*].email", hasItem(email)))
+                .andExpect(jsonPath("$[0].role").exists())
+                .andExpect(jsonPath("$[0].id").doesNotExist())
+                .andExpect(jsonPath("$[0].ativo").doesNotExist());
+        mockMvc.perform(get("/api/usuarios/nomes")).andExpect(status().isUnauthorized());
     }
 
     @Test

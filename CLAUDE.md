@@ -25,6 +25,7 @@ O sistema é feito de microsserviços Spring Boot independentes, um por área, c
 | `ms-internacao/`        | 8083  | `feature/internacao`           | Admissão, ciclo de vida, RN-01, RN-02 e RN-08. 51 testes. |
 | `octopus-msprescricao/` | 8084  | `feature/prescricao`           | Prescrição e itens, horários gerados, RN-06, agenda as doses. 44 testes. |
 | `octopus-msdoses/`      | 8085  | `feature/doses`                | Uma dose por horário, aplicação imutável (RN-05), cancelamento. 23 testes. |
+| `octopus-msrelatorios/` | 8086  | `feature/relatorios`           | Relatórios em PDF e XLSX lidos dos outros módulos, sem banco. 26 testes. |
 
 Os módulos estão publicados no free tier da AWS (EC2), com o MySQL hospedado no Aiven. O front é um projeto
 Angular separado, no repositório `Octopus-front`, que também usa uma branch por funcionalidade e tem o seu
@@ -80,10 +81,10 @@ divergem. A numeração das RNs que vale no código é a dele:
    no `aplicar` e a dose perdida (RN-04). A dose perdida pode ser calculada na consulta (horário + 30 min já
    passou e a dose segue pendente), sem job agendado.
 2. Sprint 4 (29/10 a 11/11): reaplicação por esquema (RN-07) no `octopus-msdoses`, mudança contratada de 01/11
-   (prescrição "se necessário") e o relatório de doses (tela 7). O relatório deve ficar num serviço Python à
-   parte, que lê os dados dos outros módulos.
+   (prescrição "se necessário"). O relatório de doses (tela 7) já existe no `octopus-msrelatorios` (12/10); quando
+   a RN-04 entrar no msdoses, o relatório deve passar a ler a dose perdida de lá em vez de calcular.
 
-## Estado das branches (11/10/2026, fechamento da Sprint 2)
+## Estado das branches (12/10/2026, fechamento da Sprint 2)
 
 Branch por microsserviço, permanente. O `CLAUDE.md` é mantido igual em todas; o `README.md` de cada uma descreve
 o próprio módulo.
@@ -93,7 +94,8 @@ o próprio módulo.
   dados JS no próprio arquivo; para mapear algo novo, acrescente um objeto ao array `MAPS`. Esta branch está em
   produção, então mudanças de código afetam o ambiente publicado: combine com a squad antes. A `feature/animal_mae`
   já foi mesclada aqui (PR #5, 08/10). Em 11/10 o `msusuario` ganhou ids `Long` em tutor e animal (`V7`), edição
-  de tutor e animal (`PUT`), `POST /api/animais` corrigido e `GET /api/usuarios` com filtros. Em `docs/adr/`
+  de tutor e animal (`PUT`), `POST /api/animais` corrigido e `GET /api/usuarios` com filtros. Em 12/10, o
+  veterinário passou a ler tutores e animais e entrou o `GET /api/usuarios/nomes` dos relatórios. Em `docs/adr/`
   ficam as decisões de arquitetura.
 - **`feature/cadastro-baia`** (Douglas): `ms-cadastro-baias/` completo, com entidade `Baia`, DTOs, service,
   controller `/api/baias`, exceptions, JWT, migrations e compose próprios. Em 24/09 entrou um merge de
@@ -123,6 +125,10 @@ o próprio módulo.
   O deploy precisa de `~/octopus-env/prescricao.env` na EC2, agora também com `MS_DOSES_URL`.
 - **`feature/doses`** (11/10): `octopus-msdoses/`, branch órfã com `pipeline.yml` próprio (container `doses`,
   porta 8085). O primeiro deploy precisa de `~/octopus-env/doses.env` na EC2 e da porta 8085 liberada.
+- **`feature/relatorios`** (12/10): `octopus-msrelatorios/`, branch órfã com `pipeline.yml` próprio (container
+  `relatorios`, porta 8086). Antes era um serviço Python; ficou em Java para manter uma stack só. Depende do
+  `GET /api/usuarios/nomes` da `main`, então o `msusuario` precisa ser publicado antes ou junto. O primeiro deploy
+  precisa de `~/octopus-env/relatorios.env` na EC2 (`JWT_SECRET` e as `MS_*_URL`) e da porta 8086 liberada.
 
 ## Comandos
 
@@ -352,6 +358,30 @@ que acontece com ela.
 | `GET /api/doses?internacaoId=&prescricaoId=&status=&de=&ate=`, `GET /{id}` | autenticado |
 | `PATCH /api/doses/{id}/aplicar` (corpo opcional com `observacao`) | `AUXILIAR` |
 
+## Arquitetura do `octopus-msrelatorios`
+
+Pacote `com.br.octopus_msrelatorios`. Não tem banco, JPA nem Flyway: a cada pedido busca os dados nos outros
+módulos com o token de quem pediu, então cada módulo aplica as próprias permissões e o relatório nunca mostra o
+que o perfil não vê no sistema. Qualquer erro de um módulo vira 503: o relatório não sai pela metade.
+
+- `relatorio.Relatorio` descreve o conteúdo (título, filtros, tabelas, quem emitiu) sem saber o formato.
+  `PdfRelatorio` (OpenPDF 2.0.5, a última para Java 17) e `XlsxRelatorio` (Apache POI) desenham o formato padrão:
+  logo (a pata do front, em `Marca`), "VidaPet", título e data de emissão em toda página, rodapé com quem emitiu e
+  "Página X de Y". No XLSX, uma aba por tabela, com filtro automático e datas como data.
+- Os módulos gravam o e-mail de quem fez cada operação. O relatório mostra o nome, com `GET /api/usuarios/nomes`
+  do `msusuario` (qualquer perfil; só e-mail, nome e perfil).
+- Doses: atrasada (pendente, passou do horário, ainda nos 30 minutos) e perdida (fora da janela) são calculadas na
+  consulta, pela RN-03 e RN-04. Turnos em `app.relatorios.turnos.*`: manhã 6h, tarde 12h, noite 18h (12/10;
+  o enunciado não define).
+
+| Endpoint (`?formato=PDF\|XLSX`) | Quem pode |
+| :------- | :-------- |
+| `GET /api/relatorios/doses?de=&ate=&turno=&auxiliar=&situacao=` | autenticado |
+| `GET /api/relatorios/internacoes?status=&de=&ate=` | `ADMIN`, `RECEPCIONISTA`, `VETERINARIO` |
+| `GET /api/relatorios/tutores-animais` | `ADMIN`, `RECEPCIONISTA`, `VETERINARIO` |
+| `GET /api/relatorios/baias` | autenticado |
+| `GET /api/relatorios/usuarios?perfil=&ativo=` | `ADMIN` |
+
 ## Convenções para novos microsserviços
 
 Os módulos existentes já seguem o padrão abaixo; use qualquer um deles como referência ao criar o próximo.
@@ -417,12 +447,13 @@ A autorização fina continua por `@PreAuthorize` no controller:
 
 | Módulo          | Leitura            | Escrita                              |
 | :-------------- | :----------------- | :----------------------------------- |
-| `msusuario`     | conforme o recurso; `GET /api/usuarios` só `ADMIN`; tutores e animais também `VETERINARIO` | `ADMIN` (usuários), `ADMIN`/`RECEPCIONISTA` (tutor, animal) |
+| `msusuario`     | conforme o recurso; `GET /api/usuarios` só `ADMIN`; `GET /api/usuarios/nomes` autenticado; tutores e animais também `VETERINARIO` | `ADMIN` (usuários), `ADMIN`/`RECEPCIONISTA` (tutor, animal) |
 | `msbaias`       | autenticado        | `ADMIN`                              |
 | `msmedications` | autenticado        | `ADMIN`/`VETERINARIO`; desativar só `ADMIN` |
 | `msinternacao`  | autenticado        | por transição; ver "Arquitetura do `ms-internacao`" |
 | `msprescricao`  | autenticado        | `VETERINARIO` (prescrever e desativar)  |
 | `msdoses`       | autenticado        | `VETERINARIO` (agendar, cancelar), `AUXILIAR` (aplicar) |
+| `msrelatorios`  | por relatório; ver "Arquitetura do `octopus-msrelatorios`" | não escreve nada |
 
 Desativar um usuário no `msusuario` não corta na hora o acesso dele aos outros módulos: como eles não consultam
 a tabela de usuários, o token continua válido até expirar. Isso é aceitável para o escopo do TAP; se virar
