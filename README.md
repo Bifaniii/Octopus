@@ -130,6 +130,7 @@ _Push de 12/10/2026 na branch `main`_
 - O veterinário passa a ler tutores e animais (`GET /api/tutores`, `/api/tutores/{id}` e `/api/animais`); cadastro
   e edição seguem com admin e recepção.
 - ADR 0004: relatórios em Java, sem banco próprio. 61 testes.
+- `CLAUDE.md` com a regra de estoque de medicamentos (reserva na prescrição, devolução ao cancelar a dose).
 
 ## Próximos passos
 - [ ] Combinar com o tech lead o deploy coordenado: msusuario, baias, medicamentos, internação, prescrição, doses

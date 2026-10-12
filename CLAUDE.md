@@ -110,6 +110,8 @@ o próprio módulo.
   pares de interação. Desde 11/10 usa o `pipeline.yml`, como as outras branches. Atenção: as imagens antigas desta
   branch no GHCR só têm tag de commit, nunca de versão, então o **próximo push publica** a versão atual (a troca foi
   enviada com `[skip ci]` para não publicar sozinha). Combine com o tech lead antes de empurrar algo aqui.
+  Desde 12/10 a `quantidade` é o estoque em doses, com `PATCH /{id}/estoque/reservar` e `/devolver` (ver
+  "Estoque de medicamentos").
 - **`feature/animal_mae`** (Douglas): já mesclada na `main`; pode ser apagada.
 - **`feature/internacao`** (Douglas): `ms-internacao/` com entidade `Internacao` e histórico
   (`InternacaoEvento`), migrations V1 e V2, clients REST para `msbaias` e `msusuario`, service com RN-01, RN-02
@@ -117,14 +119,16 @@ o próprio módulo.
   módulo de baias (branch `copilot/ms-internacao-only-cadastro-baias-folders`, já mesclada e que pode ser
   apagada); o pacote, a porta e o histórico do Flyway já foram trocados, e o `.idea/` saiu do versionamento.
   Tem `pipeline.yml` próprio (container `internacao`, porta 8083). A pasta se chama `ms-internacao/`, e não
-  `octopus-msinternacao/`, por herança desse esqueleto. Animal, baia e mãe viraram `Long` na `V4`.
+  `octopus-msinternacao/`, por herança desse esqueleto. Animal, baia e mãe viraram `Long` na `V4`. Desde 12/10 o
+  encerramento cancela as doses pendentes no msdoses (`MS_DOSES_URL`), e os clients usam o HttpClient do JDK.
 - **`feature/prescricao`** (Vitor Kimany e Guilherme Bifani; ajustes de Douglas): `octopus-msprescricao/`. Em 10/10
   um force-push deixou só um commit órfão com o módulo na raiz, sem CI e sem `dosagem`/`quantidadeDoses`. Em
   11/10 um commit de merge (pais `feb71d0` e `90acb19`) devolveu a estrutura do Douglas, manteve o
   `medicacaoId` `Long` do Vitor e trouxe a RN-06 e o agendamento das doses. Nunca use force-push nas branches.
   O deploy precisa de `~/octopus-env/prescricao.env` na EC2, agora também com `MS_DOSES_URL`.
 - **`feature/doses`** (11/10): `octopus-msdoses/`, branch órfã com `pipeline.yml` próprio (container `doses`,
-  porta 8085). O primeiro deploy precisa de `~/octopus-env/doses.env` na EC2 e da porta 8085 liberada.
+  porta 8085). O primeiro deploy precisa de `~/octopus-env/doses.env` na EC2 (com `MS_MEDICACOES_URL` desde 12/10)
+  e da porta 8085 liberada.
 - **`feature/relatorios`** (12/10): `octopus-msrelatorios/`, branch órfã com `pipeline.yml` próprio (container
   `relatorios`, porta 8086). Antes era um serviço Python; ficou em Java para manter uma stack só. Depende do
   `GET /api/usuarios/nomes` da `main`, então o `msusuario` precisa ser publicado antes ou junto. O primeiro deploy
@@ -348,6 +352,8 @@ que acontece com ela.
   `cancelar`. `UNIQUE (item_prescricao_id, horario_previsto)` impede agendar o mesmo horário duas vezes.
 - RN-05: `aplicar` grava o auxiliar e a hora do `Clock` uma vez só; a segunda tentativa recebe 422 e não existe
   endpoint de edição. Duas aplicações simultâneas da mesma dose caem no `@Version` e recebem 409.
+- Estoque: agendar reserva 1 unidade por dose nova e cancelar devolve só as que estavam pendentes (ver "Estoque de
+  medicamentos"). URL do msmedications em `MS_MEDICACOES_URL`.
 - Ainda não tem: janela de 30 minutos (RN-03), dose perdida (RN-04) e reaplicação (RN-07), que são das Sprints 3
   e 4. Flyway em `flyway_schema_history_doses`, MySQL do compose na porta 3312.
 
@@ -355,8 +361,25 @@ que acontece com ela.
 | :------- | :-------- |
 | `POST /api/doses/agendamentos` | `VETERINARIO` (chamado pelo msprescricao com o token de quem prescreveu) |
 | `PATCH /api/doses/prescricoes/{prescricaoId}/cancelar` | `VETERINARIO` |
+| `PATCH /api/doses/internacoes/{internacaoId}/cancelar` | `RECEPCIONISTA`, `VETERINARIO` (chamado pelo ms-internacao ao encerrar) |
 | `GET /api/doses?internacaoId=&prescricaoId=&status=&de=&ate=`, `GET /{id}` | autenticado |
 | `PATCH /api/doses/{id}/aplicar` (corpo opcional com `observacao`) | `AUXILIAR` |
+
+## Estoque de medicamentos
+
+Decidido em 12/10/2026. O campo `quantidade` do `Medicacao` é o estoque em doses: 1 dose agendada = 1 unidade, já
+que a dosagem é texto livre e não dá para converter. A dose é reservada na prescrição (fica separada) e volta ao
+estoque quando é cancelada, porque não chegou a ser preparada.
+
+- Prescrever: o msprescricao confere o saldo antes de gravar (422 "Estoque insuficiente de X") e o msdoses reserva
+  ao agendar (`PATCH /api/medicacoes/{id}/estoque/reservar`, `UPDATE` que só baixa se houver saldo). Se faltar
+  saldo na reserva, o 422 do msmedications chega ao veterinário com a mesma mensagem.
+- Cancelar: desativar a prescrição ou registrar a saída do animal (`encerrar` no ms-internacao) cancela as doses
+  pendentes no msdoses, que devolve as unidades (`/estoque/devolver`) antes do commit. Se o msmedications ou o
+  msdoses não responder, nada é cancelado e quem chamou recebe 503; a saída pode ser registrada de novo.
+- Reserva e devolução são em lote por medicamento; se uma chamada falha no meio, as anteriores são desfeitas.
+- Ajuste manual (compra, inventário): `PATCH /api/medicacoes/{id}` com `quantidade`, admin ou veterinário.
+- Doses agendadas antes de 12/10 não reservaram nada; cancelá-las devolve unidades que nunca saíram.
 
 ## Arquitetura do `octopus-msrelatorios`
 
@@ -449,10 +472,10 @@ A autorização fina continua por `@PreAuthorize` no controller:
 | :-------------- | :----------------- | :----------------------------------- |
 | `msusuario`     | conforme o recurso; `GET /api/usuarios` só `ADMIN`; `GET /api/usuarios/nomes` autenticado; tutores e animais também `VETERINARIO` | `ADMIN` (usuários), `ADMIN`/`RECEPCIONISTA` (tutor, animal) |
 | `msbaias`       | autenticado        | `ADMIN`                              |
-| `msmedications` | autenticado        | `ADMIN`/`VETERINARIO`; desativar só `ADMIN` |
+| `msmedications` | autenticado        | `ADMIN`/`VETERINARIO`; desativar só `ADMIN`; reservar estoque `VETERINARIO`; devolver `VETERINARIO`/`RECEPCIONISTA` |
 | `msinternacao`  | autenticado        | por transição; ver "Arquitetura do `ms-internacao`" |
 | `msprescricao`  | autenticado        | `VETERINARIO` (prescrever e desativar)  |
-| `msdoses`       | autenticado        | `VETERINARIO` (agendar, cancelar), `AUXILIAR` (aplicar) |
+| `msdoses`       | autenticado        | `VETERINARIO` (agendar, cancelar), `RECEPCIONISTA`/`VETERINARIO` (cancelar da internação), `AUXILIAR` (aplicar) |
 | `msrelatorios`  | por relatório; ver "Arquitetura do `octopus-msrelatorios`" | não escreve nada |
 
 Desativar um usuário no `msusuario` não corta na hora o acesso dele aos outros módulos: como eles não consultam
