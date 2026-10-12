@@ -92,12 +92,13 @@ o histórico.
 - Arquitetura e convenções para novos módulos: `CLAUDE.md`.
 
 ## Últimas alterações
-_Push de 11/10/2026 na branch `feature/register_medications`_
-- Id do medicamento passa de `UUID` para `Long` na `V4__medicacoes_id_long.sql`, que preserva os medicamentos e
-  remapeia os pares de interação proibida.
-- Testes ajustados ao id numérico (12).
-- Workflow trocado do `ci.yml` antigo (deploy a cada push) pelo `pipeline.yml`, que só publica quando a versão
-  ainda não está no GHCR. Como as imagens antigas não têm tag de versão, o próximo push publica: combine antes.
+_Push de 12/10/2026 na branch `feature/register_medications`_
+- `quantidade` passa a ser o estoque em doses (1 dose agendada = 1 unidade) e aparece na resposta. Cadastro e
+  `PATCH` aceitam a quantidade (compra ou inventário).
+- `PATCH /api/medicacoes/{id}/estoque/reservar` (veterinário) e `/devolver` (veterinário ou recepção), usados
+  pelo msdoses. A reserva só baixa se houver saldo; senão responde 422 "Estoque insuficiente de X".
+- 14 testes.
 
 ## Próximos passos
+- [ ] Publicar antes do msdoses, que passa a reservar e devolver estoque aqui.
 - [ ] Publicar a `V4` na EC2 junto com o `octopus-msprescricao`, que já envia `medicacaoId` numérico.

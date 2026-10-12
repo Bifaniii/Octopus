@@ -2,6 +2,7 @@ package com.br.octopus_msmedications.controller;
 
 import com.br.octopus_msmedications.dto.request.MedicacaoRequest;
 import com.br.octopus_msmedications.dto.request.MedicacaoUpdateRequest;
+import com.br.octopus_msmedications.dto.request.MovimentoEstoqueRequest;
 import com.br.octopus_msmedications.dto.response.MedicacaoResponse;
 import com.br.octopus_msmedications.service.MedicacaoService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -61,6 +62,20 @@ public class MedicacaoController {
     @PreAuthorize("hasAnyRole('ADMIN','VETERINARIO')")
     public MedicacaoResponse atualizar(@PathVariable Long id, @Valid @RequestBody MedicacaoUpdateRequest request) {
         return service.atualizarParcial(id, request);
+    }
+
+    // Estoque em doses. Reserva: o msdoses, com o token do veterinário que prescreveu. Devolução: o msdoses ao
+    // cancelar doses, com o token do veterinário (prescrição desativada) ou de quem registrou a saída do animal.
+    @PatchMapping("/{id}/estoque/reservar")
+    @PreAuthorize("hasRole('VETERINARIO')")
+    public MedicacaoResponse reservar(@PathVariable Long id, @Valid @RequestBody MovimentoEstoqueRequest request) {
+        return service.reservar(id, request.quantidade());
+    }
+
+    @PatchMapping("/{id}/estoque/devolver")
+    @PreAuthorize("hasAnyRole('VETERINARIO','RECEPCIONISTA')")
+    public MedicacaoResponse devolver(@PathVariable Long id, @Valid @RequestBody MovimentoEstoqueRequest request) {
+        return service.devolver(id, request.quantidade());
     }
 
     @PatchMapping("/{id}/desativar")

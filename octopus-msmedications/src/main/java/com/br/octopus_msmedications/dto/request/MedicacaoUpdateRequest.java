@@ -3,6 +3,7 @@ package com.br.octopus_msmedications.dto.request;
 import com.br.octopus_msmedications.domain.enums.TipoEsquema;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
@@ -37,6 +38,10 @@ public record MedicacaoUpdateRequest(
         @Pattern(regexp = "\\d{11}", message = "O registro ANVISA deve conter exatamente 11 dígitos numéricos.")
         String numeroRegistroAnvisa,
 
-        Set<Long> interacoesProibidas
+        Set<Long> interacoesProibidas,
+
+        // Contagem do estoque (entrada de compra ou inventário). As reservas das prescrições usam /estoque.
+        @PositiveOrZero(message = "A quantidade em estoque não pode ser negativa.")
+        Integer quantidade
 ) {
 }

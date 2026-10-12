@@ -38,6 +38,7 @@ public class MedicacaoService {
                 .dataVencimento(request.dataVencimento())
                 .fabricante(request.fabricante())
                 .numeroRegistroAnvisa(request.numeroRegistroAnvisa())
+                .quantidade(request.quantidade() == null ? 0 : request.quantidade())
                 .build();
 
         // Salva antes de ligar as interações: o par precisa dos dois lados já persistidos.
@@ -106,6 +107,9 @@ public class MedicacaoService {
         if (request.interacoesProibidas() != null) {
             definirInteracoes(medicacao, request.interacoesProibidas());
         }
+        if (request.quantidade() != null) {
+            medicacao.setQuantidade(request.quantidade());
+        }
 
         return MedicacaoResponse.from(medicacao);
     }
@@ -116,6 +120,29 @@ public class MedicacaoService {
         Medicacao medicacao = obter(id);
         medicacao.setAtivo(false);
         return MedicacaoResponse.from(medicacao);
+    }
+
+    /**
+     * Separa {@code quantidade} doses do estoque. Chamado pelo octopus-msdoses ao agendar as doses de uma prescrição.
+     * O UPDATE só baixa se houver saldo, então duas reservas simultâneas não deixam o estoque negativo.
+     */
+    @Transactional
+    public MedicacaoResponse reservar(Long id, int quantidade) {
+        if (repository.reservar(id, quantidade) == 0) {
+            Medicacao medicacao = obter(id);
+            throw new RegraNegocioException("Estoque insuficiente de " + medicacao.getNomeComercial() + ": "
+                    + medicacao.getQuantidade() + " em estoque, " + quantidade + " pedidas.");
+        }
+        return MedicacaoResponse.from(obter(id));
+    }
+
+    /** Devolve ao estoque doses reservadas que não serão aplicadas (dose cancelada). */
+    @Transactional
+    public MedicacaoResponse devolver(Long id, int quantidade) {
+        if (repository.devolver(id, quantidade) == 0) {
+            throw new RecursoNaoEncontradoException("Medicação não encontrada: " + id);
+        }
+        return MedicacaoResponse.from(obter(id));
     }
 
     // Substitui a lista de interações, mantendo a simetria dos pares.

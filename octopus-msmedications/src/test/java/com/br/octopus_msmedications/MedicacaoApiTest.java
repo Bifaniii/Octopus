@@ -72,7 +72,7 @@ class MedicacaoApiTest {
 
     private MedicacaoRequest novaRequest(String nome, String registroAnvisa, Set<Long> interacoes) {
         return new MedicacaoRequest(nome, "Dipirona monoidratada", "500mg", "Comprimido", "mg",
-                TipoEsquema.SINTOMATICO, LocalDateTime.now().plusYears(1), "Sanofi", registroAnvisa, interacoes);
+                TipoEsquema.SINTOMATICO, LocalDateTime.now().plusYears(1), "Sanofi", registroAnvisa, interacoes, 10);
     }
 
     private Long criar(String nome, String registroAnvisa) throws Exception {
@@ -129,7 +129,7 @@ class MedicacaoApiTest {
     @DisplayName("dados inválidos: 400 com o campo que falhou")
     void validacaoRetorna400() throws Exception {
         var invalida = new MedicacaoRequest("", "Dipirona", "500mg", "Comprimido", "mg",
-                TipoEsquema.CONTINUO, LocalDateTime.now().plusYears(1), "Sanofi", "123", null);
+                TipoEsquema.CONTINUO, LocalDateTime.now().plusYears(1), "Sanofi", "123", null, null);
 
         mockMvc.perform(post(URL)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_VETERINARIO"))
@@ -235,5 +235,58 @@ class MedicacaoApiTest {
         assertThat(repository.findById(dipirona)).isPresent();
         mockMvc.perform(get(URL + "/" + tramal).header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenVet))
                 .andExpect(jsonPath("$.interacoesProibidas[0].id").value(dipirona.toString()));
+    }
+
+    @Test
+    @DisplayName("estoque: reserva baixa, devolução volta, e reserva maior que o saldo recebe 422")
+    void reservaEDevolucaoDeEstoque() throws Exception {
+        Long id = criar("Novalgina", "12345678901");
+        String vet = "Bearer " + token("ROLE_VETERINARIO");
+
+        mockMvc.perform(get(URL + "/" + id).header(HttpHeaders.AUTHORIZATION, vet))
+                .andExpect(jsonPath("$.quantidade").value(10));
+
+        mockMvc.perform(patch(URL + "/" + id + "/estoque/reservar").header(HttpHeaders.AUTHORIZATION, vet)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"quantidade\": 4}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.quantidade").value(6));
+
+        mockMvc.perform(patch(URL + "/" + id + "/estoque/reservar").header(HttpHeaders.AUTHORIZATION, vet)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"quantidade\": 7}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.mensagem").value("Estoque insuficiente de Novalgina: 6 em estoque, 7 pedidas."));
+
+        mockMvc.perform(patch(URL + "/" + id + "/estoque/devolver")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_RECEPCIONISTA"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"quantidade\": 3}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.quantidade").value(9));
+    }
+
+    @Test
+    @DisplayName("estoque: só o veterinário reserva; quantidade zero é inválida; PATCH acerta a contagem")
+    void permissoesEValidacaoDoEstoque() throws Exception {
+        Long id = criar("Novalgina", "12345678901");
+
+        mockMvc.perform(patch(URL + "/" + id + "/estoque/reservar")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_AUXILIAR"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"quantidade\": 1}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(patch(URL + "/" + id + "/estoque/reservar")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_VETERINARIO"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"quantidade\": 0}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(patch(URL + "/999999/estoque/devolver")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_VETERINARIO"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"quantidade\": 1}"))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(patch(URL + "/" + id).header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"quantidade\": 50}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.quantidade").value(50));
+        mockMvc.perform(patch(URL + "/" + id).header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"quantidade\": -1}"))
+                .andExpect(status().isBadRequest());
     }
 }

@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
@@ -47,6 +48,10 @@ public record MedicacaoRequest(
         @Pattern(regexp = "\\d{11}", message = "O registro ANVISA deve conter exatamente 11 dígitos numéricos.")
         String numeroRegistroAnvisa,
 
-        Set<Long> interacoesProibidas
+        Set<Long> interacoesProibidas,
+
+        // Estoque inicial, em doses (1 dose prescrita = 1 unidade). Sem valor, começa em 0.
+        @PositiveOrZero(message = "A quantidade em estoque não pode ser negativa.")
+        Integer quantidade
 ) {
 }

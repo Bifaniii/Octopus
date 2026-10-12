@@ -18,6 +18,7 @@ public record MedicacaoResponse(
         String fabricante,
         String numeroRegistroAnvisa,
         boolean ativo,
+        int quantidade,
         List<InteracaoResponse> interacoesProibidas
 ) {
 
@@ -38,6 +39,7 @@ public record MedicacaoResponse(
                 medicacao.getFabricante(),
                 medicacao.getNumeroRegistroAnvisa(),
                 medicacao.isAtivo(),
+                medicacao.getQuantidade(),
                 medicacao.getInteracoesProibidas().stream()
                         .map(i -> new InteracaoResponse(i.getId(), i.getNomeComercial(), i.getPrincipioAtivo()))
                         .toList()
