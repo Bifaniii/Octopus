@@ -27,7 +27,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 // Leitura: qualquer perfil autenticado. Agendar e cancelar: VETERINARIO, cujo token o msprescricao repassa ao
-// gravar ou desativar uma prescrição. Aplicar: só AUXILIAR (enunciado: o auxiliar registra a aplicação).
+// gravar ou desativar uma prescrição. Cancelar da internação: quem registra a saída do animal no ms-internacao. Aplicar: só AUXILIAR (enunciado: o auxiliar registra a aplicação).
 @RestController
 @RequestMapping("/api/doses")
 @RequiredArgsConstructor
@@ -48,6 +48,13 @@ public class DoseController {
     @PreAuthorize("hasRole('VETERINARIO')")
     public List<DoseResponse> cancelarDaPrescricao(@PathVariable Long prescricaoId) {
         return doseService.cancelarDaPrescricao(prescricaoId);
+    }
+
+    // Chamado pelo ms-internacao ao encerrar (saída física): mesmos perfis que registram a saída lá.
+    @PatchMapping("/internacoes/{internacaoId}/cancelar")
+    @PreAuthorize("hasAnyRole('RECEPCIONISTA', 'VETERINARIO')")
+    public List<DoseResponse> cancelarDaInternacao(@PathVariable Long internacaoId) {
+        return doseService.cancelarDaInternacao(internacaoId);
     }
 
     @GetMapping

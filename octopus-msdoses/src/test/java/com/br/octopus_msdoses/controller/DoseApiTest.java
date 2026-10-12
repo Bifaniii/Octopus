@@ -1,5 +1,8 @@
 package com.br.octopus_msdoses.controller;
 
+import com.br.octopus_msdoses.client.EstoqueClient;
+import com.br.octopus_msdoses.exception.RegraDeNegocioException;
+import com.br.octopus_msdoses.exception.ServicoIndisponivelException;
 import com.br.octopus_msdoses.security.TokensDeTeste;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
@@ -7,8 +10,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -35,6 +44,10 @@ class DoseApiTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    // Estoque do msmedications: aceita tudo por padrão (mock), e cada teste de estoque confere ou provoca falha.
+    @MockitoBean
+    private EstoqueClient estoqueClient;
 
     private static String agendamento(long prescricaoId, long internacaoId) {
         return """
@@ -205,5 +218,85 @@ class DoseApiTest {
     void doseInexistenteRecebe404() throws Exception {
         mockMvc.perform(get("/api/doses/999999").header("Authorization", VET))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void agendarReservaUmaUnidadePorDoseDeCadaMedicamento() throws Exception {
+        agendar(PROXIMA_PRESCRICAO.incrementAndGet(), 7);
+
+        verify(estoqueClient).reservar(1L, 3);
+        verify(estoqueClient).reservar(2L, 1);
+    }
+
+    @Test
+    void semEstoqueOAgendamentoRecebe422ENadaEGravado() throws Exception {
+        long prescricao = PROXIMA_PRESCRICAO.incrementAndGet();
+        doThrow(new RegraDeNegocioException("Estoque insuficiente de Analgésico B: 0 em estoque, 1 pedidas."))
+                .when(estoqueClient).reservar(eq(2L), anyInt());
+
+        mockMvc.perform(post("/api/doses/agendamentos").header("Authorization", VET)
+                        .contentType(MediaType.APPLICATION_JSON).content(agendamento(prescricao, 7)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.mensagem").value("Estoque insuficiente de Analgésico B: 0 em estoque, 1 pedidas."));
+
+        // O medicamento 1 já tinha sido reservado e volta; nenhuma dose fica gravada.
+        verify(estoqueClient).devolver(1L, 3);
+        mockMvc.perform(get("/api/doses").param("prescricaoId", String.valueOf(prescricao)).header("Authorization", VET))
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void cancelarDevolveAoEstoqueSoAsDosesQueEstavamPendentes() throws Exception {
+        long prescricao = PROXIMA_PRESCRICAO.incrementAndGet();
+        Integer primeira = agendar(prescricao, 7).get(0);
+        mockMvc.perform(patch("/api/doses/{id}/aplicar", primeira).header("Authorization", AUXILIAR))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(patch("/api/doses/prescricoes/{id}/cancelar", prescricao).header("Authorization", VET))
+                .andExpect(status().isOk());
+        // Medicamento 1 tinha 3 doses, uma aplicada: voltam 2. Medicamento 2: volta 1.
+        verify(estoqueClient).devolver(1L, 2);
+        verify(estoqueClient).devolver(2L, 1);
+
+        // Repetir não devolve de novo.
+        mockMvc.perform(patch("/api/doses/prescricoes/{id}/cancelar", prescricao).header("Authorization", VET))
+                .andExpect(status().isOk());
+        verify(estoqueClient, times(1)).devolver(1L, 2);
+    }
+
+    @Test
+    void encerrarInternacaoCancelaAsPendentesDeTodasAsPrescricoes() throws Exception {
+        long internacao = 9000 + PROXIMA_PRESCRICAO.incrementAndGet();
+        agendar(PROXIMA_PRESCRICAO.incrementAndGet(), internacao);
+        agendar(PROXIMA_PRESCRICAO.incrementAndGet(), internacao);
+        Integer deOutraInternacao = agendar(PROXIMA_PRESCRICAO.incrementAndGet(), internacao + 1).get(0);
+
+        mockMvc.perform(patch("/api/doses/internacoes/{id}/cancelar", internacao).header("Authorization", AUXILIAR))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(patch("/api/doses/internacoes/{id}/cancelar", internacao).header("Authorization", RECEPCAO))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(8))
+                .andExpect(jsonPath("$[*].status", everyItem(is("CANCELADA"))));
+
+        verify(estoqueClient).devolver(1L, 6);
+        verify(estoqueClient).devolver(2L, 2);
+        mockMvc.perform(get("/api/doses/{id}", deOutraInternacao).header("Authorization", VET))
+                .andExpect(jsonPath("$.status").value("PENDENTE"));
+    }
+
+    @Test
+    void seOEstoqueNaoRespondeOCancelamentoEDesfeito() throws Exception {
+        long internacao = 9000 + PROXIMA_PRESCRICAO.incrementAndGet();
+        Integer dose = agendar(PROXIMA_PRESCRICAO.incrementAndGet(), internacao).get(0);
+        doThrow(new ServicoIndisponivelException("octopus-msmedications não respondeu."))
+                .when(estoqueClient).devolver(eq(2L), anyInt());
+
+        mockMvc.perform(patch("/api/doses/internacoes/{id}/cancelar", internacao).header("Authorization", VET))
+                .andExpect(status().isServiceUnavailable());
+
+        mockMvc.perform(get("/api/doses/{id}", dose).header("Authorization", VET))
+                .andExpect(jsonPath("$.status").value("PENDENTE"));
+        // Uma reserva no agendamento e outra na compensação: o medicamento 1 já tinha sido devolvido.
+        verify(estoqueClient, times(2)).reservar(1L, 3);
     }
 }

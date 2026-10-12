@@ -64,6 +64,11 @@ public class GlobalExceptionHandler {
                 req, null);
     }
 
+    @ExceptionHandler(ServicoIndisponivelException.class)
+    public ResponseEntity<ErroResponse> handleServicoIndisponivel(ServicoIndisponivelException ex, HttpServletRequest req) {
+        return build(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), req, null);
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErroResponse> handleAutenticacao(AuthenticationException ex, HttpServletRequest req) {
         return build(HttpStatus.UNAUTHORIZED, "Não autenticado", req, null);

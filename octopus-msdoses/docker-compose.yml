@@ -28,6 +28,8 @@ services:
       DB_PASSWORD: ${MYSQL_PASSWORD}
       # O mesmo valor usado pelo octopus-msusuario, senão o token dele não é aceito aqui.
       JWT_SECRET: ${JWT_SECRET}
+      # Estoque: reserva ao agendar, devolve ao cancelar. De dentro do container, use host.docker.internal.
+      MS_MEDICACOES_URL: ${MS_MEDICACOES_URL}
     depends_on:
       mysql:
         condition: service_healthy

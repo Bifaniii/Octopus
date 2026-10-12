@@ -12,6 +12,8 @@ public interface DoseRepository extends JpaRepository<Dose, Long> {
 
     List<Dose> findByPrescricaoIdOrderByHorarioPrevistoAsc(Long prescricaoId);
 
+    List<Dose> findByInternacaoIdOrderByHorarioPrevistoAsc(Long internacaoId);
+
     // Filtros opcionais: o que vier nulo não restringe. O período compara o horário previsto.
     @Query("""
             select d from Dose d
