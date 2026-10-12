@@ -93,11 +93,10 @@ o histórico.
 
 ## Últimas alterações
 _Push de 12/10/2026 na branch `feature/register_medications`_
-- `quantidade` passa a ser o estoque em doses (1 dose agendada = 1 unidade) e aparece na resposta. Cadastro e
-  `PATCH` aceitam a quantidade (compra ou inventário).
-- `PATCH /api/medicacoes/{id}/estoque/reservar` (veterinário) e `/devolver` (veterinário ou recepção), usados
-  pelo msdoses. A reserva só baixa se houver saldo; senão responde 422 "Estoque insuficiente de X".
-- 14 testes.
+- `octopus-msmedications` 0.0.2-SNAPSHOT, para publicar a `V4` (id `Long`) e o estoque em doses.
+- A `V4` foi corrigida para o MySQL do Aiven, que exige chave primária em toda tabela (`sql_require_primary_key`):
+  em cada tabela a PK antiga sai e a nova entra no mesmo `ALTER`. Testada num MySQL com a mesma trava, a partir da
+  versão que está em produção (06/10), com os pares de interação remapeados certo. 14 testes.
 
 ## Próximos passos
 - [ ] Publicar antes do msdoses, que passa a reservar e devolver estoque aqui.
