@@ -30,6 +30,10 @@ services:
       DB_PASSWORD: ${MYSQL_PASSWORD}
       # O mesmo valor usado pelo octopus-msusuario, senão o token dele não é aceito aqui.
       JWT_SECRET: ${JWT_SECRET}
+      # Outros módulos. De dentro do container, use host.docker.internal para o que roda no host.
+      MS_USUARIO_URL: ${MS_USUARIO_URL}
+      MS_BAIAS_URL: ${MS_BAIAS_URL}
+      MS_DOSES_URL: ${MS_DOSES_URL}
     depends_on:
       mysql:
         condition: service_healthy

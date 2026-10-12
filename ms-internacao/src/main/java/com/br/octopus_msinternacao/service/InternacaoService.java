@@ -2,6 +2,7 @@ package com.br.octopus_msinternacao.service;
 
 import com.br.octopus_msinternacao.client.AnimalClient;
 import com.br.octopus_msinternacao.client.BaiaClient;
+import com.br.octopus_msinternacao.client.DoseClient;
 import com.br.octopus_msinternacao.client.dto.AnimalDto;
 import com.br.octopus_msinternacao.client.dto.BaiaDto;
 import com.br.octopus_msinternacao.client.dto.TipoBaia;
@@ -38,6 +39,7 @@ public class InternacaoService {
     private final InternacaoRepository internacaoRepository;
     private final AnimalClient animalClient;
     private final BaiaClient baiaClient;
+    private final DoseClient doseClient;
     private final TransactionTemplate transacao;
     private final Clock clock;
 
@@ -109,11 +111,14 @@ public class InternacaoService {
         return InternacaoResponse.from(internacao);
     }
 
-    // RN-08: com a saída física registrada a internação é encerrada e a vaga da baia é liberada.
+    // RN-08: com a saída física registrada a internação é encerrada e a vaga da baia é liberada. As doses ainda
+    // pendentes são canceladas e voltam ao estoque. A chamada fica dentro da transação, depois de a transição ser
+    // validada: se o msdoses falhar, a saída não é gravada (503) e pode ser registrada de novo.
     @Transactional
     public InternacaoResponse encerrar(Long id, EncerramentoRequest request, String usuario) {
         Internacao internacao = buscarEntidade(id);
         internacao.encerrar(request.dataSaida(), usuario, agora());
+        doseClient.cancelarDaInternacao(id);
         return InternacaoResponse.from(internacao);
     }
 

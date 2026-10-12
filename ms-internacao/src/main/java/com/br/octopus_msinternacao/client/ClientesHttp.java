@@ -8,13 +8,14 @@ import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpResponse;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.io.IOException;
+import java.net.http.HttpClient;
 import java.time.Duration;
 
 // Montagem e tratamento de erro comuns aos clients dos outros módulos.
@@ -26,9 +27,14 @@ final class ClientesHttp {
     private ClientesHttp() {
     }
 
+    // HttpClient do JDK, e não o HttpURLConnection do SimpleClientHttpRequestFactory: este recusa PATCH, que é o
+    // verbo do cancelamento das doses no encerramento.
     static RestClient criar(String baseUrl) {
-        var fabrica = new SimpleClientHttpRequestFactory();
-        fabrica.setConnectTimeout(CONEXAO);
+        HttpClient httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(CONEXAO)
+                .build();
+        var fabrica = new JdkClientHttpRequestFactory(httpClient);
         fabrica.setReadTimeout(LEITURA);
         return RestClient.builder()
                 .baseUrl(baseUrl)

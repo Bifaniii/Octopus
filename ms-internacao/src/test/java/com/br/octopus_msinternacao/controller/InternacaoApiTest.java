@@ -2,6 +2,8 @@ package com.br.octopus_msinternacao.controller;
 
 import com.br.octopus_msinternacao.client.AnimalClient;
 import com.br.octopus_msinternacao.client.BaiaClient;
+import com.br.octopus_msinternacao.client.DoseClient;
+import com.br.octopus_msinternacao.exception.ServicoIndisponivelException;
 import com.br.octopus_msinternacao.client.dto.AnimalDto;
 import com.br.octopus_msinternacao.client.dto.BaiaDto;
 import com.br.octopus_msinternacao.client.dto.TipoBaia;
@@ -33,6 +35,8 @@ import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -72,6 +76,8 @@ class InternacaoApiTest {
 
     @MockitoBean
     private BaiaClient baiaClient;
+    @MockitoBean
+    private DoseClient doseClient;
 
     @Value("${app.security.jwt.secret}")
     private String segredoBase64;
@@ -191,6 +197,8 @@ class InternacaoApiTest {
         comoRecepcao(json(patch(URL + "/" + id + "/encerrar"), new EncerramentoRequest(LocalDateTime.now(clock))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ENCERRADA"));
+        // As doses ainda pendentes são canceladas e voltam ao estoque.
+        verify(doseClient).cancelarDaInternacao(Long.valueOf(id));
 
         comoVet(get(URL + "/" + id + "/eventos"))
                 .andExpect(status().isOk())
@@ -204,6 +212,23 @@ class InternacaoApiTest {
         // Com a saída registrada a vaga foi liberada.
         comoRecepcao(json(post(URL), new AdmissaoRequest(outro.id(), baia.id(), "Fratura")))
                 .andExpect(status().isCreated());
+    }
+
+    @Test
+    @DisplayName("com o msdoses fora do ar a saída não é gravada (503) e a internação segue aberta")
+    void encerrarSemOMsdosesNaoGravaASaida() throws Exception {
+        String id = admitir();
+        comoVet(patch(URL + "/" + id + "/iniciar-tratamento")).andExpect(status().isOk());
+        comoVet(patch(URL + "/" + id + "/autorizar-alta")).andExpect(status().isOk());
+        doThrow(new ServicoIndisponivelException("octopus-msdoses não respondeu."))
+                .when(doseClient).cancelarDaInternacao(Long.valueOf(id));
+
+        comoRecepcao(json(patch(URL + "/" + id + "/encerrar"), new EncerramentoRequest(LocalDateTime.now(clock))))
+                .andExpect(status().isServiceUnavailable());
+
+        comoVet(get(URL + "/" + id))
+                .andExpect(jsonPath("$.status").value("ALTA_AUTORIZADA"))
+                .andExpect(jsonPath("$.dataSaida").doesNotExist());
     }
 
     @Test

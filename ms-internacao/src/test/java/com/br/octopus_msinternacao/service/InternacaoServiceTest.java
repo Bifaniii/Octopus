@@ -2,6 +2,7 @@ package com.br.octopus_msinternacao.service;
 
 import com.br.octopus_msinternacao.client.AnimalClient;
 import com.br.octopus_msinternacao.client.BaiaClient;
+import com.br.octopus_msinternacao.client.DoseClient;
 import com.br.octopus_msinternacao.client.dto.AnimalDto;
 import com.br.octopus_msinternacao.client.dto.BaiaDto;
 import com.br.octopus_msinternacao.client.dto.TipoBaia;
@@ -66,6 +67,8 @@ class InternacaoServiceTest {
     @Mock
     private BaiaClient baiaClient;
     @Mock
+    private DoseClient doseClient;
+    @Mock
     private TransactionTemplate transacao;
 
     private InternacaoService service;
@@ -73,7 +76,7 @@ class InternacaoServiceTest {
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(AGORA.atZone(SAO_PAULO).toInstant(), SAO_PAULO);
-        service = new InternacaoService(repository, animalClient, baiaClient, transacao, clock);
+        service = new InternacaoService(repository, animalClient, baiaClient, doseClient, transacao, clock);
         // O TransactionTemplate mockado só executa o bloco, como faria o de verdade sem banco.
         lenient().when(transacao.execute(any())).thenAnswer(inv -> inv.<TransactionCallback<?>>getArgument(0).doInTransaction(null));
         lenient().when(repository.save(any(Internacao.class))).thenAnswer(inv -> inv.getArgument(0));

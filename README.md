@@ -69,14 +69,13 @@ Nada é apagado: a internação termina em `ENCERRADA` e cada passo fica no hist
 - Detalhes de arquitetura e convenções para novos módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 11/10/2026 na branch `feature/internacao`_
-- `animalId`, `baiaId` e `maeId` passam a `Long` na `V4__internacoes_referencias_long.sql`, acompanhando o
-  msusuario e o msbaias. As internações de teste foram descartadas, porque apontavam para UUIDs que não existem
-  mais.
-- Saída física no mesmo minuto da alta passa a ser aceita: a tela manda hora e minuto, e a demonstração do caso
-  10 (alta e saída em seguida) era recusada.
-- 51 testes.
+_Push de 12/10/2026 na branch `feature/internacao`_
+- Registrar a saída física (`encerrar`) cancela as doses ainda pendentes da internação no msdoses, e elas
+  voltam ao estoque. Se o msdoses não responder, a saída não é gravada (503) e pode ser registrada de novo.
+- Clients com o HttpClient do JDK: o `HttpURLConnection` não faz PATCH.
+- Nova variável `MS_DOSES_URL` (também no `internacao.env` da EC2). 52 testes.
 
 ## Próximos passos
+- [ ] Acrescentar `MS_DOSES_URL` ao `~/octopus-env/internacao.env` na EC2 antes do deploy.
 - [ ] Subir a `<version>` do `pom.xml` para publicar a `V4` junto com a `V7` do msusuario e a `V3` do msbaias.
 - [ ] Testar a corrida de duas admissões simultâneas contra MySQL (o H2 não reproduz o `FOR UPDATE` do InnoDB).
