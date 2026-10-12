@@ -68,7 +68,7 @@ class PrescricaoControllerTest {
                 .thenAnswer(inv -> new InternacaoDto(inv.getArgument(0), "ADMITIDA", "Thor"));
         // E qualquer medicamento existe, sem interação proibida.
         when(medicacaoClient.buscar(anyLong()))
-                .thenAnswer(inv -> new MedicacaoDto(inv.getArgument(0), "Medicamento", true, List.of()));
+                .thenAnswer(inv -> new MedicacaoDto(inv.getArgument(0), "Medicamento", true, 1000, List.of()));
     }
 
     private static long novaInternacao() {
@@ -165,7 +165,7 @@ class PrescricaoControllerTest {
     void interacaoProibidaRecebe422ComARegra() throws Exception {
         Long meloxicam = novoId();
         Long cetoprofeno = novoId();
-        when(medicacaoClient.buscar(meloxicam)).thenReturn(new MedicacaoDto(meloxicam, "Meloxicam", true,
+        when(medicacaoClient.buscar(meloxicam)).thenReturn(new MedicacaoDto(meloxicam, "Meloxicam", true, 1000,
                 List.of(new MedicacaoDto.Interacao(cetoprofeno, "Cetoprofeno"))));
 
         mockMvc.perform(post("/api/prescricoes")

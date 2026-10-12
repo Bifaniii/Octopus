@@ -86,7 +86,7 @@ class PrescricaoServiceTest {
         lenient().when(prescricaoRepository.save(any(Prescricao.class))).thenAnswer(inv -> inv.getArgument(0));
         // Por padrão, todo medicamento existe e não tem interação proibida.
         lenient().when(medicacaoClient.buscar(anyLong()))
-                .thenAnswer(inv -> new MedicacaoDto(inv.getArgument(0), "Medicamento", true, List.of()));
+                .thenAnswer(inv -> new MedicacaoDto(inv.getArgument(0), "Medicamento", true, 1000, List.of()));
     }
 
     private static Long novoId() {
@@ -114,9 +114,9 @@ class PrescricaoServiceTest {
     /** Cadastra no mock do msmedications um par com interação proibida, gravado nos dois sentidos. */
     private void interacaoProibida(Long a, String nomeA, Long b, String nomeB) {
         lenient().when(medicacaoClient.buscar(a)).thenReturn(
-                new MedicacaoDto(a, nomeA, true, List.of(new MedicacaoDto.Interacao(b, nomeB))));
+                new MedicacaoDto(a, nomeA, true, 1000, List.of(new MedicacaoDto.Interacao(b, nomeB))));
         lenient().when(medicacaoClient.buscar(b)).thenReturn(
-                new MedicacaoDto(b, nomeB, true, List.of(new MedicacaoDto.Interacao(a, nomeA))));
+                new MedicacaoDto(b, nomeB, true, 1000, List.of(new MedicacaoDto.Interacao(a, nomeA))));
     }
 
     private PrescricaoRequest pedido(ItemPrescricaoRequest... itens) {
@@ -192,6 +192,21 @@ class PrescricaoServiceTest {
         assertThatThrownBy(() -> prescricaoService.criar(pedido(item(8, 3)), "vet@teste.local"))
                 .isInstanceOf(ServicoIndisponivelException.class);
         assertThat(gravada.isAtivo()).isFalse();
+    }
+
+    @Test
+    void criar_semEstoqueParaTodasAsDosesRecusaSemGravarNemIniciarTratamento() {
+        internacaoEm("ADMITIDA");
+        Long dipirona = novoId();
+        when(medicacaoClient.buscar(dipirona)).thenReturn(new MedicacaoDto(dipirona, "Dipirona", true, 4, List.of()));
+
+        // Dois itens do mesmo medicamento somam 3 + 2 = 5 doses, uma a mais que o estoque.
+        assertThatThrownBy(() -> prescricaoService.criar(pedido(item(dipirona, 8, 3, AS_8H),
+                item(dipirona, 12, 2, AS_8H.plusHours(1))), "vet@teste.local"))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessage("Estoque insuficiente de Dipirona: 4 em estoque, 5 doses prescritas.");
+        verify(prescricaoRepository, never()).save(any());
+        verify(internacaoClient, never()).iniciarTratamento(any());
     }
 
     @Test

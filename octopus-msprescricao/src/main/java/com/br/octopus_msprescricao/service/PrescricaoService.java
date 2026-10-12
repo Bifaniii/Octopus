@@ -60,7 +60,12 @@ public class PrescricaoService {
         }
 
         Prescricao prescricao = request.toEntity(veterinarioEmail, LocalDateTime.now(clock));
-        exigirSemInteracaoNoMesmoHorario(prescricao.getItens(), internacao.id());
+        Map<Long, MedicacaoDto> medicacoes = new HashMap<>();
+        for (ItemPrescricao item : prescricao.getItens()) {
+            medicacoes.computeIfAbsent(item.getMedicacaoId(), medicacaoClient::buscar);
+        }
+        exigirSemInteracaoNoMesmoHorario(prescricao.getItens(), medicacoes, internacao.id());
+        exigirEstoque(prescricao.getItens(), medicacoes);
 
         internacaoClient.iniciarTratamento(internacao.id());
 
@@ -115,12 +120,8 @@ public class PrescricaoService {
      * As interações vêm do octopus-msmedications, que grava o par nos dois sentidos: basta a lista do medicamento
      * novo.
      */
-    private void exigirSemInteracaoNoMesmoHorario(List<ItemPrescricao> novos, Long internacaoId) {
-        Map<Long, MedicacaoDto> medicacoes = new HashMap<>();
-        for (ItemPrescricao item : novos) {
-            medicacoes.computeIfAbsent(item.getMedicacaoId(), medicacaoClient::buscar);
-        }
-
+    private void exigirSemInteracaoNoMesmoHorario(List<ItemPrescricao> novos, Map<Long, MedicacaoDto> medicacoes,
+                                                  Long internacaoId) {
         for (int i = 0; i < novos.size(); i++) {
             for (int j = i + 1; j < novos.size(); j++) {
                 conferir(novos.get(i), novos.get(j), medicacoes, "");
@@ -133,6 +134,25 @@ public class PrescricaoService {
                 conferir(novo, existente, medicacoes, ", já prescrito nesta internação");
             }
         }
+    }
+
+    /**
+     * Cada dose agendada separa 1 unidade do estoque (a reserva de fato é feita pelo octopus-msdoses ao agendar).
+     * Conferir aqui evita gravar uma prescrição que seria desfeita em seguida; duas prescrições ao mesmo tempo
+     * ainda podem disputar o último saldo, e aí a recusa vem do agendamento.
+     */
+    private void exigirEstoque(List<ItemPrescricao> itens, Map<Long, MedicacaoDto> medicacoes) {
+        Map<Long, Integer> pedidas = new HashMap<>();
+        for (ItemPrescricao item : itens) {
+            pedidas.merge(item.getMedicacaoId(), item.horarios().size(), Integer::sum);
+        }
+        pedidas.forEach((medicacaoId, quantidade) -> {
+            MedicacaoDto medicacao = medicacoes.get(medicacaoId);
+            if (medicacao.quantidade() < quantidade) {
+                throw new RegraDeNegocioException("Estoque insuficiente de " + medicacao.nomeComercial() + ": "
+                        + medicacao.quantidade() + " em estoque, " + quantidade + " doses prescritas.");
+            }
+        });
     }
 
     private void conferir(ItemPrescricao novo, ItemPrescricao outro, Map<Long, MedicacaoDto> medicacoes,

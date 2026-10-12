@@ -4,7 +4,9 @@ import java.util.List;
 
 // Só o que a prescrição usa da MedicacaoResponse do octopus-msmedications; o resto do JSON é ignorado.
 // As interações proibidas são gravadas lá nos dois sentidos do par (se A proíbe B, B proíbe A).
-public record MedicacaoDto(Long id, String nomeComercial, boolean ativo, List<Interacao> interacoesProibidas) {
+// quantidade é o estoque em doses (1 dose agendada = 1 unidade), reservado pelo octopus-msdoses ao agendar.
+public record MedicacaoDto(Long id, String nomeComercial, boolean ativo, int quantidade,
+                           List<Interacao> interacoesProibidas) {
 
     public record Interacao(Long id, String nomeComercial) {
     }

@@ -1,6 +1,7 @@
 package com.br.octopus_msprescricao.client;
 
 import com.br.octopus_msprescricao.exception.RecursoNaoEncontradoException;
+import com.br.octopus_msprescricao.exception.RegraDeNegocioException;
 import com.br.octopus_msprescricao.exception.ServicoIndisponivelException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpRequest;
@@ -13,6 +14,8 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.net.http.HttpClient;
@@ -25,6 +28,7 @@ final class ClientesHttp {
 
     private static final Duration CONEXAO = Duration.ofSeconds(2);
     private static final Duration LEITURA = Duration.ofSeconds(3);
+    private static final JsonMapper JSON = JsonMapper.builder().build();
 
     private ClientesHttp() {
     }
@@ -49,12 +53,17 @@ final class ClientesHttp {
                 .build();
     }
 
-    // 404 vira RecursoNaoEncontrado (404 aqui também); qualquer outro erro vira ServicoIndisponivel (503), porque
-    // não é culpa de quem chamou a prescrição.
+    // 404 vira RecursoNaoEncontrado (404 aqui também) e 422 vira RegraDeNegocio com a mensagem do outro módulo
+    // (estoque insuficiente no agendamento das doses, por exemplo); qualquer outro erro vira ServicoIndisponivel
+    // (503), porque não é culpa de quem chamou a prescrição.
     static RestClient.ResponseSpec.ErrorHandler erros(String naoEncontrado, String servico, Object id) {
         return (requisicao, resposta) -> {
             if (resposta.getStatusCode().value() == 404) {
                 throw new RecursoNaoEncontradoException(naoEncontrado + ": " + id);
+            }
+            if (resposta.getStatusCode().value() == 422) {
+                JsonNode mensagem = JSON.readTree(resposta.getBody()).get("mensagem");
+                throw new RegraDeNegocioException(mensagem == null ? servico + " recusou a operação." : mensagem.asString());
             }
             throw new ServicoIndisponivelException(servico + " respondeu " + resposta.getStatusCode().value()
                     + " para " + requisicao.getURI().getPath() + ".");

@@ -7,18 +7,11 @@ medicamentos para uma internação, com a RN-06 (interação proibida no mesmo h
 Arquitetura e convenções de todos os módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 11/10/2026 na branch `feature/prescricao`_
-- Recuperada a versão do Douglas (`90acb19`), apagada da branch pelo force-push de 10/10. O commit de merge tem
-  os dois históricos como pais e mantém a correção do Vitor (`medicacaoId` `Long`).
-- `dosagem` e `quantidadeDoses` continuam no item: sem a quantidade não há como gerar os horários, e a `V1` já
-  aplicada em produção tem as duas colunas.
-- RN-06 no lugar da antiga "RN-03": interação proibida só bloqueia quando os dois medicamentos cairiam no mesmo
-  horário, como pede o enunciado (caso de teste 4).
-- A resposta traz os `horarios` de cada item, e a prescrição agenda as doses no `octopus-msdoses`; se o
-  agendamento falha, a prescrição é desativada e as doses criadas são canceladas.
-- Clients com `JdkClientHttpRequestFactory`: o `HttpURLConnection` recusava PATCH e o `iniciar-tratamento` nunca
-  chegava ao ms-internacao.
-- `V2__itens_medicacao_long.sql`: `medicacao_id` vira `BIGINT`. 44 testes.
+_Push de 12/10/2026 na branch `feature/prescricao`_
+- Antes de gravar, confere se há estoque para todas as doses de cada medicamento; sem saldo, 422 "Estoque
+  insuficiente de X" e nada é gravado.
+- Recusa de estoque vinda do agendamento no msdoses chega como 422 com a mesma mensagem (antes virava 503).
+- 45 testes.
 
 ## Próximos passos
 - [ ] Criar `~/octopus-env/doses.env` na EC2 e acrescentar `MS_DOSES_URL` ao `prescricao.env` antes de subir a versão.
