@@ -12,7 +12,7 @@ class SituacaoDoseTest {
     private static final LocalDateTime HORARIO = LocalDateTime.of(2026, 10, 12, 8, 0);
 
     private static DoseDto dose(String status) {
-        return new DoseDto(1L, 1L, 1L, 1L, HORARIO, status, null, null, null);
+        return new DoseDto(1L, 1L, 1L, 1L, HORARIO, status, null, null, null, null, null);
     }
 
     @Test
@@ -35,5 +35,21 @@ class SituacaoDoseTest {
     void aplicadaECanceladaNaoDependemDaHora() {
         assertThat(SituacaoDose.de(dose("APLICADA"), HORARIO.plusDays(1))).isEqualTo(SituacaoDose.APLICADA);
         assertThat(SituacaoDose.de(dose("CANCELADA"), HORARIO.minusDays(1))).isEqualTo(SituacaoDose.CANCELADA);
+    }
+
+    // RN-04: o msdoses já marca a perdida; vale mesmo que o relatório seja gerado dentro da janela de outra hora.
+    @Test
+    void perdidaMarcadaNoMsdosesEPerdida() {
+        assertThat(SituacaoDose.de(dose("PERDIDA"), HORARIO.plusMinutes(10))).isEqualTo(SituacaoDose.PERDIDA);
+    }
+
+    @Test
+    void observacaoIdentificaReaplicacaoESeNecessario() {
+        DoseDto reaplicacao = new DoseDto(2L, 1L, 1L, 1L, HORARIO, "APLICADA", HORARIO, "a@b", "ok", 1L, false);
+        DoseDto seNecessario = new DoseDto(3L, 1L, 1L, 1L, HORARIO, "APLICADA", HORARIO, "a@b", null, null, true);
+
+        assertThat(reaplicacao.observacaoDoRelatorio()).isEqualTo("Reaplicação (RN-07). ok");
+        assertThat(seNecessario.observacaoDoRelatorio()).isEqualTo("Se necessário");
+        assertThat(dose("APLICADA").observacaoDoRelatorio()).isNull();
     }
 }

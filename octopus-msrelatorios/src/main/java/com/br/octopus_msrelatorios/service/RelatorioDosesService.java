@@ -80,7 +80,7 @@ public class RelatorioDosesService {
                     l.situacao().rotulo(),
                     dose.aplicadaEm(),
                     nomes.de(dose.aplicadaPor()),
-                    dose.observacao()));
+                    dose.observacaoDoRelatorio()));
         }
 
         List<String> filtros = new ArrayList<>();

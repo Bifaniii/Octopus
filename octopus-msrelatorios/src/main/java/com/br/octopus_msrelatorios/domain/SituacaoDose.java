@@ -5,8 +5,9 @@ import com.br.octopus_msrelatorios.client.dto.DoseDto;
 import java.time.LocalDateTime;
 
 /**
- * Situação da dose no momento do relatório. O msdoses só guarda PENDENTE, APLICADA e CANCELADA; atrasada e perdida
- * saem da janela de 30 minutos (RN-03 e RN-04), calculadas aqui na consulta, sem job agendado.
+ * Situação da dose no momento do relatório. A perdida vem marcada do msdoses (RN-04), que varre as doses antes de
+ * responder; a atrasada (pendente, passou do horário, ainda na janela de 30 minutos da RN-03) é calculada aqui. O
+ * cálculo da perdida continua como reserva, para uma pendente que já tenha passado da janela.
  */
 public enum SituacaoDose {
 
@@ -32,6 +33,7 @@ public enum SituacaoDose {
         return switch (dose.status()) {
             case "APLICADA" -> APLICADA;
             case "CANCELADA" -> CANCELADA;
+            case "PERDIDA" -> PERDIDA;
             default -> {
                 if (agora.isBefore(dose.horarioPrevisto())) {
                     yield PREVISTA;

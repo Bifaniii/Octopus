@@ -109,11 +109,11 @@ class RelatorioApiTest {
         when(doseClient.listar(any(), any())).thenReturn(List.of(
                 // Manhã: aplicada; perdida (8h, já passou da janela); atrasada (9h40, ainda na janela).
                 new DoseDto(1L, 1L, 5L, 1L, LocalDateTime.of(2026, 10, 12, 6, 0), "APLICADA",
-                        LocalDateTime.of(2026, 10, 12, 6, 10), "paulo@vidapet.com", "Sem intercorrências"),
-                new DoseDto(2L, 1L, 5L, 1L, LocalDateTime.of(2026, 10, 12, 8, 0), "PENDENTE", null, null, null),
-                new DoseDto(3L, 1L, 5L, 1L, LocalDateTime.of(2026, 10, 12, 9, 40), "PENDENTE", null, null, null),
+                        LocalDateTime.of(2026, 10, 12, 6, 10), "paulo@vidapet.com", "Sem intercorrências", null, null),
+                new DoseDto(2L, 1L, 5L, 1L, LocalDateTime.of(2026, 10, 12, 8, 0), "PENDENTE", null, null, null, null, null),
+                new DoseDto(3L, 1L, 5L, 1L, LocalDateTime.of(2026, 10, 12, 9, 40), "PENDENTE", null, null, null, null, null),
                 // Noite: prevista.
-                new DoseDto(4L, 1L, 5L, 1L, LocalDateTime.of(2026, 10, 12, 22, 0), "PENDENTE", null, null, null)));
+                new DoseDto(4L, 1L, 5L, 1L, LocalDateTime.of(2026, 10, 12, 22, 0), "PENDENTE", null, null, null, null, null)));
     }
 
     @Test
