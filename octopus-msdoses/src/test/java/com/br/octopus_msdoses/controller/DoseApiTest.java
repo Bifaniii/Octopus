@@ -1,14 +1,17 @@
 package com.br.octopus_msdoses.controller;
 
 import com.br.octopus_msdoses.client.EstoqueClient;
+import com.br.octopus_msdoses.config.RelogioDeTeste;
 import com.br.octopus_msdoses.exception.RegraDeNegocioException;
 import com.br.octopus_msdoses.exception.ServicoIndisponivelException;
 import com.br.octopus_msdoses.security.TokensDeTeste;
 import com.jayway.jsonpath.JsonPath;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -18,6 +21,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -35,6 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
+@Import(RelogioDeTeste.Config.class)
 class DoseApiTest {
 
     private static final String VET = "Bearer " + TokensDeTeste.gerar("vet@teste.local", "ROLE_VETERINARIO");
@@ -49,12 +54,21 @@ class DoseApiTest {
     @MockitoBean
     private EstoqueClient estoqueClient;
 
+    @Autowired
+    private RelogioDeTeste relogio;
+
+    // Na janela da primeira dose (08h) e antes de todas as outras: nenhuma é perdida durante estes testes.
+    @BeforeEach
+    void acertarRelogio() {
+        relogio.acertar(LocalDateTime.of(2026, 10, 10, 7, 45));
+    }
+
     private static String agendamento(long prescricaoId, long internacaoId) {
         return """
                 {"prescricaoId": %d, "internacaoId": %d,
-                 "itens": [{"itemPrescricaoId": %d, "medicacaoId": 1,
+                 "itens": [{"itemPrescricaoId": %d, "medicacaoId": 1, "esquema": "CONTINUO",
                             "horarios": ["2026-10-10T08:00:00", "2026-10-10T16:00:00", "2026-10-11T00:00:00"]},
-                           {"itemPrescricaoId": %d, "medicacaoId": 2,
+                           {"itemPrescricaoId": %d, "medicacaoId": 2, "esquema": "SINTOMATICO",
                             "horarios": ["2026-10-10T12:00:00"]}]}
                 """.formatted(prescricaoId, internacaoId, prescricaoId * 10, prescricaoId * 10 + 1);
     }

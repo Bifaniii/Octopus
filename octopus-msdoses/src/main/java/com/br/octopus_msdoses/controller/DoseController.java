@@ -4,6 +4,7 @@ import com.br.octopus_msdoses.domain.enums.StatusDose;
 import com.br.octopus_msdoses.dto.request.AgendamentoRequest;
 import com.br.octopus_msdoses.dto.request.AplicacaoRequest;
 import com.br.octopus_msdoses.dto.response.DoseResponse;
+import com.br.octopus_msdoses.dto.response.PainelResponse;
 import com.br.octopus_msdoses.service.DoseService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,7 +28,8 @@ import java.time.LocalDate;
 import java.util.List;
 
 // Leitura: qualquer perfil autenticado. Agendar e cancelar: VETERINARIO, cujo token o msprescricao repassa ao
-// gravar ou desativar uma prescrição. Cancelar da internação: quem registra a saída do animal no ms-internacao. Aplicar: só AUXILIAR (enunciado: o auxiliar registra a aplicação).
+// gravar ou desativar uma prescrição. Cancelar da internação: quem registra a saída do animal no ms-internacao.
+// Aplicar: só AUXILIAR (enunciado: o auxiliar registra a aplicação).
 @RestController
 @RequestMapping("/api/doses")
 @RequiredArgsConstructor
@@ -67,6 +69,12 @@ public class DoseController {
         return doseService.listar(internacaoId, prescricaoId, status, de, ate);
     }
 
+    // Tela 6. Vem antes de /{id} só por leitura; o Spring prefere o caminho literal de qualquer jeito.
+    @GetMapping("/painel")
+    public PainelResponse painel(@RequestParam(required = false) Long internacaoId) {
+        return doseService.painel(internacaoId);
+    }
+
     @GetMapping("/{id}")
     public DoseResponse buscar(@PathVariable Long id) {
         return doseService.buscar(id);
@@ -77,5 +85,16 @@ public class DoseController {
     public DoseResponse aplicar(@PathVariable Long id, @Valid @RequestBody(required = false) AplicacaoRequest request,
                                 Authentication authentication) {
         return doseService.aplicar(id, authentication.getName(), request == null ? null : request.observacao());
+    }
+
+    // Item "se necessário" (mudança contratada de 01/11): cada aplicação cria a dose, respeitando o intervalo mínimo.
+    @PostMapping("/se-necessario/{itemPrescricaoId}/aplicacoes")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('AUXILIAR')")
+    public DoseResponse aplicarSeNecessario(@PathVariable Long itemPrescricaoId,
+                                            @Valid @RequestBody(required = false) AplicacaoRequest request,
+                                            Authentication authentication) {
+        return doseService.aplicarSeNecessario(itemPrescricaoId, authentication.getName(),
+                request == null ? null : request.observacao());
     }
 }

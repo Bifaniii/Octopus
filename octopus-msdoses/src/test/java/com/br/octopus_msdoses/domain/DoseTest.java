@@ -1,6 +1,7 @@
 package com.br.octopus_msdoses.domain;
 
 import com.br.octopus_msdoses.domain.enums.StatusDose;
+import com.br.octopus_msdoses.domain.enums.TipoEsquema;
 import com.br.octopus_msdoses.exception.RegraDeNegocioException;
 import org.junit.jupiter.api.Test;
 
@@ -14,7 +15,7 @@ class DoseTest {
     private static final LocalDateTime AS_14H = LocalDateTime.of(2026, 10, 10, 14, 0);
 
     private Dose dose() {
-        return Dose.agendar(1L, 2L, 3L, 4L, AS_14H);
+        return Dose.agendar(1L, 2L, 3L, 4L, TipoEsquema.CONTINUO, AS_14H);
     }
 
     @Test
@@ -72,5 +73,52 @@ class DoseTest {
         assertThatThrownBy(() -> dose.aplicar("paulo@vidapet.local", AS_14H, null))
                 .isInstanceOf(RegraDeNegocioException.class)
                 .hasMessageContaining("CANCELADA");
+    }
+
+    // Caso de teste 5 do enunciado e os dois limites da janela, que são inclusivos.
+    @Test
+    void rn03_aceitaDentroDaJanelaInclusiveNosLimites() {
+        Dose antes = dose();
+        Dose depois = dose();
+        Dose caso5 = dose();
+
+        antes.aplicar("paulo@vidapet.local", AS_14H.minusMinutes(30), null);
+        depois.aplicar("paulo@vidapet.local", AS_14H.plusMinutes(30), null);
+        caso5.aplicar("paulo@vidapet.local", AS_14H.plusMinutes(20), null);
+
+        assertThat(caso5.getStatus()).isEqualTo(StatusDose.APLICADA);
+    }
+
+    @Test
+    void rn03_recusaForaDaJanela() {
+        Dose cedo = dose();
+        Dose tarde = dose();
+
+        assertThatThrownBy(() -> cedo.aplicar("paulo@vidapet.local", AS_14H.minusMinutes(31), null))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("RN-03")
+                .hasMessageContaining("13:30")
+                .hasMessageContaining("14:30");
+        assertThatThrownBy(() -> tarde.aplicar("paulo@vidapet.local", AS_14H.plusMinutes(31), null))
+                .hasMessageContaining("RN-03");
+        assertThat(cedo.getStatus()).isEqualTo(StatusDose.PENDENTE);
+    }
+
+    @Test
+    void rn04_janelaSoFechaDepoisDosTrintaMinutos() {
+        Dose dose = dose();
+
+        assertThat(dose.passouDaJanela(AS_14H.plusMinutes(30))).isFalse();
+        assertThat(dose.passouDaJanela(AS_14H.plusMinutes(31))).isTrue();
+    }
+
+    @Test
+    void rn04_dosePerdidaNaoPodeSerAplicada() {
+        Dose dose = dose();
+        dose.marcarPerdida();
+
+        assertThatThrownBy(() -> dose.aplicar("paulo@vidapet.local", AS_14H, null))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("RN-04");
     }
 }
