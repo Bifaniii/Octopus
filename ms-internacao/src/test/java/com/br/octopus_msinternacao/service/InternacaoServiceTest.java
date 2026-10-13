@@ -194,6 +194,34 @@ class InternacaoServiceTest {
         assertThat(admitir(animal, baia).status()).isEqualTo(ADMITIDA);
     }
 
+    // Registros inconsistentes da carga do enunciado.
+    @Test
+    @DisplayName("RN-02: antirrábica com data futura é registro inválido e só entra no isolamento")
+    void rn02VacinaComDataFutura() {
+        AnimalDto animal = animal(HOJE.plusDays(10), null);
+        BaiaDto coletiva = baia(TipoBaia.COLETIVA, 1);
+        BaiaDto isolamento = baia(TipoBaia.ISOLAMENTO, 1);
+        ocupantes(isolamento);
+
+        assertThatThrownBy(() -> admitir(animal, coletiva))
+                .hasMessageContaining("RN-02")
+                .hasMessageContaining("data futura");
+        assertThat(admitir(animal, isolamento).status()).isEqualTo(ADMITIDA);
+    }
+
+    @Test
+    @DisplayName("animal sem espécie no cadastro não é internado")
+    void animalSemEspecie() {
+        AnimalDto animal = new AnimalDto(novoId(), "Sem nome", " ", HOJE.minusMonths(1), null);
+        when(animalClient.buscar(animal.id())).thenReturn(animal);
+        BaiaDto baia = baia(TipoBaia.COLETIVA, 1);
+
+        assertThatThrownBy(() -> admitir(animal, baia))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessageContaining("sem espécie");
+        verifyNoInteractions(transacao, repository);
+    }
+
     // ---------- RN-01 ----------
 
     @Test

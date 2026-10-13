@@ -47,10 +47,16 @@ public class InternacaoService {
     // rede. Dentro da transação fica só o que disputa vaga (RN-01) e a gravação.
     public InternacaoResponse admitir(AdmissaoRequest request, String usuario) {
         AnimalDto animal = animalClient.buscar(request.animalId());
+        // A carga do enunciado traz um animal sem espécie: o cadastro precisa ser corrigido antes da internação.
+        if (animal.especie() == null || animal.especie().isBlank()) {
+            throw new RegraNegocioException("O animal " + animal.nome() + " está sem espécie no cadastro; corrija o "
+                    + "cadastro antes de internar.");
+        }
         BaiaDto baia = buscarBaiaAtiva(request.baiaId());
         if (antirrabicaVencida(animal) && baia.tipo() != TipoBaia.ISOLAMENTO) {
-            throw new RegraNegocioException("RN-02: antirrábica vencida ou sem registro; o animal só pode ser "
-                    + "internado em baia de isolamento.");
+            throw new RegraNegocioException("RN-02: antirrábica " + (antirrabicaNoFuturo(animal)
+                    ? "com data futura no cadastro (registro inválido)" : "vencida ou sem registro")
+                    + "; o animal só pode ser internado em baia de isolamento.");
         }
 
         return transacao.execute(status -> {
@@ -167,10 +173,17 @@ public class InternacaoService {
         }
     }
 
-    // Vencida = sem registro ou aplicada há mais de 12 meses. Com exatamente 12 meses ainda vale.
+    // Vencida = sem registro, aplicada há mais de 12 meses ou com data futura, que é registro inválido (a carga do
+    // enunciado traz um caso assim) e não comprova vacinação. Com exatamente 12 meses ainda vale.
     private boolean antirrabicaVencida(AnimalDto animal) {
         LocalDate data = animal.dataUltimaAntirrabica();
-        return data == null || data.plusMonths(MESES_VALIDADE_ANTIRRABICA).isBefore(LocalDate.now(clock));
+        return data == null || antirrabicaNoFuturo(animal)
+                || data.plusMonths(MESES_VALIDADE_ANTIRRABICA).isBefore(LocalDate.now(clock));
+    }
+
+    private boolean antirrabicaNoFuturo(AnimalDto animal) {
+        LocalDate data = animal.dataUltimaAntirrabica();
+        return data != null && data.isAfter(LocalDate.now(clock));
     }
 
     private LocalDateTime agora() {
