@@ -6,15 +6,10 @@ doses, internações, tutores e animais, ocupação de baias e usuários. Arquit
 módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 12/10/2026 na branch `feature/relatorios`_
-- Módulo novo em Java, como os outros. O plano anterior era um serviço Python; em 12/10 ficou decidido manter uma stack só.
-- Cinco relatórios em PDF (formato padrão com logo, cabeçalho e rodapé) e XLSX (uma aba por tabela).
-- Relatório de doses da tela 7: por turno, por auxiliar e a lista de doses, com atrasadas e perdidas calculadas
-  pela janela de 30 minutos.
-- Nomes das pessoas no lugar dos e-mails, pelo `GET /api/usuarios/nomes` novo no `msusuario` (branch `main`).
-- 26 testes.
+_Push de 13/10/2026 na branch `feature/relatorios`_
+- Dose perdida lida do msdoses (RN-04), com o cálculo como reserva.
+- A observação do relatório de doses identifica a reaplicação (RN-07) e a dose "se necessário". 28 testes.
 
 ## Próximos passos
-- [ ] Criar `~/octopus-env/relatorios.env` na EC2 e liberar a porta 8086 antes do primeiro deploy.
-- [ ] Publicar o `msusuario` com o `/api/usuarios/nomes` antes ou junto com este módulo.
-- [ ] Confirmar com a squad os horários dos turnos (hoje 6h, 12h e 18h).
+- [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)
+- [ ] Publicar em produção junto com os outros módulos (ver o documento de deploy)
