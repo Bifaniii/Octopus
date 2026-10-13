@@ -70,10 +70,14 @@ Nada é apagado: a internação termina em `ENCERRADA` e cada passo fica no hist
 
 ## Últimas alterações
 _Push de 13/10/2026 na branch `feature/internacao`_
-- Admitida → Em tratamento só com prescrição ativa, conferida no msprescricao (variável nova `MS_PRESCRICAO_URL`).
-- RN-02: antirrábica com data futura no cadastro vale como irregular (só isolamento).
-- Animal sem espécie no cadastro não é internado. 57 testes.
+- Teto de 400 MB de memória por serviço: o `docker run` do `pipeline.yml` passa a usar
+  `--memory 400m --memory-swap 400m`.
+- `Dockerfile` com a JVM ajustada ao teto: heap em até 50%, metaspace até 128 MB, cache de código até
+  48 MB, pilha de 512 KB por thread e `SerialGC`.
+- `CLAUDE.md`: regra de memória na seção "Integração contínua".
 
 ## Próximos passos
+- [ ] Subir a `<version>` do `pom.xml` para o teto de memória valer na EC2, ou aplicar no container atual
+      com `docker update --memory 400m --memory-swap 400m <container>`.
 - [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)
 - [ ] Publicar em produção junto com os outros módulos (ver o documento de deploy)
