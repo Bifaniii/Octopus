@@ -6,15 +6,13 @@ prescrição e registra a aplicação pelo auxiliar. Arquitetura e convenções 
 [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 12/10/2026 na branch `feature/doses`_
-- Agendar reserva no msmedications 1 unidade por dose nova; cancelar devolve só as que estavam pendentes. Se uma
-  chamada de estoque falha no meio, as anteriores são desfeitas.
-- `PATCH /api/doses/internacoes/{id}/cancelar` (recepção ou veterinário), chamado pelo ms-internacao quando o
-  animal sai.
-- Nova variável `MS_MEDICACOES_URL`. 28 testes.
+_Push de 13/10/2026 na branch `feature/doses`_
+- RN-03: a aplicação só é aceita de 30 minutos antes a 30 minutos depois do horário previsto.
+- RN-04 e RN-07: antes de cada consulta, a pendente fora da janela vira PERDIDA; contínuo é reaplicado na hora e desloca as seguintes, sintomático é pulado e devolve a unidade.
+- Tela 6: `GET /api/doses/painel` com atrasadas, próximas, perdidas e itens "se necessário".
+- Mudança contratada: `POST /api/doses/se-necessario/{item}/aplicacoes`, com intervalo mínimo e reserva de estoque na aplicação.
+- Migration `V2__doses_perdidas_e_se_necessario.sql`, testada num MySQL com `sql_require_primary_key=ON`. 43 testes.
 
 ## Próximos passos
-- [ ] Acrescentar `MS_MEDICACOES_URL` ao `~/octopus-env/doses.env` na EC2 antes do deploy.
-- [ ] Criar `~/octopus-env/doses.env` na EC2 e liberar a porta 8085 antes do primeiro deploy.
-- [ ] Sprint 3: janela de 30 minutos no `aplicar` (RN-03), dose perdida (RN-04) e o painel de doses no front.
-- [ ] Sprint 4: reaplicação por esquema (RN-07).
+- [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)
+- [ ] Publicar em produção junto com os outros módulos (ver o documento de deploy)
