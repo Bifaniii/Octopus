@@ -31,6 +31,7 @@ services:
       MS_INTERNACAO_URL: ${MS_INTERNACAO_URL}
       MS_MEDICACOES_URL: ${MS_MEDICACOES_URL}
       MS_DOSES_URL: ${MS_DOSES_URL}
+      SE_NECESSARIO_A_PARTIR_DE: ${SE_NECESSARIO_A_PARTIR_DE:-2026-11-01}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:

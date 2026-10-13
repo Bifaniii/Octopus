@@ -7,12 +7,13 @@ medicamentos para uma internação, com a RN-06 (interação proibida no mesmo h
 Arquitetura e convenções de todos os módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 12/10/2026 na branch `feature/prescricao`_
-- Antes de gravar, confere se há estoque para todas as doses de cada medicamento; sem saldo, 422 "Estoque
-  insuficiente de X" e nada é gravado.
-- Recusa de estoque vinda do agendamento no msdoses chega como 422 com a mesma mensagem (antes virava 503).
-- 45 testes.
+_Push de 13/10/2026 na branch `feature/prescricao`_
+- Item "se necessário" (mudança contratada de 01/11): intervalo mínimo, sem quantidade nem início; vigência em `SE_NECESSARIO_A_PARTIR_DE`.
+- O agendamento leva o esquema do medicamento (contínuo ou sintomático) para a RN-07 no msdoses.
+- O tratamento é iniciado depois de gravar e agendar, para o ms-internacao conferir a prescrição ativa; falha em qualquer passo desfaz a prescrição.
+- Item sem intervalo, ou de horário fixo sem quantidade e início, recebe 400.
+- Migration `V3__itens_se_necessario.sql`. 49 testes.
 
 ## Próximos passos
-- [ ] Criar `~/octopus-env/doses.env` na EC2 e acrescentar `MS_DOSES_URL` ao `prescricao.env` antes de subir a versão.
-- [ ] Sprint 4: prescrição "se necessário" (mudança contratada de 01/11).
+- [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)
+- [ ] Publicar em produção junto com os outros módulos (ver o documento de deploy)
