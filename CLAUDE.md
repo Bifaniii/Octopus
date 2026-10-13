@@ -4,7 +4,7 @@ Este arquivo fornece orientações ao Claude Code (claude.ai/code) ao trabalhar 
 
 > Este arquivo é versionado e vale para toda a squad. Não coloque nele valores de `.env`, senhas ou tokens,
 > só nomes de variáveis. A seção "Estado das branches" é um retrato datado: atualize quando mexer numa branch.
-> Última revisão: 11/10/2026 (fechamento da Sprint 2).
+> Última revisão: 13/10/2026 (escopo do enunciado completo: RN-01 a RN-08, ciclo de vida e mudança contratada).
 
 ## Visão geral do repositório
 
@@ -21,11 +21,11 @@ O sistema é feito de microsserviços Spring Boot independentes, um por área, c
 | :---------------------- | :---- | :----------------------------- | :--------------------------------------------------- |
 | `octopus-msusuario/`    | 8080  | `main`                         | Login/JWT, recuperação de senha, perfis com listagem filtrada e edição, tutores e animais com mãe. 61 testes. |
 | `ms-cadastro-baias/`    | 8081  | `feature/cadastro-baia`        | CRUD de baias, limite de 12 ativas, ativar/desativar. 14 testes. |
-| `octopus-msmedications/`| 8082  | `feature/register_medications` | CRUD de medicamentos, esquema e interações. 12 testes. |
-| `ms-internacao/`        | 8083  | `feature/internacao`           | Admissão, ciclo de vida, RN-01, RN-02 e RN-08. 51 testes. |
-| `octopus-msprescricao/` | 8084  | `feature/prescricao`           | Prescrição e itens, horários gerados, RN-06, agenda as doses. 44 testes. |
-| `octopus-msdoses/`      | 8085  | `feature/doses`                | Uma dose por horário, aplicação imutável (RN-05), cancelamento. 23 testes. |
-| `octopus-msrelatorios/` | 8086  | `feature/relatorios`           | Relatórios em PDF e XLSX lidos dos outros módulos, sem banco. 26 testes. |
+| `octopus-msmedications/`| 8082  | `feature/register_medications` | CRUD de medicamentos, esquema, interações e estoque em doses. 14 testes. |
+| `ms-internacao/`        | 8083  | `feature/internacao`           | Admissão, ciclo de vida com as transições proibidas, RN-01, RN-02 e RN-08. 57 testes. |
+| `octopus-msprescricao/` | 8084  | `feature/prescricao`           | Prescrição e itens, horários gerados, RN-06, item "se necessário", agenda as doses. 49 testes. |
+| `octopus-msdoses/`      | 8085  | `feature/doses`                | Uma dose por horário, janela (RN-03), perdida (RN-04), aplicação imutável (RN-05), reaplicação (RN-07), painel e "se necessário". 43 testes. |
+| `octopus-msrelatorios/` | 8086  | `feature/relatorios`           | Relatórios em PDF e XLSX lidos dos outros módulos, sem banco. 28 testes. |
 
 Os módulos estão publicados no free tier da AWS (EC2), com o MySQL hospedado no Aiven. O front é um projeto
 Angular separado, no repositório `Octopus-front`, que também usa uma branch por funcionalidade e tem o seu
@@ -71,20 +71,26 @@ divergem. A numeração das RNs que vale no código é a dele:
   o Analgésico C, Analgésico B sintomático. A partir de 04/10/2026 a vacina do Thor passou de 12 meses, então pela
   RN-02 ele não entra mais numa coletiva: para demonstrar o caso 2, a data dele precisa ser ajustada.
 - **Mudança contratada (a partir de 01/11/2026):** prescrição "se necessário", sem horário fixo, só com intervalo
-  mínimo entre doses; fica fora do painel de atrasos, mas o sistema impede aplicar antes do intervalo.
+  mínimo entre doses; fica fora do painel de atrasos, mas o sistema impede aplicar antes do intervalo. Implementada
+  em 13/10 (msprescricao e msdoses); a data de vigência é `SE_NECESSARIO_A_PARTIR_DE` no msprescricao.
+- **Registros inconsistentes da carga:** animal sem espécie e antirrábica com data futura são recusados no cadastro
+  (msusuario). Se já estiverem no banco, a internação recusa o animal sem espécie e trata a data futura como
+  vacinação irregular (só isolamento). Prescrição sem intervalo recebe 400.
 - **Ciclo de vida da internação:** Admitida → Em tratamento → Alta autorizada → Encerrada, com os alternativos
   Isolamento e Alta a pedido do tutor (tabela completa em "Arquitetura do `ms-internacao`").
 
 ## Próximos passos por sprint
 
-1. Sprint 3 (15/10 a 28/10): painel de doses (tela 6) no `octopus-msdoses`, com a janela de 30 minutos (RN-03)
-   no `aplicar` e a dose perdida (RN-04). A dose perdida pode ser calculada na consulta (horário + 30 min já
-   passou e a dose segue pendente), sem job agendado.
-2. Sprint 4 (29/10 a 11/11): reaplicação por esquema (RN-07) no `octopus-msdoses`, mudança contratada de 01/11
-   (prescrição "se necessário"). O relatório de doses (tela 7) já existe no `octopus-msrelatorios` (12/10); quando
-   a RN-04 entrar no msdoses, o relatório deve passar a ler a dose perdida de lá em vez de calcular.
+O escopo do enunciado foi fechado em 13/10/2026, antes da Sprint 3: as 7 telas, as 8 regras, as transições
+proibidas do ciclo de vida e a mudança contratada. O que sobra é a Sprint 5 do enunciado, sem funcionalidade nova:
 
-## Estado das branches (12/10/2026, fechamento da Sprint 2)
+1. Executar os 10 casos de teste com os dados de carga e guardar a evidência dos 4 que não são demonstrados ao vivo
+   (casos 3, 5, 8 e 10). Os testes automatizados de cada módulo já reproduzem os casos pelo número.
+2. Para o caso 2, a antirrábica do Thor (03/10/2025) precisa ser ajustada: a partir de 04/10/2026 ela passou de 12
+   meses e, pela RN-02, ele só entra no isolamento.
+3. Correções que aparecerem no ensaio geral.
+
+## Estado das branches (13/10/2026, escopo completo)
 
 Branch por microsserviço, permanente. O `CLAUDE.md` é mantido igual em todas; o `README.md` de cada uma descreve
 o próprio módulo.
@@ -120,19 +126,25 @@ o próprio módulo.
   apagada); o pacote, a porta e o histórico do Flyway já foram trocados, e o `.idea/` saiu do versionamento.
   Tem `pipeline.yml` próprio (container `internacao`, porta 8083). A pasta se chama `ms-internacao/`, e não
   `octopus-msinternacao/`, por herança desse esqueleto. Animal, baia e mãe viraram `Long` na `V4`. Desde 12/10 o
-  encerramento cancela as doses pendentes no msdoses (`MS_DOSES_URL`), e os clients usam o HttpClient do JDK.
+  encerramento cancela as doses pendentes no msdoses (`MS_DOSES_URL`), e os clients usam o HttpClient do JDK. Desde
+  13/10 o `iniciar-tratamento` confere no msprescricao se há prescrição ativa (`MS_PRESCRICAO_URL`, variável nova
+  no `internacao.env`), a antirrábica com data futura vale como irregular e o animal sem espécie não é internado.
 - **`feature/prescricao`** (Vitor Kimany e Guilherme Bifani; ajustes de Douglas): `octopus-msprescricao/`. Em 10/10
   um force-push deixou só um commit órfão com o módulo na raiz, sem CI e sem `dosagem`/`quantidadeDoses`. Em
   11/10 um commit de merge (pais `feb71d0` e `90acb19`) devolveu a estrutura do Douglas, manteve o
   `medicacaoId` `Long` do Vitor e trouxe a RN-06 e o agendamento das doses. Nunca use force-push nas branches.
-  O deploy precisa de `~/octopus-env/prescricao.env` na EC2, agora também com `MS_DOSES_URL`.
+  O deploy precisa de `~/octopus-env/prescricao.env` na EC2, agora também com `MS_DOSES_URL`. Desde 13/10 tem o
+  item "se necessário", manda o esquema do medicamento ao msdoses e grava a prescrição antes de iniciar o
+  tratamento.
 - **`feature/doses`** (11/10): `octopus-msdoses/`, branch órfã com `pipeline.yml` próprio (container `doses`,
   porta 8085). O primeiro deploy precisa de `~/octopus-env/doses.env` na EC2 (com `MS_MEDICACOES_URL` desde 12/10)
-  e da porta 8085 liberada.
+  e da porta 8085 liberada. Desde 13/10 tem a janela de 30 minutos, a dose perdida, a reaplicação por esquema, o
+  painel (tela 6) e o item "se necessário" (`V2`).
 - **`feature/relatorios`** (12/10): `octopus-msrelatorios/`, branch órfã com `pipeline.yml` próprio (container
   `relatorios`, porta 8086). Antes era um serviço Python; ficou em Java para manter uma stack só. Depende do
   `GET /api/usuarios/nomes` da `main`, então o `msusuario` precisa ser publicado antes ou junto. O primeiro deploy
-  precisa de `~/octopus-env/relatorios.env` na EC2 (`JWT_SECRET` e as `MS_*_URL`) e da porta 8086 liberada.
+  precisa de `~/octopus-env/relatorios.env` na EC2 (`JWT_SECRET` e as `MS_*_URL`) e da porta 8086 liberada. Desde
+  13/10 a dose perdida vem marcada do msdoses.
 
 ## Comandos
 
@@ -155,7 +167,7 @@ docker compose up -d mysql            # só o banco, para rodar com ./mvnw sprin
 ```
 
 Portas de host default: 8080/3307 (usuário), 8081/3308 (baias), 8082/3309 (medicações), 8083/3310 (internação),
-8084/3311 (prescrição).
+8084/3311 (prescrição), 8085/3312 (doses). O msrelatorios (8086) não tem banco.
 
 ### Configuração via `.env`
 
@@ -239,7 +251,7 @@ Mesmas camadas e convenções dos outros módulos, com pacote `com.br.octopus_ms
 
 | De | Para | Guarda |
 | :- | :--- | :----- |
-| Admitida | Em tratamento | Prescrição ativa (quem chama é o `msprescricao`); idempotente |
+| Admitida | Em tratamento | Prescrição ativa, conferida no `msprescricao` (`MS_PRESCRICAO_URL`); quem chama é o próprio `msprescricao`, depois de gravar; idempotente |
 | Em tratamento | Isolamento | RN-02: antirrábica irregular, baia de isolamento com vaga |
 | Em tratamento, Isolamento | Alta autorizada | — |
 | Em tratamento, Isolamento | Alta a pedido do tutor | Termo de responsabilidade obrigatório |
@@ -261,7 +273,8 @@ hora entra por parâmetro, vinda de um `Clock` fixo em `America/Sao_Paulo` (`con
 quando o recurso não existe e 503 (`ServicoIndisponivelException`) em qualquer outra falha. O nome, a espécie e
 a mãe do animal são copiados para a internação (`animal_nome`, `animal_especie`, `mae_id`): o painel mostra o
 nome sem consultar o `msusuario`, cujo `GET /api/animais` é restrito, e a regra da ninhada é conferida sem
-chamada remota. A capacidade usada na RN-01 é o menor valor entre a cadastrada e o máximo do tipo, o que protege
+chamada remota. Animal sem espécie é recusado (422) e antirrábica com data futura conta como irregular na RN-02,
+porque a carga do enunciado traz esses dois registros. A capacidade usada na RN-01 é o menor valor entre a cadastrada e o máximo do tipo, o que protege
 contra baia gravada antes da correção da coletiva para 1. URLs em `MS_USUARIO_URL` e `MS_BAIAS_URL`.
 
 **Concorrência.** A admissão tem duas fases: as chamadas REST e a RN-02 acontecem fora da transação, e só a
@@ -311,13 +324,13 @@ Pacote `com.br.octopus_msprescricao`, mesmas camadas dos outros módulos.
   `ItemPrescricao.horarios()` gera `inicio + n * intervaloHoras`, para `n` de 0 a `quantidadeDoses - 1`; a
   resposta traz esses `horarios`. Não há tabela de doses aqui.
 - Criar prescrição: busca a internação no `ms-internacao` (`InternacaoClient`, mesmo padrão de clients com token
-  repassado, timeouts, 404 e 503), aceita só `ADMITIDA`, `EM_TRATAMENTO` ou `ISOLAMENTO` (senão 422), chama
-  `PATCH /api/internacoes/{id}/iniciar-tratamento` e só então grava. O `iniciar-tratamento` é idempotente, então
-  vem antes da gravação: se falhar, nada é gravado. O método não é `@Transactional`, para nenhuma transação
-  esperar a rede. URL em `MS_INTERNACAO_URL`.
-- Depois de gravar, manda os horários ao `octopus-msdoses` (`POST /api/doses/agendamentos`, idempotente por
-  prescrição). Se o agendamento falhar ou estourar o tempo, a prescrição é desativada e as doses que o msdoses
-  tenha chegado a gravar são canceladas; o veterinário recebe 503 e prescreve de novo. Desativar a prescrição
+  repassado, timeouts, 404 e 503) e aceita só `ADMITIDA`, `EM_TRATAMENTO` ou `ISOLAMENTO` (senão 422). Depois grava,
+  manda os horários ao `octopus-msdoses` (`POST /api/doses/agendamentos`, idempotente por prescrição) e só então
+  chama `PATCH /api/internacoes/{id}/iniciar-tratamento`, que o ms-internacao recusa sem prescrição ativa. Se o
+  agendamento ou o início do tratamento falhar, a prescrição é desativada e as doses que o msdoses tenha chegado a
+  gravar são canceladas; o veterinário recebe o erro e prescreve de novo. O método não é `@Transactional`, para
+  nenhuma transação esperar a rede. URL em `MS_INTERNACAO_URL`.
+- O agendamento leva o esquema de cada medicamento (`tipoEsquema` do msmedications), que o msdoses usa na RN-07. Desativar a prescrição
   cancela as doses pendentes (`PATCH /api/doses/prescricoes/{id}/cancelar`). URL em `MS_DOSES_URL`.
 - Os clients usam o `HttpClient` do JDK (`JdkClientHttpRequestFactory`), e não o `SimpleClientHttpRequestFactory`:
   o `HttpURLConnection` recusa PATCH, e o `iniciar-tratamento` nunca chegava ao ms-internacao. Timeout de leitura
@@ -332,7 +345,10 @@ Pacote `com.br.octopus_msprescricao`, mesmas camadas dos outros módulos.
   `MS_MEDICACOES_URL`.
 - Migrations: `V1__prescricoes.sql` (versão do Douglas, já aplicada em produção) e `V2__itens_medicacao_long.sql`,
   que passa `medicacao_id` a `BIGINT` e descarta as prescrições de teste.
-- Falta: o item "se necessário" da mudança contratada de 01/11, sem intervalo nem quantidade.
+- Item "se necessário" (mudança contratada): `seNecessario = true`, `intervaloHoras` é o mínimo entre aplicações, sem
+  quantidade nem início (`V3__itens_se_necessario.sql`). Só é aceito a partir de `app.prescricao.se-necessario-a-partir-de`
+  (`SE_NECESSARIO_A_PARTIR_DE`, padrão 01/11/2026). Vai ao msdoses sem horários; a RN-06 não se aplica a ele, que
+  não tem horário, e a conferência de estoque exige só 1 unidade.
 
 | Endpoint | Quem pode |
 | :------- | :-------- |
@@ -354,8 +370,22 @@ que acontece com ela.
   endpoint de edição. Duas aplicações simultâneas da mesma dose caem no `@Version` e recebem 409.
 - Estoque: agendar reserva 1 unidade por dose nova e cancelar devolve só as que estavam pendentes (ver "Estoque de
   medicamentos"). URL do msmedications em `MS_MEDICACOES_URL`.
-- Ainda não tem: janela de 30 minutos (RN-03), dose perdida (RN-04) e reaplicação (RN-07), que são das Sprints 3
-  e 4. Flyway em `flyway_schema_history_doses`, MySQL do compose na porta 3312.
+- RN-03: `aplicar` só aceita de 30 minutos antes a 30 minutos depois do horário previsto (limites inclusivos).
+- RN-04 e RN-07 (`service/Varredura`): antes de toda consulta e aplicação, as pendentes cuja janela fechou viram
+  `PERDIDA`. Esquema contínuo: nasce uma reaplicação no horário em que a perda foi constatada (`reaplicacao_de`
+  aponta a perdida, a unidade reservada passa para ela) e as pendentes seguintes do mesmo item andam o mesmo tanto.
+  Esquema sintomático: é pulada e a unidade volta ao estoque. Não há job agendado, porque ele não teria token para
+  falar com o msmedications; quem abre o painel ou o relatório já vê o estado certo. Varreduras simultâneas: a que
+  perde a corrida é ignorada.
+- Item "se necessário" (`ItemSeNecessario`, `tb_itens_se_necessario`): registrado no agendamento, sem dose
+  pendente. Cada aplicação cria uma dose já aplicada, reserva 1 unidade e é recusada antes do intervalo mínimo
+  desde a última, com o item travado contra aplicações simultâneas. Desativar a prescrição ou encerrar a
+  internação desativa o item.
+- Painel (tela 6): `GET /api/doses/painel` traz atrasadas (pendentes que passaram do horário e ainda estão na
+  janela), próximas (vencem na próxima hora), perdidas das últimas 24 horas e os itens "se necessário" com o horário
+  a partir do qual a próxima aplicação é aceita.
+- Testes com relógio controlável (`RelogioDeTeste`): `RegrasDasDosesTest` reproduz os casos 5 a 9 do enunciado.
+  Flyway em `flyway_schema_history_doses`, MySQL do compose na porta 3312.
 
 | Endpoint | Quem pode |
 | :------- | :-------- |
@@ -364,6 +394,8 @@ que acontece com ela.
 | `PATCH /api/doses/internacoes/{internacaoId}/cancelar` | `RECEPCIONISTA`, `VETERINARIO` (chamado pelo ms-internacao ao encerrar) |
 | `GET /api/doses?internacaoId=&prescricaoId=&status=&de=&ate=`, `GET /{id}` | autenticado |
 | `PATCH /api/doses/{id}/aplicar` (corpo opcional com `observacao`) | `AUXILIAR` |
+| `GET /api/doses/painel?internacaoId=` | autenticado |
+| `POST /api/doses/se-necessario/{itemPrescricaoId}/aplicacoes` | `AUXILIAR` |
 
 ## Estoque de medicamentos
 
@@ -378,6 +410,9 @@ estoque quando é cancelada, porque não chegou a ser preparada.
   pendentes no msdoses, que devolve as unidades (`/estoque/devolver`) antes do commit. Se o msmedications ou o
   msdoses não responder, nada é cancelado e quem chamou recebe 503; a saída pode ser registrada de novo.
 - Reserva e devolução são em lote por medicamento; se uma chamada falha no meio, as anteriores são desfeitas.
+- Dose perdida (RN-07): a de esquema contínuo passa a unidade para a reaplicação; a de sintomático devolve. Por isso
+  a devolução aceita o token de qualquer perfil: a varredura roda com o token de quem consultou.
+- Item "se necessário": reserva 1 unidade a cada aplicação, com o token do auxiliar.
 - Ajuste manual (compra, inventário): `PATCH /api/medicacoes/{id}` com `quantidade`, admin ou veterinário.
 - Doses agendadas antes de 12/10 não reservaram nada; cancelá-las devolve unidades que nunca saíram.
 
@@ -393,8 +428,8 @@ que o perfil não vê no sistema. Qualquer erro de um módulo vira 503: o relat�
   "Página X de Y". No XLSX, uma aba por tabela, com filtro automático e datas como data.
 - Os módulos gravam o e-mail de quem fez cada operação. O relatório mostra o nome, com `GET /api/usuarios/nomes`
   do `msusuario` (qualquer perfil; só e-mail, nome e perfil).
-- Doses: atrasada (pendente, passou do horário, ainda nos 30 minutos) e perdida (fora da janela) são calculadas na
-  consulta, pela RN-03 e RN-04. Turnos em `app.relatorios.turnos.*`: manhã 6h, tarde 12h, noite 18h (12/10;
+- Doses: a perdida vem marcada do msdoses (RN-04); a atrasada (pendente, passou do horário, ainda nos 30 minutos) é
+  calculada na consulta. A observação identifica a reaplicação (RN-07) e a dose "se necessário". Turnos em `app.relatorios.turnos.*`: manhã 6h, tarde 12h, noite 18h (12/10;
   o enunciado não define).
 
 | Endpoint (`?formato=PDF\|XLSX`) | Quem pode |
@@ -472,10 +507,10 @@ A autorização fina continua por `@PreAuthorize` no controller:
 | :-------------- | :----------------- | :----------------------------------- |
 | `msusuario`     | conforme o recurso; `GET /api/usuarios` só `ADMIN`; `GET /api/usuarios/nomes` autenticado; tutores e animais também `VETERINARIO` | `ADMIN` (usuários), `ADMIN`/`RECEPCIONISTA` (tutor, animal) |
 | `msbaias`       | autenticado        | `ADMIN`                              |
-| `msmedications` | autenticado        | `ADMIN`/`VETERINARIO`; desativar só `ADMIN`; reservar estoque `VETERINARIO`; devolver `VETERINARIO`/`RECEPCIONISTA` |
+| `msmedications` | autenticado        | `ADMIN`/`VETERINARIO`; desativar só `ADMIN`; reservar estoque `VETERINARIO`/`AUXILIAR`; devolver qualquer perfil |
 | `msinternacao`  | autenticado        | por transição; ver "Arquitetura do `ms-internacao`" |
 | `msprescricao`  | autenticado        | `VETERINARIO` (prescrever e desativar)  |
-| `msdoses`       | autenticado        | `VETERINARIO` (agendar, cancelar), `RECEPCIONISTA`/`VETERINARIO` (cancelar da internação), `AUXILIAR` (aplicar) |
+| `msdoses`       | autenticado        | `VETERINARIO` (agendar, cancelar), `RECEPCIONISTA`/`VETERINARIO` (cancelar da internação), `AUXILIAR` (aplicar, aplicar "se necessário") |
 | `msrelatorios`  | por relatório; ver "Arquitetura do `octopus-msrelatorios`" | não escreve nada |
 
 Desativar um usuário no `msusuario` não corta na hora o acesso dele aos outros módulos: como eles não consultam

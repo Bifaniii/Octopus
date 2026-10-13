@@ -69,13 +69,11 @@ Nada é apagado: a internação termina em `ENCERRADA` e cada passo fica no hist
 - Detalhes de arquitetura e convenções para novos módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 12/10/2026 na branch `feature/internacao`_
-- Registrar a saída física (`encerrar`) cancela as doses ainda pendentes da internação no msdoses, e elas
-  voltam ao estoque. Se o msdoses não responder, a saída não é gravada (503) e pode ser registrada de novo.
-- Clients com o HttpClient do JDK: o `HttpURLConnection` não faz PATCH.
-- Nova variável `MS_DOSES_URL` (também no `internacao.env` da EC2). 52 testes.
+_Push de 13/10/2026 na branch `feature/internacao`_
+- Admitida → Em tratamento só com prescrição ativa, conferida no msprescricao (variável nova `MS_PRESCRICAO_URL`).
+- RN-02: antirrábica com data futura no cadastro vale como irregular (só isolamento).
+- Animal sem espécie no cadastro não é internado. 57 testes.
 
 ## Próximos passos
-- [ ] Acrescentar `MS_DOSES_URL` ao `~/octopus-env/internacao.env` na EC2 antes do deploy.
-- [ ] Subir a `<version>` do `pom.xml` para publicar a `V4` junto com a `V7` do msusuario e a `V3` do msbaias.
-- [ ] Testar a corrida de duas admissões simultâneas contra MySQL (o H2 não reproduz o `FOR UPDATE` do InnoDB).
+- [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)
+- [ ] Publicar em produção junto com os outros módulos (ver o documento de deploy)
