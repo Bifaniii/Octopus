@@ -68,7 +68,7 @@ class PrescricaoControllerTest {
                 .thenAnswer(inv -> new InternacaoDto(inv.getArgument(0), "ADMITIDA", "Thor"));
         // E qualquer medicamento existe, sem interação proibida.
         when(medicacaoClient.buscar(anyLong()))
-                .thenAnswer(inv -> new MedicacaoDto(inv.getArgument(0), "Medicamento", true, 1000, List.of()));
+                .thenAnswer(inv -> new MedicacaoDto(inv.getArgument(0), "Medicamento", true, 1000, "CONTINUO", List.of()));
     }
 
     private static long novaInternacao() {
@@ -165,7 +165,7 @@ class PrescricaoControllerTest {
     void interacaoProibidaRecebe422ComARegra() throws Exception {
         Long meloxicam = novoId();
         Long cetoprofeno = novoId();
-        when(medicacaoClient.buscar(meloxicam)).thenReturn(new MedicacaoDto(meloxicam, "Meloxicam", true, 1000,
+        when(medicacaoClient.buscar(meloxicam)).thenReturn(new MedicacaoDto(meloxicam, "Meloxicam", true, 1000, "CONTINUO",
                 List.of(new MedicacaoDto.Interacao(cetoprofeno, "Cetoprofeno"))));
 
         mockMvc.perform(post("/api/prescricoes")
@@ -286,5 +286,27 @@ class PrescricaoControllerTest {
         mockMvc.perform(get("/api/prescricoes/" + id).header("Authorization", VET))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ativo").value(false));
+    }
+
+    // Registro inconsistente da carga do enunciado: prescrição sem intervalo. E item de horário fixo sem quantidade.
+    @Test
+    void itemSemIntervaloOuSemQuantidadeRecebe400ComOCampo() throws Exception {
+        mockMvc.perform(post("/api/prescricoes").header("Authorization", VET)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"internacaoId": %d,
+                                 "itens": [{"medicacaoId": %d, "dosagem": "5 mg",
+                                            "quantidadeDoses": 3, "inicio": "2026-10-10T08:00:00"}]}
+                                """.formatted(novaInternacao(), novoId())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.campos['itens[0].intervaloHoras']").exists());
+        mockMvc.perform(post("/api/prescricoes").header("Authorization", VET)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"internacaoId": %d,
+                                 "itens": [{"medicacaoId": %d, "dosagem": "5 mg", "intervaloHoras": 8}]}
+                                """.formatted(novaInternacao(), novoId())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.campos['itens[0].quantidadeEInicioPreenchidos']").exists());
     }
 }

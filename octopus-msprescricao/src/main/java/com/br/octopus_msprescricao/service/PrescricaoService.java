@@ -13,14 +13,15 @@ import com.br.octopus_msprescricao.dto.response.PrescricaoResponse;
 import com.br.octopus_msprescricao.exception.RecursoNaoEncontradoException;
 import com.br.octopus_msprescricao.exception.RegraDeNegocioException;
 import com.br.octopus_msprescricao.repository.PrescricaoRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -31,7 +32,6 @@ import java.util.Set;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class PrescricaoService {
 
     // Depois da alta (autorizada ou a pedido do tutor) e com a internação encerrada não se prescreve mais.
@@ -44,6 +44,21 @@ public class PrescricaoService {
     private final DoseClient doseClient;
     private final TransactionTemplate transacao;
     private final Clock clock;
+    // Mudança contratada: o item "se necessário" passa a existir em 01/11/2026. Configurável para ensaiar antes.
+    private final LocalDate seNecessarioAPartirDe;
+
+    public PrescricaoService(PrescricaoRepository prescricaoRepository, InternacaoClient internacaoClient,
+                             MedicacaoClient medicacaoClient, DoseClient doseClient, TransactionTemplate transacao,
+                             Clock clock,
+                             @Value("${app.prescricao.se-necessario-a-partir-de:2026-11-01}") LocalDate seNecessarioAPartirDe) {
+        this.prescricaoRepository = prescricaoRepository;
+        this.internacaoClient = internacaoClient;
+        this.medicacaoClient = medicacaoClient;
+        this.doseClient = doseClient;
+        this.transacao = transacao;
+        this.clock = clock;
+        this.seNecessarioAPartirDe = seNecessarioAPartirDe;
+    }
 
     /**
      * As consultas ao ms-internacao e ao msmedications vêm antes e fora da transação. O iniciar-tratamento é
@@ -59,7 +74,9 @@ public class PrescricaoService {
                     + " e não aceita nova prescrição.");
         }
 
-        Prescricao prescricao = request.toEntity(veterinarioEmail, LocalDateTime.now(clock));
+        LocalDateTime agora = LocalDateTime.now(clock);
+        exigirSeNecessarioEmVigor(request, agora.toLocalDate());
+        Prescricao prescricao = request.toEntity(veterinarioEmail, agora);
         Map<Long, MedicacaoDto> medicacoes = new HashMap<>();
         for (ItemPrescricao item : prescricao.getItens()) {
             medicacoes.computeIfAbsent(item.getMedicacaoId(), medicacaoClient::buscar);
@@ -71,7 +88,7 @@ public class PrescricaoService {
 
         Prescricao salva = transacao.execute(status -> prescricaoRepository.save(prescricao));
         try {
-            doseClient.agendar(AgendamentoDosesDto.de(salva));
+            doseClient.agendar(AgendamentoDosesDto.de(salva, medicacoes));
         } catch (RuntimeException falha) {
             desfazerAgendamento(salva.getId());
             throw falha;
@@ -136,15 +153,24 @@ public class PrescricaoService {
         }
     }
 
+    private void exigirSeNecessarioEmVigor(PrescricaoRequest request, LocalDate hoje) {
+        boolean temSeNecessario = request.itens().stream().anyMatch(item -> item.ehSeNecessario());
+        if (temSeNecessario && hoje.isBefore(seNecessarioAPartirDe)) {
+            throw new RegraDeNegocioException("A prescrição \"se necessário\" só vale a partir de "
+                    + seNecessarioAPartirDe.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ".");
+        }
+    }
+
     /**
      * Cada dose agendada separa 1 unidade do estoque (a reserva de fato é feita pelo octopus-msdoses ao agendar).
      * Conferir aqui evita gravar uma prescrição que seria desfeita em seguida; duas prescrições ao mesmo tempo
-     * ainda podem disputar o último saldo, e aí a recusa vem do agendamento.
+     * ainda podem disputar o último saldo, e aí a recusa vem do agendamento. O item "se necessário" reserva na hora
+     * de cada aplicação; aqui só se exige que haja ao menos uma unidade.
      */
     private void exigirEstoque(List<ItemPrescricao> itens, Map<Long, MedicacaoDto> medicacoes) {
         Map<Long, Integer> pedidas = new HashMap<>();
         for (ItemPrescricao item : itens) {
-            pedidas.merge(item.getMedicacaoId(), item.horarios().size(), Integer::sum);
+            pedidas.merge(item.getMedicacaoId(), item.isSeNecessario() ? 1 : item.horarios().size(), Integer::sum);
         }
         pedidas.forEach((medicacaoId, quantidade) -> {
             MedicacaoDto medicacao = medicacoes.get(medicacaoId);

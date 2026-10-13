@@ -34,21 +34,30 @@ public class ItemPrescricao {
     @Column(name = "dosagem", length = 100, nullable = false)
     private String dosagem;
 
+    // Mudança contratada de 01/11: sem horário fixo, só com intervalo mínimo entre as aplicações. Não tem quantidade
+    // de doses nem início, e o octopus-msdoses cria a dose quando o auxiliar aplica.
+    @Column(name = "se_necessario", nullable = false)
+    private boolean seNecessario;
+
+    // No item "se necessário", é o intervalo mínimo entre duas aplicações.
     @Column(name = "intervalo_horas", nullable = false)
     private int intervaloHoras;
 
-    @Column(name = "quantidade_doses", nullable = false)
-    private int quantidadeDoses;
+    @Column(name = "quantidade_doses")
+    private Integer quantidadeDoses;
 
     // Horário da primeira dose.
-    @Column(name = "inicio", nullable = false)
+    @Column(name = "inicio")
     private LocalDateTime inicio;
 
     @Column(name = "observacao", length = 500)
     private String observacao;
 
-    /** Horários de aplicação: inicio + n * intervaloHoras, para n de 0 a quantidadeDoses - 1. */
+    /** Horários de aplicação: inicio + n * intervaloHoras, para n de 0 a quantidadeDoses - 1. Vazio no "se necessário". */
     public List<LocalDateTime> horarios() {
+        if (seNecessario) {
+            return List.of();
+        }
         return IntStream.range(0, quantidadeDoses)
                 .mapToObj(n -> inicio.plusHours((long) n * intervaloHoras))
                 .toList();

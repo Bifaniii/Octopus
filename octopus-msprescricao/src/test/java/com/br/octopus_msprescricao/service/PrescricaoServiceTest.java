@@ -75,7 +75,7 @@ class PrescricaoServiceTest {
     void setUp() {
         Clock clock = Clock.fixed(AGORA.atZone(SAO_PAULO).toInstant(), SAO_PAULO);
         prescricaoService = new PrescricaoService(prescricaoRepository, internacaoClient, medicacaoClient, doseClient,
-                transacao, clock);
+                transacao, clock, java.time.LocalDate.of(2026, 11, 1));
         // O TransactionTemplate mockado só executa o bloco, como faria o de verdade sem banco.
         lenient().when(transacao.execute(any()))
                 .thenAnswer(inv -> inv.<TransactionCallback<?>>getArgument(0).doInTransaction(null));
@@ -86,7 +86,7 @@ class PrescricaoServiceTest {
         lenient().when(prescricaoRepository.save(any(Prescricao.class))).thenAnswer(inv -> inv.getArgument(0));
         // Por padrão, todo medicamento existe e não tem interação proibida.
         lenient().when(medicacaoClient.buscar(anyLong()))
-                .thenAnswer(inv -> new MedicacaoDto(inv.getArgument(0), "Medicamento", true, 1000, List.of()));
+                .thenAnswer(inv -> new MedicacaoDto(inv.getArgument(0), "Medicamento", true, 1000, "CONTINUO", List.of()));
     }
 
     private static Long novoId() {
@@ -102,7 +102,7 @@ class PrescricaoServiceTest {
     }
 
     private ItemPrescricaoRequest item(Long medicacaoId, int intervaloHoras, int quantidadeDoses, LocalDateTime inicio) {
-        return new ItemPrescricaoRequest(medicacaoId, "5 mg", intervaloHoras, quantidadeDoses, inicio, null);
+        return new ItemPrescricaoRequest(medicacaoId, "5 mg", null, intervaloHoras, quantidadeDoses, inicio, null);
     }
 
     /** Item de uma prescrição ativa já gravada na internação. */
@@ -114,9 +114,9 @@ class PrescricaoServiceTest {
     /** Cadastra no mock do msmedications um par com interação proibida, gravado nos dois sentidos. */
     private void interacaoProibida(Long a, String nomeA, Long b, String nomeB) {
         lenient().when(medicacaoClient.buscar(a)).thenReturn(
-                new MedicacaoDto(a, nomeA, true, 1000, List.of(new MedicacaoDto.Interacao(b, nomeB))));
+                new MedicacaoDto(a, nomeA, true, 1000, "CONTINUO", List.of(new MedicacaoDto.Interacao(b, nomeB))));
         lenient().when(medicacaoClient.buscar(b)).thenReturn(
-                new MedicacaoDto(b, nomeB, true, 1000, List.of(new MedicacaoDto.Interacao(a, nomeA))));
+                new MedicacaoDto(b, nomeB, true, 1000, "CONTINUO", List.of(new MedicacaoDto.Interacao(a, nomeA))));
     }
 
     private PrescricaoRequest pedido(ItemPrescricaoRequest... itens) {
@@ -198,7 +198,7 @@ class PrescricaoServiceTest {
     void criar_semEstoqueParaTodasAsDosesRecusaSemGravarNemIniciarTratamento() {
         internacaoEm("ADMITIDA");
         Long dipirona = novoId();
-        when(medicacaoClient.buscar(dipirona)).thenReturn(new MedicacaoDto(dipirona, "Dipirona", true, 4, List.of()));
+        when(medicacaoClient.buscar(dipirona)).thenReturn(new MedicacaoDto(dipirona, "Dipirona", true, 4, "CONTINUO", List.of()));
 
         // Dois itens do mesmo medicamento somam 3 + 2 = 5 doses, uma a mais que o estoque.
         assertThatThrownBy(() -> prescricaoService.criar(pedido(item(dipirona, 8, 3, AS_8H),
@@ -381,5 +381,61 @@ class PrescricaoServiceTest {
         prescricaoService.desativar(5L);
 
         verify(doseClient, never()).cancelar(anyLong());
+    }
+
+    private ItemPrescricaoRequest seNecessario(Long medicacaoId, int intervaloMinimo) {
+        return new ItemPrescricaoRequest(medicacaoId, "1 comprimido", true, intervaloMinimo, null, null, null);
+    }
+
+    // Mudança contratada: o item "se necessário" só passa a existir em 01/11/2026 (o relógio dos testes está em 09/10).
+    @Test
+    void criar_seNecessarioAntesDe01_11ERecusado() {
+        internacaoEm("ADMITIDA");
+
+        assertThatThrownBy(() -> prescricaoService.criar(pedido(seNecessario(novoId(), 6)), "vet@teste.local"))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("01/11/2026");
+        verify(internacaoClient, never()).iniciarTratamento(anyLong());
+        verify(prescricaoRepository, never()).save(any());
+    }
+
+    @Test
+    void criar_seNecessarioEmVigorVaiAoMsdosesSemHorariosEComOIntervaloMinimo() {
+        Clock clock = Clock.fixed(AGORA.atZone(SAO_PAULO).toInstant(), SAO_PAULO);
+        prescricaoService = new PrescricaoService(prescricaoRepository, internacaoClient, medicacaoClient, doseClient,
+                transacao, clock, java.time.LocalDate.of(2026, 10, 1));
+        internacaoEm("EM_TRATAMENTO");
+        Long dipirona = novoId();
+        when(medicacaoClient.buscar(dipirona))
+                .thenReturn(new MedicacaoDto(dipirona, "Dipirona", true, 1, "SINTOMATICO", List.of()));
+
+        PrescricaoResponse resposta = prescricaoService.criar(pedido(seNecessario(dipirona, 6),
+                item(novoId(), 8, 2, AS_8H)), "vet@teste.local");
+
+        ArgumentCaptor<AgendamentoDosesDto> agendamento = ArgumentCaptor.forClass(AgendamentoDosesDto.class);
+        verify(doseClient).agendar(agendamento.capture());
+        AgendamentoDosesDto.Item item = agendamento.getValue().itens().get(0);
+        assertThat(item.seNecessario()).isTrue();
+        assertThat(item.esquema()).isEqualTo("SINTOMATICO");
+        assertThat(item.intervaloMinimoHoras()).isEqualTo(6);
+        assertThat(item.horarios()).isEmpty();
+        assertThat(agendamento.getValue().itens().get(1).esquema()).isEqualTo("CONTINUO");
+        assertThat(resposta.itens().get(0).seNecessario()).isTrue();
+        assertThat(resposta.itens().get(0).quantidadeDoses()).isNull();
+    }
+
+    @Test
+    void criar_seNecessarioSemEstoqueNenhumERecusado() {
+        prescricaoService = new PrescricaoService(prescricaoRepository, internacaoClient, medicacaoClient, doseClient,
+                transacao, Clock.fixed(AGORA.atZone(SAO_PAULO).toInstant(), SAO_PAULO),
+                java.time.LocalDate.of(2026, 10, 1));
+        internacaoEm("ADMITIDA");
+        Long dipirona = novoId();
+        when(medicacaoClient.buscar(dipirona))
+                .thenReturn(new MedicacaoDto(dipirona, "Dipirona", true, 0, "SINTOMATICO", List.of()));
+
+        assertThatThrownBy(() -> prescricaoService.criar(pedido(seNecessario(dipirona, 6)), "vet@teste.local"))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("Estoque insuficiente de Dipirona");
     }
 }

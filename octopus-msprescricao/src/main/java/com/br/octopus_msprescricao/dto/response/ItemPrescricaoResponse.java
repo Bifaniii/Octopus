@@ -9,8 +9,9 @@ public record ItemPrescricaoResponse(
         Long id,
         Long medicacaoId,
         String dosagem,
+        boolean seNecessario,
         int intervaloHoras,
-        int quantidadeDoses,
+        Integer quantidadeDoses,
         LocalDateTime inicio,
         String observacao,
         List<LocalDateTime> horarios
@@ -20,6 +21,7 @@ public record ItemPrescricaoResponse(
                 item.getId(),
                 item.getMedicacaoId(),
                 item.getDosagem(),
+                item.isSeNecessario(),
                 item.getIntervaloHoras(),
                 item.getQuantidadeDoses(),
                 item.getInicio(),
