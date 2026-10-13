@@ -485,6 +485,13 @@ permite rodar manualmente pela aba Actions.
 
 Ao criar um módulo novo, copie o arquivo de qualquer branch e troque a branch e o bloco `env`.
 
+Memória: cada serviço roda com teto de 400 MB (`--memory 400m --memory-swap 400m` no `docker run` do
+`pipeline.yml`). O `Dockerfile` ajusta a JVM a esse teto: heap em até 50% (`-XX:MaxRAMPercentage=50`, cerca
+de 200 MB), metaspace até 128 MB, cache de código até 48 MB, pilha de 512 KB por thread e `SerialGC`. Se o
+processo passar do teto, o Docker o encerra e o `--restart unless-stopped` sobe de novo. O teto passa a valer
+no próximo deploy do módulo; num container que já está no ar, aplique na EC2 com
+`docker update --memory 400m --memory-swap 400m <container>`. Módulo novo copia as duas coisas.
+
 ## Segurança entre módulos
 
 Decidido na Sprint 1 e implementado em todos os módulos: só o `octopus-msusuario`
