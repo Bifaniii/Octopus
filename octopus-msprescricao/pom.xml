@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.br</groupId>
 	<artifactId>octopus-msprescricao</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.2-SNAPSHOT</version>
 	<name>octopus-msprescricao</name>
 	<description>Microsserviço de prescrição do Plantão (VidaPet)</description>
 	<properties>
