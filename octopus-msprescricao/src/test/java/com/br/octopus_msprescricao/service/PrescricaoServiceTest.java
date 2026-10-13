@@ -209,16 +209,34 @@ class PrescricaoServiceTest {
         verify(internacaoClient, never()).iniciarTratamento(any());
     }
 
+    // O ms-internacao só aceita Admitida → Em tratamento com prescrição ativa: ela precisa estar gravada antes.
     @Test
-    void criar_deveIniciarOTratamentoNaInternacaoAntesDeGravar() {
+    void criar_deveIniciarOTratamentoDepoisDeGravarEAgendar() {
         internacaoEm("ADMITIDA");
 
         prescricaoService.criar(pedido(item(8, 3)), "vet@teste.local");
 
-        InOrder ordem = inOrder(internacaoClient, prescricaoRepository);
+        InOrder ordem = inOrder(internacaoClient, prescricaoRepository, doseClient);
         ordem.verify(internacaoClient).buscar(INTERNACAO);
-        ordem.verify(internacaoClient).iniciarTratamento(INTERNACAO);
         ordem.verify(prescricaoRepository).save(any(Prescricao.class));
+        ordem.verify(doseClient).agendar(any());
+        ordem.verify(internacaoClient).iniciarTratamento(INTERNACAO);
+    }
+
+    @Test
+    void criar_falhaAoIniciarOTratamentoDesfazAPrescricaoEAsDoses() {
+        internacaoEm("ADMITIDA");
+        Prescricao gravada = Prescricao.builder().id(9L).internacaoId(INTERNACAO)
+                .veterinarioEmail("vet@teste.local").criadoEm(AGORA).build();
+        when(prescricaoRepository.save(any(Prescricao.class))).thenReturn(gravada);
+        when(prescricaoRepository.findById(9L)).thenReturn(Optional.of(gravada));
+        doThrow(new ServicoIndisponivelException("ms-internacao não respondeu."))
+                .when(internacaoClient).iniciarTratamento(INTERNACAO);
+
+        assertThatThrownBy(() -> prescricaoService.criar(pedido(item(8, 3)), "vet@teste.local"))
+                .isInstanceOf(ServicoIndisponivelException.class);
+        assertThat(gravada.isAtivo()).isFalse();
+        verify(doseClient).cancelar(9L);
     }
 
     @ParameterizedTest

@@ -61,11 +61,12 @@ public class PrescricaoService {
     }
 
     /**
-     * As consultas ao ms-internacao e ao msmedications vêm antes e fora da transação. O iniciar-tratamento é
-     * idempotente, então pode vir antes de gravar: se ele falhar, nada é gravado. Depois a prescrição é gravada e
-     * só então as doses são agendadas no octopus-msdoses. Uma transação local não desfaz o que o outro módulo já
-     * gravou (um timeout pode chegar depois de ele ter salvo), então, se o agendamento falhar, a prescrição é
-     * desativada e as doses que tenham sido criadas são canceladas: nada fica ativo pela metade.
+     * As consultas ao ms-internacao e ao msmedications vêm antes e fora da transação. Depois a prescrição é gravada,
+     * as doses são agendadas no octopus-msdoses e só então a internação passa a Em tratamento: o ms-internacao
+     * recusa essa transição sem prescrição ativa, então ela precisa existir antes. Uma transação local não desfaz o
+     * que o outro módulo já gravou (um timeout pode chegar depois de ele ter salvo), então, se o agendamento ou o
+     * início do tratamento falhar, a prescrição é desativada e as doses que tenham sido criadas são canceladas: nada
+     * fica ativo pela metade.
      */
     public PrescricaoResponse criar(PrescricaoRequest request, String veterinarioEmail) {
         InternacaoDto internacao = internacaoClient.buscar(request.internacaoId());
@@ -84,11 +85,10 @@ public class PrescricaoService {
         exigirSemInteracaoNoMesmoHorario(prescricao.getItens(), medicacoes, internacao.id());
         exigirEstoque(prescricao.getItens(), medicacoes);
 
-        internacaoClient.iniciarTratamento(internacao.id());
-
         Prescricao salva = transacao.execute(status -> prescricaoRepository.save(prescricao));
         try {
             doseClient.agendar(AgendamentoDosesDto.de(salva, medicacoes));
+            internacaoClient.iniciarTratamento(internacao.id());
         } catch (RuntimeException falha) {
             desfazerAgendamento(salva.getId());
             throw falha;
