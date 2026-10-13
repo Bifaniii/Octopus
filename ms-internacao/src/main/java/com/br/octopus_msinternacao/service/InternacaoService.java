@@ -3,6 +3,7 @@ package com.br.octopus_msinternacao.service;
 import com.br.octopus_msinternacao.client.AnimalClient;
 import com.br.octopus_msinternacao.client.BaiaClient;
 import com.br.octopus_msinternacao.client.DoseClient;
+import com.br.octopus_msinternacao.client.PrescricaoClient;
 import com.br.octopus_msinternacao.client.dto.AnimalDto;
 import com.br.octopus_msinternacao.client.dto.BaiaDto;
 import com.br.octopus_msinternacao.client.dto.TipoBaia;
@@ -40,6 +41,7 @@ public class InternacaoService {
     private final AnimalClient animalClient;
     private final BaiaClient baiaClient;
     private final DoseClient doseClient;
+    private final PrescricaoClient prescricaoClient;
     private final TransactionTemplate transacao;
     private final Clock clock;
 
@@ -95,12 +97,17 @@ public class InternacaoService {
         });
     }
 
-    // Admitida → Em tratamento. Chamada pelo msplantao a cada prescrição criada; idempotente.
-    @Transactional
+    // Admitida → Em tratamento, "não sem prescrição ativa". Chamada pelo msprescricao a cada prescrição criada,
+    // depois de gravá-la; idempotente. A consulta ao msprescricao fica fora da transação.
     public InternacaoResponse iniciarTratamento(Long id, String usuario) {
-        Internacao internacao = buscarEntidade(id);
-        internacao.iniciarTratamento(usuario, agora());
-        return InternacaoResponse.from(internacao);
+        if (buscarEntidade(id).getStatus() == StatusInternacao.ADMITIDA && !prescricaoClient.temPrescricaoAtiva(id)) {
+            throw new RegraNegocioException("A internação só passa a Em tratamento com uma prescrição ativa.");
+        }
+        return transacao.execute(status -> {
+            Internacao internacao = buscarEntidade(id);
+            internacao.iniciarTratamento(usuario, agora());
+            return InternacaoResponse.from(internacao);
+        });
     }
 
     @Transactional

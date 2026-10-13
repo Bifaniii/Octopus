@@ -3,6 +3,7 @@ package com.br.octopus_msinternacao.service;
 import com.br.octopus_msinternacao.client.AnimalClient;
 import com.br.octopus_msinternacao.client.BaiaClient;
 import com.br.octopus_msinternacao.client.DoseClient;
+import com.br.octopus_msinternacao.client.PrescricaoClient;
 import com.br.octopus_msinternacao.client.dto.AnimalDto;
 import com.br.octopus_msinternacao.client.dto.BaiaDto;
 import com.br.octopus_msinternacao.client.dto.TipoBaia;
@@ -14,6 +15,7 @@ import com.br.octopus_msinternacao.exception.RecursoDuplicadoException;
 import com.br.octopus_msinternacao.exception.RecursoNaoEncontradoException;
 import com.br.octopus_msinternacao.exception.RegraNegocioException;
 import com.br.octopus_msinternacao.repository.InternacaoRepository;
+import com.br.octopus_msinternacao.domain.enums.StatusInternacao;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -69,6 +71,8 @@ class InternacaoServiceTest {
     @Mock
     private DoseClient doseClient;
     @Mock
+    private PrescricaoClient prescricaoClient;
+    @Mock
     private TransactionTemplate transacao;
 
     private InternacaoService service;
@@ -76,7 +80,7 @@ class InternacaoServiceTest {
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(AGORA.atZone(SAO_PAULO).toInstant(), SAO_PAULO);
-        service = new InternacaoService(repository, animalClient, baiaClient, doseClient, transacao, clock);
+        service = new InternacaoService(repository, animalClient, baiaClient, doseClient, prescricaoClient, transacao, clock);
         // O TransactionTemplate mockado só executa o bloco, como faria o de verdade sem banco.
         lenient().when(transacao.execute(any())).thenAnswer(inv -> inv.<TransactionCallback<?>>getArgument(0).doInTransaction(null));
         lenient().when(repository.save(any(Internacao.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -220,6 +224,31 @@ class InternacaoServiceTest {
                 .isInstanceOf(RegraNegocioException.class)
                 .hasMessageContaining("sem espécie");
         verifyNoInteractions(transacao, repository);
+    }
+
+    // ---------- ciclo de vida: Admitida → Em tratamento ----------
+
+    @Test
+    @DisplayName("Admitida → Em tratamento: recusado sem prescrição ativa")
+    void iniciarTratamentoSemPrescricao() {
+        Internacao internacao = ocupante(baia(TipoBaia.COLETIVA, 1), null);
+        when(repository.findById(7L)).thenReturn(Optional.of(internacao));
+        when(prescricaoClient.temPrescricaoAtiva(7L)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.iniciarTratamento(7L, VET))
+                .isInstanceOf(RegraNegocioException.class)
+                .hasMessageContaining("prescrição ativa");
+        assertThat(internacao.getStatus()).isEqualTo(ADMITIDA);
+    }
+
+    @Test
+    @DisplayName("Admitida → Em tratamento: aceito com prescrição ativa")
+    void iniciarTratamentoComPrescricao() {
+        Internacao internacao = ocupante(baia(TipoBaia.COLETIVA, 1), null);
+        when(repository.findById(7L)).thenReturn(Optional.of(internacao));
+        when(prescricaoClient.temPrescricaoAtiva(7L)).thenReturn(true);
+
+        assertThat(service.iniciarTratamento(7L, VET).status()).isEqualTo(StatusInternacao.EM_TRATAMENTO);
     }
 
     // ---------- RN-01 ----------

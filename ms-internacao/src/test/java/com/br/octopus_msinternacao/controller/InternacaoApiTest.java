@@ -3,6 +3,7 @@ package com.br.octopus_msinternacao.controller;
 import com.br.octopus_msinternacao.client.AnimalClient;
 import com.br.octopus_msinternacao.client.BaiaClient;
 import com.br.octopus_msinternacao.client.DoseClient;
+import com.br.octopus_msinternacao.client.PrescricaoClient;
 import com.br.octopus_msinternacao.exception.ServicoIndisponivelException;
 import com.br.octopus_msinternacao.client.dto.AnimalDto;
 import com.br.octopus_msinternacao.client.dto.BaiaDto;
@@ -15,6 +16,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
+import static org.mockito.ArgumentMatchers.anyLong;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,6 +80,8 @@ class InternacaoApiTest {
     private BaiaClient baiaClient;
     @MockitoBean
     private DoseClient doseClient;
+    @MockitoBean
+    private PrescricaoClient prescricaoClient;
 
     @Value("${app.security.jwt.secret}")
     private String segredoBase64;
@@ -92,6 +96,8 @@ class InternacaoApiTest {
         baia = new BaiaDto(novoId(), TipoBaia.COLETIVA, "B-01", 1, true);
         when(animalClient.buscar(animal.id())).thenReturn(animal);
         when(baiaClient.buscar(baia.id())).thenReturn(baia);
+        // Toda internação dos testes tem prescrição ativa, salvo quando o teste diz o contrário.
+        when(prescricaoClient.temPrescricaoAtiva(anyLong())).thenReturn(true);
     }
 
     // Mesmo formato do token do octopus-msusuario: subject = e-mail, claim "role".
@@ -170,6 +176,17 @@ class InternacaoApiTest {
         String id = objectMapper.readTree(corpo).get("id").asString();
 
         como("ROLE_ADMIN", patch(URL + "/" + id + "/iniciar-tratamento")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Admitida → Em tratamento sem prescrição ativa recebe 422 (transição proibida do enunciado)")
+    void iniciarTratamentoSemPrescricaoRecebe422() throws Exception {
+        String id = admitir();
+        when(prescricaoClient.temPrescricaoAtiva(Long.valueOf(id))).thenReturn(false);
+
+        comoVet(patch(URL + "/" + id + "/iniciar-tratamento"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.mensagem").value(org.hamcrest.Matchers.containsString("prescrição ativa")));
     }
 
     // ---------- fluxo completo ----------
