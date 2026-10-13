@@ -92,12 +92,10 @@ o histórico.
 - Arquitetura e convenções para novos módulos: `CLAUDE.md`.
 
 ## Últimas alterações
-_Push de 12/10/2026 na branch `feature/register_medications`_
-- `octopus-msmedications` 0.0.2-SNAPSHOT, para publicar a `V4` (id `Long`) e o estoque em doses.
-- A `V4` foi corrigida para o MySQL do Aiven, que exige chave primária em toda tabela (`sql_require_primary_key`):
-  em cada tabela a PK antiga sai e a nova entra no mesmo `ALTER`. Testada num MySQL com a mesma trava, a partir da
-  versão que está em produção (06/10), com os pares de interação remapeados certo. 14 testes.
+_Push de 13/10/2026 na branch `feature/register_medications`_
+- O auxiliar pode reservar estoque (aplicação de dose "se necessário").
+- Qualquer perfil pode devolver estoque (dose perdida de esquema sintomático, devolvida na consulta de quem abrir o painel). 14 testes.
 
 ## Próximos passos
-- [ ] Publicar antes do msdoses, que passa a reservar e devolver estoque aqui.
-- [ ] Publicar a `V4` na EC2 junto com o `octopus-msprescricao`, que já envia `medicacaoId` numérico.
+- [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)
+- [ ] Publicar em produção junto com os outros módulos (ver o documento de deploy)
