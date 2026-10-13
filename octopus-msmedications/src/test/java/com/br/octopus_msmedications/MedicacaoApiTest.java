@@ -264,14 +264,18 @@ class MedicacaoApiTest {
     }
 
     @Test
-    @DisplayName("estoque: só o veterinário reserva; quantidade zero é inválida; PATCH acerta a contagem")
+    @DisplayName("estoque: recepção não reserva; quantidade zero é inválida; PATCH acerta a contagem")
     void permissoesEValidacaoDoEstoque() throws Exception {
         Long id = criar("Novalgina", "12345678901");
 
         mockMvc.perform(patch(URL + "/" + id + "/estoque/reservar")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_AUXILIAR"))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_RECEPCIONISTA"))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"quantidade\": 1}"))
                 .andExpect(status().isForbidden());
+        mockMvc.perform(patch(URL + "/" + id + "/estoque/reservar")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_AUXILIAR"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"quantidade\": 1}"))
+                .andExpect(status().isOk());
         mockMvc.perform(patch(URL + "/" + id + "/estoque/reservar")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_VETERINARIO"))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"quantidade\": 0}"))

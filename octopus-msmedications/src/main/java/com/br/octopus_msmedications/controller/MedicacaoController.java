@@ -64,16 +64,18 @@ public class MedicacaoController {
         return service.atualizarParcial(id, request);
     }
 
-    // Estoque em doses. Reserva: o msdoses, com o token do veterinário que prescreveu. Devolução: o msdoses ao
-    // cancelar doses, com o token do veterinário (prescrição desativada) ou de quem registrou a saída do animal.
+    // Estoque em doses, movimentado pelo msdoses com o token de quem fez o pedido lá. Reserva: o veterinário que
+    // prescreveu ou o auxiliar que aplica uma dose "se necessário". Devolução: qualquer perfil, porque a dose
+    // perdida de esquema sintomático (RN-07) devolve a unidade na primeira consulta depois da janela, seja quem for
+    // que consultou.
     @PatchMapping("/{id}/estoque/reservar")
-    @PreAuthorize("hasRole('VETERINARIO')")
+    @PreAuthorize("hasAnyRole('VETERINARIO','AUXILIAR')")
     public MedicacaoResponse reservar(@PathVariable Long id, @Valid @RequestBody MovimentoEstoqueRequest request) {
         return service.reservar(id, request.quantidade());
     }
 
     @PatchMapping("/{id}/estoque/devolver")
-    @PreAuthorize("hasAnyRole('VETERINARIO','RECEPCIONISTA')")
+    @PreAuthorize("isAuthenticated()")
     public MedicacaoResponse devolver(@PathVariable Long id, @Valid @RequestBody MovimentoEstoqueRequest request) {
         return service.devolver(id, request.quantidade());
     }
