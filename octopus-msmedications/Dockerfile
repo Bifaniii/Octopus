@@ -11,4 +11,7 @@ RUN useradd --system --uid 1001 spring
 COPY --from=build /app/target/*.jar app.jar
 USER spring
 EXPOSE 8082
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Memória: na EC2 o container sobe com teto de 400 MB (--memory no pipeline.yml), e a JVM se ajusta a ele.
+# Heap em até metade do teto; o resto fica para metaspace, código compilado e threads. SerialGC é o
+# coletor que menos memória gasta, adequado a um serviço pequeno.
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=50", "-XX:MaxMetaspaceSize=128m", "-XX:ReservedCodeCacheSize=48m", "-Xss512k", "-XX:+UseSerialGC", "-jar", "app.jar"]
