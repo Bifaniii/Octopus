@@ -124,20 +124,9 @@ cd octopus-msusuario && ./mvnw test
 - Arquitetura e convenções para novos módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 12/10/2026 na branch `main`_
-- `octopus-msusuario` 0.0.4-SNAPSHOT. O deploy da 0.0.3 falhou na `V7`: o MySQL do Aiven exige chave primária em
-  toda tabela (`sql_require_primary_key`), e a migration deixava `tb_animais` sem PK entre dois comandos. A `V7`
-  agora troca a PK num comando só e continua do estado parcial que a tentativa deixou em produção.
-- `FlywayConfig`: se houver migration com falha no histórico, roda o repair antes de migrar (só nesse caso).
-- Testado num MySQL com a mesma trava, reproduzindo produção: versão 0.0.2, falha da V7 antiga e subida da nova.
-- Continua publicando o que estava só no repositório: ids `Long` em tutor e animal, `GET /api/usuarios` com filtros,
-  edições (`PUT`), leitura de tutores e animais pelo veterinário e `GET /api/usuarios/nomes`. 61 testes.
+_Push de 13/10/2026 na branch `main`_
+- `CLAUDE.md` atualizado com o escopo completo do enunciado: RN-03, RN-04, RN-07, transições proibidas, mudança contratada e painel de doses.
 
 ## Próximos passos
-- [ ] Corrigir a mesma troca de PK na V3 do baias e na V4 do medicamentos antes de publicar esses serviços.
-- [ ] Banco local que já aplicou a V7 antiga: rodar `flyway repair` (checksum mudou) ou recriar o banco.
-- [ ] Publicar na ordem os outros serviços (baias, medicamentos, doses, internação, prescrição, relatórios); até a
-      internação nova subir, a admissão quebra, porque a antiga ainda espera o id do animal em UUID.
-- [ ] Trocar `java.util.Random` por `SecureRandom` no código de recuperação de senha e tirar o `UNIQUE` global do
-      token de 6 dígitos (colisão vira 500).
-- [ ] Limitar as tentativas de `redefinir-senha`.
+- [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)
+- [ ] Publicar em produção junto com os outros módulos (ver o documento de deploy)
