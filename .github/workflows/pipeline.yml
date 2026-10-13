@@ -122,7 +122,9 @@ jobs:
 
             subir() {
               docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
+              # Teto de 400 MB por serviço, sem swap extra; a JVM se ajusta a ele (ver o Dockerfile).
               docker run -d --name "$CONTAINER" --restart unless-stopped \
+                --memory 400m --memory-swap 400m \
                 -p "$PORTA:$PORTA" --env-file "$ENV_FILE" "$1"
             }
 

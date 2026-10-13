@@ -7,12 +7,14 @@ prescrição e registra a aplicação pelo auxiliar. Arquitetura e convenções 
 
 ## Últimas alterações
 _Push de 13/10/2026 na branch `feature/doses`_
-- RN-03: a aplicação só é aceita de 30 minutos antes a 30 minutos depois do horário previsto.
-- RN-04 e RN-07: antes de cada consulta, a pendente fora da janela vira PERDIDA; contínuo é reaplicado na hora e desloca as seguintes, sintomático é pulado e devolve a unidade.
-- Tela 6: `GET /api/doses/painel` com atrasadas, próximas, perdidas e itens "se necessário".
-- Mudança contratada: `POST /api/doses/se-necessario/{item}/aplicacoes`, com intervalo mínimo e reserva de estoque na aplicação.
-- Migration `V2__doses_perdidas_e_se_necessario.sql`, testada num MySQL com `sql_require_primary_key=ON`. 43 testes.
+- Teto de 400 MB de memória por serviço: o `docker run` do `pipeline.yml` passa a usar
+  `--memory 400m --memory-swap 400m`.
+- `Dockerfile` com a JVM ajustada ao teto: heap em até 50%, metaspace até 128 MB, cache de código até
+  48 MB, pilha de 512 KB por thread e `SerialGC`.
+- `CLAUDE.md`: regra de memória na seção "Integração contínua".
 
 ## Próximos passos
+- [ ] Subir a `<version>` do `pom.xml` para o teto de memória valer na EC2, ou aplicar no container atual
+      com `docker update --memory 400m --memory-swap 400m <container>`.
 - [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)
 - [ ] Publicar em produção junto com os outros módulos (ver o documento de deploy)
