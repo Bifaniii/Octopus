@@ -8,8 +8,10 @@ Arquitetura e convenções de todos os módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
 _Push de 24/10/2026 na branch `feature/prescricao`_
-- Novo `PATCH /api/prescricoes/{id}/ativar` (`VETERINARIO`): reativa a prescrição, refaz o RN-06 só nos horários que ainda não passaram e pede ao msdoses que traga as doses de volta. Recusa se a internação teve alta ou foi encerrada, se faltar estoque ou se nenhuma dose ainda vale.
-- Versão `0.0.2` para `0.0.3-SNAPSHOT`.
+- `subir()` do `pipeline.yml`: container com 256 MB de RAM e até 768 MB com swap
+  (`--memory 256m --memory-swap 768m`) e a JVM configurada no `docker run` por `JAVA_TOOL_OPTIONS`
+  (`-Xmx128m`, metaspace até 128 MB, pilha de 256 KB, `SerialGC`, `-XX:TieredStopAtLevel=1`).
+- `CLAUDE.md`: regra de memória atualizada para esses valores.
 
 ## Próximos passos
 - [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)
