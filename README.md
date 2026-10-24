@@ -70,7 +70,10 @@ Nada é apagado: a internação termina em `ENCERRADA` e cada passo fica no hist
 
 ## Últimas alterações
 _Push de 24/10/2026 na branch `feature/internacao`_
-- Ao registrar a alta (autorizada ou a pedido do tutor), o módulo pede ao `msrelatorios` que envie o resumo do atendimento ao e-mail do tutor, depois do commit e em outra thread. Se o envio falhar (tutor sem e-mail, módulo fora do ar), só é registrado no log: a alta não é desfeita. Nova variável `MS_RELATORIOS_URL` (padrão `http://localhost:8086`). Versão `0.0.4` para `0.0.5-SNAPSHOT`.
+- `subir()` do `pipeline.yml`: container com 256 MB de RAM e até 768 MB com swap
+  (`--memory 256m --memory-swap 768m`) e a JVM configurada no `docker run` por `JAVA_TOOL_OPTIONS`
+  (`-Xmx128m`, metaspace até 128 MB, pilha de 256 KB, `SerialGC`, `-XX:TieredStopAtLevel=1`).
+- `CLAUDE.md`: regra de memória atualizada para esses valores.
 
 ## Próximos passos
 - [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)
