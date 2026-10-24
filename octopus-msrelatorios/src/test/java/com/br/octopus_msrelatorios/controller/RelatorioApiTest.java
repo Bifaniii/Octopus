@@ -4,6 +4,9 @@ import com.br.octopus_msrelatorios.client.BaiaClient;
 import com.br.octopus_msrelatorios.client.DoseClient;
 import com.br.octopus_msrelatorios.client.InternacaoClient;
 import com.br.octopus_msrelatorios.client.MedicacaoClient;
+import com.br.octopus_msrelatorios.client.PrescricaoClient;
+import com.br.octopus_msrelatorios.client.dto.PrescricaoDto;
+import com.br.octopus_msrelatorios.exception.RecursoNaoEncontradoException;
 import com.br.octopus_msrelatorios.client.UsuarioClient;
 import com.br.octopus_msrelatorios.client.dto.BaiaDto;
 import com.br.octopus_msrelatorios.client.dto.DoseDto;
@@ -77,6 +80,8 @@ class RelatorioApiTest {
     private MedicacaoClient medicacaoClient;
     @MockitoBean
     private DoseClient doseClient;
+    @MockitoBean
+    private PrescricaoClient prescricaoClient;
 
     private static final String ADMIN = TokensDeTeste.bearer("admin@vidapet.com", "ROLE_ADMIN");
     private static final String VET = TokensDeTeste.bearer("rodrigo@vidapet.com", "ROLE_VETERINARIO");
@@ -273,6 +278,46 @@ class RelatorioApiTest {
         mockMvc.perform(get("/api/relatorios/doses").header("Authorization", ADMIN))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.mensagem").value("octopus-msdoses não respondeu."));
+    }
+
+    @Test
+    void prescricaoSaiEmPdfComPacienteTutorEAssinaturaDoVeterinario() throws Exception {
+        when(prescricaoClient.buscar(7L)).thenReturn(new PrescricaoDto(7L, 5L, "rodrigo@vidapet.com",
+                "Manter em repouso", true, LocalDateTime.of(2026, 10, 11, 10, 0), List.of(
+                new PrescricaoDto.ItemDto(1L, 1L, "1 comprimido", false, 8, 6,
+                        LocalDateTime.of(2026, 10, 11, 14, 0), null))));
+
+        MvcResult resultado = mockMvc.perform(get("/api/relatorios/prescricoes/7").header("Authorization", VET))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "application/pdf"))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("prescricao-7")))
+                .andReturn();
+
+        String texto = textoDoPdf(resultado.getResponse().getContentAsByteArray());
+        assertThat(texto).contains("Prescrição médica", "Thor", "Marina Costa", "(11) 98888-7777",
+                "Antibiótico A 500 mg", "A cada 8 h", "6 doses", "Manter em repouso",
+                "Dr. Rodrigo Alves", "ASSINADO DIGITALMENTE")
+                .doesNotContain("Dr. Dr.");
+    }
+
+    @Test
+    void prescricaoSoParaVeterinarioEAdmin() throws Exception {
+        when(prescricaoClient.buscar(7L)).thenReturn(new PrescricaoDto(7L, 5L, "rodrigo@vidapet.com", null, true,
+                LocalDateTime.of(2026, 10, 11, 10, 0), List.of()));
+
+        mockMvc.perform(get("/api/relatorios/prescricoes/7")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/relatorios/prescricoes/7").header("Authorization", AUXILIAR))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/relatorios/prescricoes/7").header("Authorization", ADMIN))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void prescricaoQueNaoExisteRecebe404() throws Exception {
+        when(prescricaoClient.buscar(99L)).thenThrow(new RecursoNaoEncontradoException("Prescrição não encontrada: 99"));
+
+        mockMvc.perform(get("/api/relatorios/prescricoes/99").header("Authorization", VET))
+                .andExpect(status().isNotFound());
     }
 
     private static String textoDoPdf(byte[] pdf) throws Exception {

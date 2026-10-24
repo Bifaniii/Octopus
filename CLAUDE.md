@@ -25,7 +25,7 @@ O sistema é feito de microsserviços Spring Boot independentes, um por área, c
 | `ms-internacao/`        | 8083  | `feature/internacao`           | Admissão, ciclo de vida com as transições proibidas, RN-01, RN-02 e RN-08. 57 testes. |
 | `octopus-msprescricao/` | 8084  | `feature/prescricao`           | Prescrição e itens, horários gerados, RN-06, item "se necessário", agenda as doses. 49 testes. |
 | `octopus-msdoses/`      | 8085  | `feature/doses`                | Uma dose por horário, janela (RN-03), perdida (RN-04), aplicação imutável (RN-05), reaplicação (RN-07), painel e "se necessário". 43 testes. |
-| `octopus-msrelatorios/` | 8086  | `feature/relatorios`           | Relatórios em PDF e XLSX lidos dos outros módulos, sem banco. 28 testes. |
+| `octopus-msrelatorios/` | 8086  | `feature/relatorios`           | Relatórios em PDF e XLSX lidos dos outros módulos, sem banco, mais o PDF assinado de uma prescrição. 31 testes. |
 
 Os módulos estão publicados no free tier da AWS (EC2), com o MySQL hospedado no Aiven. O front é um projeto
 Angular separado, no repositório `Octopus-front`, que também usa uma branch por funcionalidade e tem o seu

@@ -27,6 +27,9 @@ Stack: Java 17, Spring Boot 4.1.1, Spring Web (webmvc), Spring Security, Lombok,
 | `GET /api/relatorios/tutores-animais` | nenhum | `ADMIN`, `RECEPCIONISTA`, `VETERINARIO` |
 | `GET /api/relatorios/baias` | nenhum | qualquer autenticado |
 | `GET /api/relatorios/usuarios` | `perfil` (`ROLE_*`), `ativo` | `ADMIN` |
+| `GET /api/relatorios/prescricoes/{id}` | nenhum (só PDF) | `ADMIN`, `VETERINARIO` |
+
+A prescrição sai em uma página: paciente, tutor, medicamentos e, no fim, o carimbo "Dr. <nome> ASSINADO DIGITALMENTE" com a data e a hora da emissão. É um carimbo, não certificado digital. Lê a prescrição no `msprescricao` (`MS_PRESCRICAO_URL`, padrão `http://localhost:8084`); na EC2 o `relatorios.env` precisa dessa variável. Prescrição que não existe responde 404.
 
 Erros: filtro inválido responde 400; módulo fora do ar ou com erro responde 503 (o relatório não sai pela metade).
 
@@ -46,3 +49,8 @@ Swagger: <http://localhost:8086/swagger-ui.html>.
 Deploy: `.github/workflows/pipeline.yml` roda os testes a cada push e publica na EC2 (container `relatorios`)
 quando a `<version>` do `pom.xml` muda. Na EC2, `~/octopus-env/relatorios.env` precisa existir com o `JWT_SECRET`
 e as `MS_*_URL` apontando para os outros containers.
+
+## Últimas alterações
+_Push de 24/10/2026 na branch `feature/relatorios`_
+- Novo `GET /api/relatorios/prescricoes/{id}`: PDF da prescrição para o veterinário imprimir, com a assinatura digital carimbada. Versão `0.0.2` para `0.0.3-SNAPSHOT`.
+- Nova variável `MS_PRESCRICAO_URL` (adicionar ao `relatorios.env` na EC2 antes do deploy).

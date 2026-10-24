@@ -13,5 +13,6 @@ services:
       MS_MEDICACOES_URL: ${MS_MEDICACOES_URL}
       MS_INTERNACAO_URL: ${MS_INTERNACAO_URL}
       MS_DOSES_URL: ${MS_DOSES_URL}
+      MS_PRESCRICAO_URL: ${MS_PRESCRICAO_URL:-http://localhost:8084}
     extra_hosts:
       - "host.docker.internal:host-gateway"

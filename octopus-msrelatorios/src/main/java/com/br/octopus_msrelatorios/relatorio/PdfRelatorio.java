@@ -82,8 +82,36 @@ public class PdfRelatorio {
             }
         }
 
+        if (relatorio.assinatura() != null) {
+            documento.add(assinatura(relatorio.assinatura()));
+        }
+
         documento.close();
         return saida.toByteArray();
+    }
+
+    // Caixa com o nome de quem assina, o carimbo "ASSINADO DIGITALMENTE" e o momento, que não quebra de página.
+    private PdfPTable assinatura(Relatorio.Assinatura assinatura) {
+        PdfPTable caixa = new PdfPTable(1);
+        caixa.setWidthPercentage(60);
+        caixa.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        caixa.setSpacingBefore(36);
+        caixa.setKeepTogether(true);
+        caixa.setSplitLate(false);
+
+        Phrase texto = new Phrase();
+        texto.add(new com.lowagie.text.Chunk(assinatura.nome() + "\n", new Font(negrito, 12, Font.NORMAL, Marca.TEXTO)));
+        texto.add(new com.lowagie.text.Chunk("ASSINADO DIGITALMENTE\n",
+                new Font(negrito, 9.5f, Font.NORMAL, Marca.PRIMARIA_FORTE)));
+        texto.add(new com.lowagie.text.Chunk(Valores.texto(assinatura.em()),
+                new Font(normal, 8.5f, Font.NORMAL, Marca.TEXTO_SUAVE)));
+        PdfPCell celula = new PdfPCell(texto);
+        celula.setHorizontalAlignment(Element.ALIGN_CENTER);
+        celula.setPadding(12);
+        celula.setBorderColor(Marca.PRIMARIA);
+        celula.setBorderWidth(1.2f);
+        caixa.addCell(celula);
+        return caixa;
     }
 
     private PdfPTable tabela(Relatorio.Tabela tabela) {

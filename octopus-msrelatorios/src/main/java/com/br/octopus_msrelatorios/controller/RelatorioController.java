@@ -7,6 +7,7 @@ import com.br.octopus_msrelatorios.relatorio.Formato;
 import com.br.octopus_msrelatorios.service.RelatorioBaiasService;
 import com.br.octopus_msrelatorios.service.RelatorioDosesService;
 import com.br.octopus_msrelatorios.service.RelatorioInternacoesService;
+import com.br.octopus_msrelatorios.service.RelatorioPrescricaoService;
 import com.br.octopus_msrelatorios.service.RelatorioTutoresAnimaisService;
 import com.br.octopus_msrelatorios.service.RelatorioUsuariosService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -17,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -38,6 +40,7 @@ public class RelatorioController {
     private final RelatorioTutoresAnimaisService tutoresAnimaisService;
     private final RelatorioBaiasService baiasService;
     private final RelatorioUsuariosService usuariosService;
+    private final RelatorioPrescricaoService prescricaoService;
 
     // Sem período, o dia de hoje. auxiliar é o e-mail de quem aplicou.
     @GetMapping("/doses")
@@ -86,5 +89,12 @@ public class RelatorioController {
             @RequestParam(required = false) Boolean ativo,
             Authentication autenticacao) {
         return exportador.exportar(usuariosService.gerar(perfil, ativo, autenticacao), formato);
+    }
+
+    // Uma prescrição para imprimir, sempre em PDF, com a assinatura de quem prescreveu.
+    @GetMapping("/prescricoes/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'VETERINARIO')")
+    public ResponseEntity<byte[]> prescricao(@PathVariable Long id, Authentication autenticacao) {
+        return exportador.exportar(prescricaoService.gerar(id, autenticacao), Formato.PDF);
     }
 }

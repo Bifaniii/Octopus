@@ -15,8 +15,19 @@ public record Relatorio(
         List<Tabela> tabelas,
         String emitidoPor,
         LocalDateTime emitidoEm,
-        boolean paisagem
+        boolean paisagem,
+        Assinatura assinatura
 ) {
+
+    /** Os relatórios comuns não têm assinatura. */
+    public Relatorio(String titulo, String nomeArquivo, List<String> filtros, List<Tabela> tabelas,
+                     String emitidoPor, LocalDateTime emitidoEm, boolean paisagem) {
+        this(titulo, nomeArquivo, filtros, tabelas, emitidoPor, emitidoEm, paisagem, null);
+    }
+
+    /** Bloco no fim do PDF: quem assina e quando. A planilha ignora. */
+    public record Assinatura(String nome, LocalDateTime em) {
+    }
 
     public record Tabela(String titulo, List<Coluna> colunas, List<List<Object>> linhas) {
     }
