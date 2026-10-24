@@ -134,6 +134,7 @@ _Push de 24/10/2026 na branch `main`_
 - A UF do CRMV é a enum `UnidadeFederativa` (as 27 siglas). Valor fora da enum devolve 400 dizendo o campo e os valores
   aceitos. Sem migration: a coluna `crmv_uf` já era `VARCHAR(2)`.
 - 72 testes (11 novos, em `validation/`).
+- Novos `PATCH /api/{veterinarios|auxiliares|recepcionistas}/{id}/ativar` (só `ADMIN`): o admin reativa quem desativou, e o acesso volta.
 
 ## Próximos passos
 - [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)

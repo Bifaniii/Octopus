@@ -54,6 +54,11 @@ public class VeterinarioController {
         return veterinarioService.desativar(id);
     }
 
+    @PatchMapping("/{id}/ativar")
+    public VeterinarioResponse ativar(@PathVariable UUID id) {
+        return veterinarioService.ativar(id);
+    }
+
     // Edita os dados do perfil e o e-mail de login. A senha não muda aqui.
     @PutMapping("/{id}")
     public VeterinarioResponse atualizar(@PathVariable UUID id, @Valid @RequestBody VeterinarioUpdateRequest request) {

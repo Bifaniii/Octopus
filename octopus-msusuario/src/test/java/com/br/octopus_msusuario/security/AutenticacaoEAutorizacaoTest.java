@@ -126,6 +126,36 @@ class AutenticacaoEAutorizacaoTest {
     }
 
     @Test
+    void reativarUsuarioDevolveOAcesso() throws Exception {
+        String admin = login(ADMIN_EMAIL, ADMIN_SENHA);
+        String id = cadastrarVeterinario(admin, "vet.reativado@vidapet.com");
+        String tokenDoVeterinario = login("vet.reativado@vidapet.com", "senha-forte-123");
+
+        // Quem não é admin não ativa nem desativa ninguém.
+        mockMvc.perform(patch("/api/veterinarios/{id}/ativar", id).header("Authorization", tokenDoVeterinario))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(patch("/api/veterinarios/{id}/desativar", id).header("Authorization", admin))
+                .andExpect(jsonPath("$.usuario.ativo").value(false));
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\": \"vet.reativado@vidapet.com\", \"senha\": \"senha-forte-123\"}"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(patch("/api/veterinarios/{id}/ativar", id).header("Authorization", admin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.usuario.ativo").value(true));
+        login("vet.reativado@vidapet.com", "senha-forte-123");
+
+        // Ativar quem já está ativo não muda nada e não dá erro; id que não existe é 404.
+        mockMvc.perform(patch("/api/veterinarios/{id}/ativar", id).header("Authorization", admin))
+                .andExpect(status().isOk());
+        mockMvc.perform(patch("/api/veterinarios/{id}/ativar", java.util.UUID.randomUUID())
+                        .header("Authorization", admin))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void desativarUsuarioInvalidaOsTokensJaEmitidos() throws Exception {
         String admin = login(ADMIN_EMAIL, ADMIN_SENHA);
         String id = cadastrarVeterinario(admin, "vet.desativado@vidapet.com");

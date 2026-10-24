@@ -54,6 +54,11 @@ public class RecepcionistaController {
         return recepcionistaService.desativar(id);
     }
 
+    @PatchMapping("/{id}/ativar")
+    public RecepcionistaResponse ativar(@PathVariable UUID id) {
+        return recepcionistaService.ativar(id);
+    }
+
     // Edita os dados do perfil e o e-mail de login. A senha não muda aqui.
     @PutMapping("/{id}")
     public RecepcionistaResponse atualizar(@PathVariable UUID id, @Valid @RequestBody ColaboradorUpdateRequest request) {

@@ -54,6 +54,11 @@ public class AuxiliarController {
         return auxiliarService.desativar(id);
     }
 
+    @PatchMapping("/{id}/ativar")
+    public AuxiliarResponse ativar(@PathVariable UUID id) {
+        return auxiliarService.ativar(id);
+    }
+
     // Edita os dados do perfil e o e-mail de login. A senha não muda aqui.
     @PutMapping("/{id}")
     public AuxiliarResponse atualizar(@PathVariable UUID id, @Valid @RequestBody ColaboradorUpdateRequest request) {

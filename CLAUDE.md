@@ -362,6 +362,7 @@ Pacote `com.br.octopus_msprescricao`, mesmas camadas dos outros módulos.
 | `POST /api/prescricoes` | `VETERINARIO` |
 | `GET /api/prescricoes?internacaoId=`, `GET /{id}` | autenticado |
 | `PATCH /{id}/desativar` | `VETERINARIO` |
+| `PATCH /{id}/ativar` | `VETERINARIO` (refaz o RN-06 nos horários futuros e reativa as doses ainda na janela) |
 
 ## Arquitetura do `octopus-msdoses`
 
@@ -398,6 +399,7 @@ que acontece com ela.
 | :------- | :-------- |
 | `POST /api/doses/agendamentos` | `VETERINARIO` (chamado pelo msprescricao com o token de quem prescreveu) |
 | `PATCH /api/doses/prescricoes/{prescricaoId}/cancelar` | `VETERINARIO` |
+| `PATCH /api/doses/prescricoes/{prescricaoId}/reativar` | `VETERINARIO` (doses canceladas ainda na janela voltam a pendentes e reservam estoque) |
 | `PATCH /api/doses/internacoes/{internacaoId}/cancelar` | `RECEPCIONISTA`, `VETERINARIO` (chamado pelo ms-internacao ao encerrar) |
 | `GET /api/doses?internacaoId=&prescricaoId=&status=&de=&ate=`, `GET /{id}` | autenticado |
 | `PATCH /api/doses/{id}/aplicar` (corpo opcional com `observacao`) | `AUXILIAR` |
@@ -557,8 +559,9 @@ medicamento. Toda entidade que pode sair de circulação tem um campo `ativo` co
   expirar, como está em "Segurança entre módulos".
 - O `GET` de listagem devolve ativos e inativos, com o campo `ativo` na resposta. Quem consome decide o que
   mostrar.
-- Quando faz sentido reativar, o módulo expõe também `PATCH /api/<recurso>/{id}/ativar`. As baias fazem isso, e
-  a reativação respeita o limite de 12 baias ativas que a clínica tem.
+- Quando faz sentido reativar, o módulo expõe também `PATCH /api/<recurso>/{id}/ativar`. As baias fazem isso (e
+  respeitam o limite de 12 ativas), assim como usuários e medicamentos (só `ADMIN`) e prescrições (`VETERINARIO`).
+  Reativar prescrição só vale com a internação aberta e só traz de volta as doses ainda na janela.
 - A internação é a exceção: não tem `ativo`, tem ciclo de vida. Ela termina em `ENCERRADA`, que faz o papel do
   arquivamento, e cada passo fica gravado em `tb_internacao_eventos`. A dose também tem status em vez de
   `ativo`: a de uma prescrição desativada fica `CANCELADA`.

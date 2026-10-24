@@ -70,6 +70,13 @@ public class AuxiliarService {
         return AuxiliarResponse.from(auxiliar);
     }
 
+    @Transactional
+    public AuxiliarResponse ativar(UUID id) {
+        Auxiliar auxiliar = obter(id);
+        auxiliar.getUsuario().setAtivo(true);
+        return AuxiliarResponse.from(auxiliar);
+    }
+
     private Auxiliar obter(UUID id) {
         return auxiliarRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Auxiliar não encontrado: " + id));

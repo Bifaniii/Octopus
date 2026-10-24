@@ -70,6 +70,13 @@ public class RecepcionistaService {
         return RecepcionistaResponse.from(recepcionista);
     }
 
+    @Transactional
+    public RecepcionistaResponse ativar(UUID id) {
+        Recepcionista recepcionista = obter(id);
+        recepcionista.getUsuario().setAtivo(true);
+        return RecepcionistaResponse.from(recepcionista);
+    }
+
     private Recepcionista obter(UUID id) {
         return recepcionistaRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Recepcionista não encontrada: " + id));

@@ -85,6 +85,13 @@ public class VeterinarioService {
         return VeterinarioResponse.from(veterinario);
     }
 
+    @Transactional
+    public VeterinarioResponse ativar(UUID id) {
+        Veterinario veterinario = obter(id);
+        veterinario.getUsuario().setAtivo(true);
+        return VeterinarioResponse.from(veterinario);
+    }
+
     private Veterinario obter(UUID id) {
         return veterinarioRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Veterinário não encontrado: " + id));
