@@ -122,6 +122,13 @@ public class MedicacaoService {
         return MedicacaoResponse.from(medicacao);
     }
 
+    @Transactional
+    public MedicacaoResponse ativar(Long id) {
+        Medicacao medicacao = obter(id);
+        medicacao.setAtivo(true);
+        return MedicacaoResponse.from(medicacao);
+    }
+
     /**
      * Separa {@code quantidade} doses do estoque. Chamado pelo octopus-msdoses ao agendar as doses de uma prescrição.
      * O UPDATE só baixa se houver saldo, então duas reservas simultâneas não deixam o estoque negativo.

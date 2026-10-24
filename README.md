@@ -92,12 +92,8 @@ o histórico.
 - Arquitetura e convenções para novos módulos: `CLAUDE.md`.
 
 ## Últimas alterações
-_Push de 20/10/2026 na branch `feature/register_medications`_
-- Só comentário: no `TipoEsquema`, a dose perdida de esquema sintomático é pulada pela RN-07 (antes dizia RN-08). Sem
-  mudança de comportamento e sem nova versão.
-- (13/10) Versão do módulo de `0.0.2-SNAPSHOT` para `0.0.3-SNAPSHOT`: este push publica na EC2 a imagem nova, com o teto de
-  400 MB de memória (`--memory 400m --memory-swap 400m`) e a JVM ajustada a ele no `Dockerfile` (heap em
-  até 50%, metaspace até 128 MB, cache de código até 48 MB, `SerialGC`).
+_Push de 24/10/2026 na branch `feature/register_medications`_
+- Novo `PATCH /api/medicacoes/{id}/ativar` (só `ADMIN`), o par do `desativar`. Versão `0.0.3` para `0.0.4-SNAPSHOT`.
 
 ## Próximos passos
 - [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)

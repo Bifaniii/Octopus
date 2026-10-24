@@ -85,4 +85,10 @@ public class MedicacaoController {
     public MedicacaoResponse desativar(@PathVariable Long id) {
         return service.desativar(id);
     }
+
+    @PatchMapping("/{id}/ativar")
+    @PreAuthorize("hasRole('ADMIN')")
+    public MedicacaoResponse ativar(@PathVariable Long id) {
+        return service.ativar(id);
+    }
 }

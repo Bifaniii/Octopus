@@ -214,6 +214,25 @@ class MedicacaoApiTest {
     }
 
     @Test
+    @DisplayName("só admin reativa: veterinário recebe 403, e o medicamento volta a ficar ativo")
+    void reativacaoSoPeloAdmin() throws Exception {
+        Long id = criar("Novalgina", "12345678901");
+        String admin = "Bearer " + token("ROLE_ADMIN");
+        mockMvc.perform(patch(URL + "/" + id + "/desativar").header(HttpHeaders.AUTHORIZATION, admin))
+                .andExpect(jsonPath("$.ativo").value(false));
+
+        mockMvc.perform(patch(URL + "/" + id + "/ativar")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_VETERINARIO")))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(patch(URL + "/" + id + "/ativar").header(HttpHeaders.AUTHORIZATION, admin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ativo").value(true));
+        mockMvc.perform(patch(URL + "/999999/ativar").header(HttpHeaders.AUTHORIZATION, admin))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     @DisplayName("desativar arquiva sem apagar: o registro continua no banco e nas interações")
     void desativarNaoApaga() throws Exception {
         Long dipirona = criar("Novalgina", "12345678901");
