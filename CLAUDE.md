@@ -215,6 +215,13 @@ Portas de host default: 8080/3307 (usuário), 8081/3308 (baias), 8082/3309 (medi
   `@PreAuthorize` no controller: `hasRole('ADMIN')` para cadastro e desativação de veterinário, auxiliar,
   recepcionista e admin; `hasAnyRole('ADMIN','RECEPCIONISTA')` para tutores e animais. Os erros da filter chain
   (401 e 403) são escritos em JSON pelo `SecurityErrorHandlers`, porque não passam pelo `@RestControllerAdvice`.
+- Validação dos cadastros (24/10/2026), em `validation/`: `@Cpf` e `@DocumentoCompativel` conferem o dígito verificador
+  de CPF e CNPJ (pessoa física exige CPF, jurídica exige CNPJ, com o erro no campo `cpfCnpj`); `@Celular` aceita só
+  celular de 11 dígitos com DDD que existe, sem máscara (telefone fixo não, por enquanto); o CRMV tem de 1 a 5 dígitos
+  numéricos; e a UF do CRMV é a enum `UnidadeFederativa`, com 400 que nomeia o campo e lista as siglas aceitas.
+  O front só formata e confere o tamanho: a regra de verdade é a do back. Cadastros antigos com CPF ou telefone fora
+  dessas regras continuam lendo normalmente, mas a edição deles exige os dados corrigidos. Nos testes, use
+  `GeradorDeDocumentos` para CPF e CNPJ válidos.
 - Admin inicial: o `config/AdminBootstrap` cria um admin na subida se não existir nenhum `ROLE_ADMIN`, com
   `ADMIN_EMAIL`, `ADMIN_SENHA` e `ADMIN_NOME` do `.env`. Sem isso ninguém consegue cadastrar o primeiro usuário.
 - Banco: MySQL via `DB_URL`, `DB_USERNAME` e `DB_PASSWORD`, com schema gerido pelo Flyway e `ddl-auto=validate`

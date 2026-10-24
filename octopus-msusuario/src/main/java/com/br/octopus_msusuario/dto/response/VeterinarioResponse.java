@@ -2,6 +2,7 @@ package com.br.octopus_msusuario.dto.response;
 
 import com.br.octopus_msusuario.domain.Veterinario;
 import com.br.octopus_msusuario.domain.enums.Especializacao;
+import com.br.octopus_msusuario.domain.enums.UnidadeFederativa;
 import com.br.octopus_msusuario.domain.enums.TipoPessoa;
 
 import java.time.LocalDate;
@@ -15,7 +16,7 @@ public record VeterinarioResponse(
         LocalDate dataNascimento,
         String telefone,
         String crmv,
-        String crmvUf,
+        UnidadeFederativa crmvUf,
         Especializacao especializacao,
         UsuarioResponse usuario
 ) {

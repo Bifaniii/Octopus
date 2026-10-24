@@ -5,6 +5,7 @@ import com.br.octopus_msusuario.domain.Veterinario;
 import com.br.octopus_msusuario.domain.enums.Especializacao;
 import com.br.octopus_msusuario.domain.enums.Role;
 import com.br.octopus_msusuario.domain.enums.TipoPessoa;
+import com.br.octopus_msusuario.domain.enums.UnidadeFederativa;
 import com.br.octopus_msusuario.dto.request.VeterinarioRequest;
 import com.br.octopus_msusuario.dto.response.VeterinarioResponse;
 import com.br.octopus_msusuario.exception.RecursoDuplicadoException;
@@ -39,7 +40,7 @@ class VeterinarioServiceTest {
 
     private VeterinarioRequest request(Especializacao especializacao) {
         return new VeterinarioRequest("vet@vidapet.com", "senha-forte", "Dra. Carla", "12345678901", TipoPessoa.PF,
-                LocalDate.of(1990, 5, 10), "11999990000", "12345", "SP", especializacao);
+                LocalDate.of(1990, 5, 10), "11999990000", "12345", UnidadeFederativa.SP, especializacao);
     }
 
     private Usuario usuario() {
@@ -55,7 +56,7 @@ class VeterinarioServiceTest {
 
         assertThat(response.especializacao()).isEqualTo(Especializacao.GERAL);
         assertThat(response.usuario().role()).isEqualTo(Role.ROLE_VETERINARIO);
-        assertThat(response.crmvUf()).isEqualTo("SP");
+        assertThat(response.crmvUf()).isEqualTo(UnidadeFederativa.SP);
     }
 
     @Test
@@ -80,7 +81,7 @@ class VeterinarioServiceTest {
 
     @Test
     void criar_deveRejeitarCrmvDuplicadoNaMesmaUf() {
-        when(veterinarioRepository.existsByCrmvAndCrmvUf("12345", "SP")).thenReturn(true);
+        when(veterinarioRepository.existsByCrmvAndCrmvUf("12345", UnidadeFederativa.SP)).thenReturn(true);
 
         assertThatThrownBy(() -> veterinarioService.criar(request(null)))
                 .isInstanceOf(RecursoDuplicadoException.class)

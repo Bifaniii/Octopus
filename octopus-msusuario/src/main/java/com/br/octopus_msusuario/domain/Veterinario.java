@@ -2,6 +2,7 @@ package com.br.octopus_msusuario.domain;
 
 import com.br.octopus_msusuario.domain.enums.Especializacao;
 import com.br.octopus_msusuario.domain.enums.TipoPessoa;
+import com.br.octopus_msusuario.domain.enums.UnidadeFederativa;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -43,8 +44,9 @@ public class Veterinario {
     @Column(name = "crmv", length = 20, nullable = false)
     private String crmv;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "crmv_uf", length = 2, nullable = false)
-    private String crmvUf;
+    private UnidadeFederativa crmvUf;
 
     @Builder.Default
     @Enumerated(EnumType.STRING)

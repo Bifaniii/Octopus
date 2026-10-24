@@ -1,5 +1,6 @@
 package com.br.octopus_msusuario.security;
 
+import com.br.octopus_msusuario.GeradorDeDocumentos;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,14 +42,14 @@ class AutenticacaoEAutorizacaoTest {
 
     /** Cadastra um veterinário como admin e devolve o id. Números aleatórios evitam colisão entre testes. */
     private String cadastrarVeterinario(String adminToken, String email) throws Exception {
-        long cpf = ThreadLocalRandom.current().nextLong(10_000_000_000L, 99_999_999_999L);
+        String cpf = GeradorDeDocumentos.cpf();
         int crmv = ThreadLocalRandom.current().nextInt(10_000, 99_999);
         String body = mockMvc.perform(post("/api/veterinarios")
                         .header("Authorization", adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"email": "%s", "senha": "senha-forte-123", "nome": "Dra. Carla",
-                                 "cpfCnpj": "%d", "tipoPessoa": "PF", "dataNascimento": "1990-05-10",
+                                 "cpfCnpj": "%s", "tipoPessoa": "PF", "dataNascimento": "1990-05-10",
                                  "telefone": "11999990000", "crmv": "%d", "crmvUf": "SP"}
                                 """.formatted(email, cpf, crmv)))
                 .andExpect(status().isCreated())
@@ -103,7 +104,7 @@ class AutenticacaoEAutorizacaoTest {
                         .header("Authorization", veterinario)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nome": "X", "endereco": "Rua", "dataNascimento": "1980-01-01", "telefone": "1199"}
+                                {"nome": "X", "endereco": "Rua", "dataNascimento": "1980-01-01", "telefone": "11988887777"}
                                 """))
                 .andExpect(status().isForbidden());
     }
@@ -118,7 +119,7 @@ class AutenticacaoEAutorizacaoTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"email": "vet.duplicado@vidapet.com", "senha": "senha-forte-123", "nome": "Outro",
-                                 "cpfCnpj": "11122233344", "tipoPessoa": "PF", "dataNascimento": "1990-05-10",
+                                 "cpfCnpj": "52998224725", "tipoPessoa": "PF", "dataNascimento": "1990-05-10",
                                  "telefone": "11999990000", "crmv": "1", "crmvUf": "RJ"}
                                 """))
                 .andExpect(status().isConflict());

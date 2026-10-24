@@ -124,8 +124,16 @@ cd octopus-msusuario && ./mvnw test
 - Arquitetura e convenções para novos módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 13/10/2026 na branch `main`_
-- `CLAUDE.md` atualizado com o escopo completo do enunciado: RN-03, RN-04, RN-07, transições proibidas, mudança contratada e painel de doses.
+_Push de 24/10/2026 na branch `main`_
+- Versão do `msusuario` de `0.0.4-SNAPSHOT` para `0.0.5-SNAPSHOT`: este push publica a imagem com as regras abaixo.
+- CPF e CNPJ passam a ser validados aqui, com dígito verificador (`validation/Documentos`, `@Cpf` e
+  `@DocumentoCompativel`): pessoa física exige CPF e pessoa jurídica exige CNPJ. O erro vem no campo (`cpf`, `cpfCnpj`).
+- Telefone só celular (`@Celular`): DDD que existe, 9 e mais 8 dígitos, sem máscara. Vale para tutor, veterinário,
+  auxiliar e recepcionista, no cadastro e na edição.
+- CRMV com no máximo 5 dígitos numéricos.
+- A UF do CRMV é a enum `UnidadeFederativa` (as 27 siglas). Valor fora da enum devolve 400 dizendo o campo e os valores
+  aceitos. Sem migration: a coluna `crmv_uf` já era `VARCHAR(2)`.
+- 72 testes (11 novos, em `validation/`).
 
 ## Próximos passos
 - [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)

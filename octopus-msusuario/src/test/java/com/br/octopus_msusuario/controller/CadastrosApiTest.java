@@ -1,5 +1,6 @@
 package com.br.octopus_msusuario.controller;
 
+import com.br.octopus_msusuario.GeradorDeDocumentos;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -161,13 +162,13 @@ class CadastrosApiTest {
     }
 
     private String cadastrarAuxiliar(String nome) throws Exception {
-        long cpf = ThreadLocalRandom.current().nextLong(10_000_000_000L, 99_999_999_999L);
+        String cpf = GeradorDeDocumentos.cpf();
         String body = mockMvc.perform(post("/api/auxiliares")
                         .header("Authorization", admin)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"email": "%s@teste.local", "senha": "senha-forte-123", "nome": "%s",
-                                 "cpf": "%d", "dataNascimento": "1995-01-01", "telefone": "11999990000"}
+                                 "cpf": "%s", "dataNascimento": "1995-01-01", "telefone": "11999990000"}
                                 """.formatted("aux" + cpf, nome, cpf)))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
@@ -210,14 +211,14 @@ class CadastrosApiTest {
     @Test
     void listagemDeUsuariosEhSoDoAdmin() throws Exception {
         String nome = "Recepção " + sufixo;
-        long cpf = ThreadLocalRandom.current().nextLong(10_000_000_000L, 99_999_999_999L);
+        String cpf = GeradorDeDocumentos.cpf();
         String email = "recep" + cpf + "@teste.local";
         mockMvc.perform(post("/api/recepcionistas")
                         .header("Authorization", admin)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"email": "%s", "senha": "senha-forte-123", "nome": "%s",
-                                 "cpf": "%d", "dataNascimento": "1995-01-01", "telefone": "11999990000"}
+                                 "cpf": "%s", "dataNascimento": "1995-01-01", "telefone": "11999990000"}
                                 """.formatted(email, nome, cpf)))
                 .andExpect(status().isCreated());
 
@@ -238,14 +239,14 @@ class CadastrosApiTest {
 
     @Test
     void putEmVeterinarioTrocaDadosEEmailDeLogin() throws Exception {
-        long cpf = ThreadLocalRandom.current().nextLong(10_000_000_000L, 99_999_999_999L);
+        String cpf = GeradorDeDocumentos.cpf();
         int crmv = ThreadLocalRandom.current().nextInt(10_000, 99_999);
         String antigo = "vet" + cpf + "@teste.local";
         String body = mockMvc.perform(post("/api/veterinarios")
                         .header("Authorization", admin)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email": "%s", "senha": "senha-forte-123", "nome": "Dra. Ana", "cpfCnpj": "%d",
+                                {"email": "%s", "senha": "senha-forte-123", "nome": "Dra. Ana", "cpfCnpj": "%s",
                                  "tipoPessoa": "PF", "dataNascimento": "1990-05-10", "telefone": "11999990000",
                                  "crmv": "%d", "crmvUf": "SP"}
                                 """.formatted(antigo, cpf, crmv)))
@@ -258,7 +259,7 @@ class CadastrosApiTest {
                         .header("Authorization", admin)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email": "%s", "nome": "Dra. Ana Lima", "cpfCnpj": "%d", "tipoPessoa": "PF",
+                                {"email": "%s", "nome": "Dra. Ana Lima", "cpfCnpj": "%s", "tipoPessoa": "PF",
                                  "dataNascimento": "1990-05-10", "telefone": "11988887777", "crmv": "%d",
                                  "crmvUf": "RJ", "especializacao": "CIRURGIA"}
                                 """.formatted(novo, cpf, crmv)))
@@ -327,14 +328,14 @@ class CadastrosApiTest {
 
     @Test
     void veterinarioLeTutoresEAnimaisMasNaoCadastra() throws Exception {
-        long cpf = ThreadLocalRandom.current().nextLong(10_000_000_000L, 99_999_999_999L);
+        String cpf = GeradorDeDocumentos.cpf();
         int crmv = ThreadLocalRandom.current().nextInt(10_000, 99_999);
         String email = "leitor" + cpf + "@teste.local";
         mockMvc.perform(post("/api/veterinarios")
                         .header("Authorization", admin)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email": "%s", "senha": "senha-forte-123", "nome": "Dr. Leitor", "cpfCnpj": "%d",
+                                {"email": "%s", "senha": "senha-forte-123", "nome": "Dr. Leitor", "cpfCnpj": "%s",
                                  "tipoPessoa": "PF", "dataNascimento": "1990-05-10", "telefone": "11999990000",
                                  "crmv": "%d", "crmvUf": "SP"}
                                 """.formatted(email, cpf, crmv)))
@@ -350,7 +351,7 @@ class CadastrosApiTest {
                         .header("Authorization", vet)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nome": "X", "endereco": "Rua", "dataNascimento": "1980-01-01", "telefone": "1199"}
+                                {"nome": "X", "endereco": "Rua", "dataNascimento": "1980-01-01", "telefone": "11988887777"}
                                 """))
                 .andExpect(status().isForbidden());
         mockMvc.perform(put("/api/animais/{id}", criarAnimal(tutor, "Rex", null))

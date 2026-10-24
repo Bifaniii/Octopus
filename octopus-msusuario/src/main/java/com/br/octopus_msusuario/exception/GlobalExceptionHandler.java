@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import tools.jackson.databind.exc.InvalidFormatException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -15,8 +16,10 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -36,6 +39,15 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErroResponse> handleCorpoInvalido(HttpMessageNotReadableException ex, HttpServletRequest req) {
+        // Valor que não existe num enum (por exemplo uma UF "XX"): diz qual campo e quais valores valem.
+        if (ex.getCause() instanceof InvalidFormatException formato && formato.getTargetType() != null
+                && formato.getTargetType().isEnum() && !formato.getPath().isEmpty()) {
+            String campo = formato.getPath().get(formato.getPath().size() - 1).getPropertyName();
+            String aceitos = Arrays.stream(formato.getTargetType().getEnumConstants())
+                    .map(Object::toString).collect(Collectors.joining(", "));
+            String mensagem = "Valor inválido. Valores aceitos: " + aceitos + ".";
+            return build(HttpStatus.BAD_REQUEST, "Campo '" + campo + "': " + mensagem, req, Map.of(campo, mensagem));
+        }
         return build(HttpStatus.BAD_REQUEST, "Corpo da requisição inválido. Datas usam o formato aaaa-MM-dd.", req, null);
     }
 
