@@ -52,6 +52,13 @@ public class DoseController {
         return doseService.cancelarDaPrescricao(prescricaoId);
     }
 
+    // Reativar a prescrição: as doses canceladas ainda dentro da janela voltam a ficar pendentes.
+    @PatchMapping("/prescricoes/{prescricaoId}/reativar")
+    @PreAuthorize("hasRole('VETERINARIO')")
+    public List<DoseResponse> reativarDaPrescricao(@PathVariable Long prescricaoId) {
+        return doseService.reativarDaPrescricao(prescricaoId);
+    }
+
     // Chamado pelo ms-internacao ao encerrar (saída física): mesmos perfis que registram a saída lá.
     @PatchMapping("/internacoes/{internacaoId}/cancelar")
     @PreAuthorize("hasAnyRole('RECEPCIONISTA', 'VETERINARIO')")

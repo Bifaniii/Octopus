@@ -102,6 +102,28 @@ public class DoseService {
         });
     }
 
+    /**
+     * A prescrição foi reativada: as doses canceladas que ainda estão na janela (até 30 minutos depois do horário)
+     * voltam a ficar pendentes e reservam o estoque de novo. As que já passaram continuam canceladas, e as
+     * aplicadas e as perdidas não mudam. Sem saldo, nada volta (422). Idempotente: repetir não reserva duas vezes.
+     */
+    public List<DoseResponse> reativarDaPrescricao(Long prescricaoId) {
+        LocalDateTime agora = agora();
+        return transacao.execute(status -> {
+            itemSeNecessarioRepository.findByPrescricaoId(prescricaoId).forEach(ItemSeNecessario::reativar);
+            List<Dose> doses = doseRepository.findByPrescricaoIdOrderByHorarioPrevistoAsc(prescricaoId);
+            List<Dose> reativadas = new ArrayList<>();
+            for (Dose dose : doses) {
+                if (dose.getStatus() == StatusDose.CANCELADA && !agora.isAfter(dose.fimDaJanela()) && dose.reativar()) {
+                    reativadas.add(dose);
+                }
+            }
+            // A reserva vem antes do commit: se faltar saldo ou o msmedications não responder, nada volta.
+            estoque.reservar(Estoque.porMedicacao(reativadas));
+            return doses.stream().map(DoseResponse::from).toList();
+        });
+    }
+
     /** O animal saiu (internação encerrada): as pendentes de todas as prescrições dele viram CANCELADA. Idempotente. */
     public List<DoseResponse> cancelarDaInternacao(Long internacaoId) {
         return transacao.execute(status -> {

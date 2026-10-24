@@ -294,4 +294,61 @@ class RegrasDasDosesTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.campos", not(org.hamcrest.Matchers.anEmptyMap())));
     }
+
+    // Reativar a prescrição: só voltam as doses canceladas que ainda estão na janela, e o estoque é reservado de novo.
+    @Test
+    void reativarPrescricaoTrazDeVoltaAsDosesQueAindaValemEReservaOEstoque() throws Exception {
+        long prescricao = prescrever(PROXIMO.incrementAndGet(), ANTIBIOTICO_A, "CONTINUO",
+                "2026-11-03T14:00:00", "2026-11-03T22:00:00", "2026-11-04T06:00:00");
+        mockMvc.perform(patch("/api/doses/prescricoes/{id}/cancelar", prescricao).header("Authorization", VET))
+                .andExpect(status().isOk());
+
+        // 14h40: a dose das 14h já passou da janela (até 14h30); as outras duas ainda valem.
+        relogio.acertar(AS_14H.plusMinutes(40));
+        mockMvc.perform(patch("/api/doses/prescricoes/{id}/reativar", prescricao).header("Authorization", VET))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].status").value("CANCELADA"))
+                .andExpect(jsonPath("$[1].status").value("PENDENTE"))
+                .andExpect(jsonPath("$[2].status").value("PENDENTE"));
+        verify(estoqueClient).reservar(ANTIBIOTICO_A, 2);
+
+        // Repetir não reserva de novo.
+        mockMvc.perform(patch("/api/doses/prescricoes/{id}/reativar", prescricao).header("Authorization", VET))
+                .andExpect(status().isOk());
+        verify(estoqueClient, times(1)).reservar(ANTIBIOTICO_A, 2);
+    }
+
+    @Test
+    void reativarSemSaldoNaoTrazNadaDeVolta() throws Exception {
+        long prescricao = prescrever(PROXIMO.incrementAndGet(), ANALGESICO_B, "SINTOMATICO",
+                "2026-11-03T20:00:00", "2026-11-04T04:00:00");
+        mockMvc.perform(patch("/api/doses/prescricoes/{id}/cancelar", prescricao).header("Authorization", VET))
+                .andExpect(status().isOk());
+        org.mockito.Mockito.doThrow(new com.br.octopus_msdoses.exception.RegraDeNegocioException(
+                        "Estoque insuficiente de Analgésico B: 0 em estoque, 2 pedidas."))
+                .when(estoqueClient).reservar(ANALGESICO_B, 2);
+
+        mockMvc.perform(patch("/api/doses/prescricoes/{id}/reativar", prescricao).header("Authorization", VET))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.mensagem").value(containsString("Estoque insuficiente")));
+        doses(prescricao).andExpect(jsonPath("$[0].status").value("CANCELADA"))
+                .andExpect(jsonPath("$[1].status").value("CANCELADA"));
+    }
+
+    @Test
+    void reativarPrescricaoReativaOItemSeNecessarioEQuemNaoEVeterinarioRecebe403() throws Exception {
+        long item = prescreverSeNecessario(PROXIMO.incrementAndGet(), 4);
+        long prescricao = item / 10;
+        mockMvc.perform(patch("/api/doses/prescricoes/{id}/cancelar", prescricao).header("Authorization", VET))
+                .andExpect(status().isOk());
+        relogio.acertar(AS_14H);
+        aplicarSeNecessario(item).andExpect(status().isUnprocessableEntity());
+
+        mockMvc.perform(patch("/api/doses/prescricoes/{id}/reativar", prescricao).header("Authorization", AUXILIAR))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(patch("/api/doses/prescricoes/{id}/reativar", prescricao).header("Authorization", VET))
+                .andExpect(status().isOk());
+
+        aplicarSeNecessario(item).andExpect(status().isCreated());
+    }
 }

@@ -155,6 +155,15 @@ public class Dose {
         return true;
     }
 
+    /** A prescrição foi reativada: a dose cancelada volta a ficar pendente. Quem confere se ainda está na janela é o serviço. */
+    public boolean reativar() {
+        if (status != StatusDose.CANCELADA) {
+            return false;
+        }
+        this.status = StatusDose.PENDENTE;
+        return true;
+    }
+
     // RN-04. Quem decide se a janela fechou é a Varredura, que também aplica a RN-07.
     public void marcarPerdida() {
         if (status != StatusDose.PENDENTE) {

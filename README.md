@@ -6,10 +6,9 @@ prescrição e registra a aplicação pelo auxiliar. Arquitetura e convenções 
 [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 13/10/2026 na branch `feature/doses`_
-- Versão do módulo de `0.0.1-SNAPSHOT` para `0.0.2-SNAPSHOT`: este push publica na EC2 a imagem nova, com o teto de
-  400 MB de memória (`--memory 400m --memory-swap 400m`) e a JVM ajustada a ele no `Dockerfile` (heap em
-  até 50%, metaspace até 128 MB, cache de código até 48 MB, `SerialGC`).
+_Push de 24/10/2026 na branch `feature/doses`_
+- Novo `PATCH /api/doses/prescricoes/{id}/reativar` (`VETERINARIO`): as doses canceladas que ainda estão na janela voltam a ficar pendentes e reservam o estoque de novo; reativa também o item "se necessário". Idempotente.
+- Versão `0.0.2` para `0.0.3-SNAPSHOT`.
 
 ## Próximos passos
 - [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)
