@@ -129,6 +129,8 @@ o próprio módulo.
   encerramento cancela as doses pendentes no msdoses (`MS_DOSES_URL`), e os clients usam o HttpClient do JDK. Desde
   13/10 o `iniciar-tratamento` confere no msprescricao se há prescrição ativa (`MS_PRESCRICAO_URL`, variável nova
   no `internacao.env`), a antirrábica com data futura vale como irregular e o animal sem espécie não é internado.
+  Desde 24/10, registrar a alta (autorizada ou a pedido) pede ao msrelatorios o envio do resumo ao tutor, depois do
+  commit e fora da requisição (`MS_RELATORIOS_URL`); se falhar, só vai para o log e a alta continua valendo.
 - **`feature/prescricao`** (Vitor Kimany e Guilherme Bifani; ajustes de Douglas): `octopus-msprescricao/`. Em 10/10
   um force-push deixou só um commit órfão com o módulo na raiz, sem CI e sem `dosagem`/`quantidadeDoses`. Em
   11/10 um commit de merge (pais `feb71d0` e `90acb19`) devolveu a estrutura do Douglas, manteve o

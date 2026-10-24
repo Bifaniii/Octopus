@@ -42,6 +42,7 @@ public class InternacaoService {
     private final BaiaClient baiaClient;
     private final DoseClient doseClient;
     private final PrescricaoClient prescricaoClient;
+    private final ResumoDeAltaNotificador resumoDeAlta;
     private final TransactionTemplate transacao;
     private final Clock clock;
 
@@ -114,6 +115,7 @@ public class InternacaoService {
     public InternacaoResponse autorizarAlta(Long id, String usuario) {
         Internacao internacao = buscarEntidade(id);
         internacao.autorizarAlta(usuario, agora());
+        resumoDeAlta.aposOCommit(id);
         return InternacaoResponse.from(internacao);
     }
 
@@ -121,6 +123,7 @@ public class InternacaoService {
     public InternacaoResponse altaAPedidoDoTutor(Long id, AltaAPedidoRequest request, String usuario) {
         Internacao internacao = buscarEntidade(id);
         internacao.altaAPedidoDoTutor(request.termoResponsabilidade(), usuario, agora());
+        resumoDeAlta.aposOCommit(id);
         return InternacaoResponse.from(internacao);
     }
 

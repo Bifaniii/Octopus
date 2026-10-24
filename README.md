@@ -69,10 +69,8 @@ Nada é apagado: a internação termina em `ENCERRADA` e cada passo fica no hist
 - Detalhes de arquitetura e convenções para novos módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 13/10/2026 na branch `feature/internacao`_
-- Versão do módulo de `0.0.2-SNAPSHOT` para `0.0.3-SNAPSHOT`: este push publica na EC2 a imagem nova, com o teto de
-  400 MB de memória (`--memory 400m --memory-swap 400m`) e a JVM ajustada a ele no `Dockerfile` (heap em
-  até 50%, metaspace até 128 MB, cache de código até 48 MB, `SerialGC`).
+_Push de 24/10/2026 na branch `feature/internacao`_
+- Ao registrar a alta (autorizada ou a pedido do tutor), o módulo pede ao `msrelatorios` que envie o resumo do atendimento ao e-mail do tutor, depois do commit e em outra thread. Se o envio falhar (tutor sem e-mail, módulo fora do ar), só é registrado no log: a alta não é desfeita. Nova variável `MS_RELATORIOS_URL` (padrão `http://localhost:8086`). Versão `0.0.4` para `0.0.5-SNAPSHOT`.
 
 ## Próximos passos
 - [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)

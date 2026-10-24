@@ -34,6 +34,7 @@ services:
       MS_USUARIO_URL: ${MS_USUARIO_URL}
       MS_BAIAS_URL: ${MS_BAIAS_URL}
       MS_DOSES_URL: ${MS_DOSES_URL}
+      MS_RELATORIOS_URL: ${MS_RELATORIOS_URL:-http://localhost:8086}
       MS_PRESCRICAO_URL: ${MS_PRESCRICAO_URL}
     depends_on:
       mysql:

@@ -82,6 +82,8 @@ class InternacaoApiTest {
     private DoseClient doseClient;
     @MockitoBean
     private PrescricaoClient prescricaoClient;
+    @MockitoBean
+    private com.br.octopus_msinternacao.client.RelatoriosClient relatoriosClient;
 
     @Value("${app.security.jwt.secret}")
     private String segredoBase64;
@@ -297,6 +299,22 @@ class InternacaoApiTest {
     void animalDuasVezes() throws Exception {
         admitir();
         comoRecepcao(admissao()).andExpect(status().isConflict());
+    }
+
+    @Test
+    @DisplayName("alta autorizada manda o resumo ao tutor; transição recusada não manda")
+    void altaPedeOEnvioDoResumoAoTutor() throws Exception {
+        String id = admitir();
+        comoVet(patch(URL + "/" + id + "/autorizar-alta")).andExpect(status().isUnprocessableEntity());
+        org.mockito.Mockito.verify(relatoriosClient, org.mockito.Mockito.after(300).never())
+                .enviarResumoDeAlta(org.mockito.ArgumentMatchers.eq(Long.valueOf(id)), org.mockito.ArgumentMatchers.any());
+
+        comoVet(patch(URL + "/" + id + "/iniciar-tratamento")).andExpect(status().isOk());
+        comoVet(patch(URL + "/" + id + "/autorizar-alta")).andExpect(status().isOk());
+
+        org.mockito.Mockito.verify(relatoriosClient, org.mockito.Mockito.timeout(3000)).enviarResumoDeAlta(
+                org.mockito.ArgumentMatchers.eq(Long.valueOf(id)),
+                org.mockito.ArgumentMatchers.startsWith("Bearer "));
     }
 
     @Test
