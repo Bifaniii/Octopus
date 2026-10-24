@@ -7,8 +7,10 @@ prescrição e registra a aplicação pelo auxiliar. Arquitetura e convenções 
 
 ## Últimas alterações
 _Push de 24/10/2026 na branch `feature/doses`_
-- Novo `PATCH /api/doses/prescricoes/{id}/reativar` (`VETERINARIO`): as doses canceladas que ainda estão na janela voltam a ficar pendentes e reservam o estoque de novo; reativa também o item "se necessário". Idempotente.
-- Versão `0.0.2` para `0.0.3-SNAPSHOT`.
+- `subir()` do `pipeline.yml`: container com 256 MB de RAM e até 768 MB com swap
+  (`--memory 256m --memory-swap 768m`) e a JVM configurada no `docker run` por `JAVA_TOOL_OPTIONS`
+  (`-Xmx128m`, metaspace até 128 MB, pilha de 256 KB, `SerialGC`, `-XX:TieredStopAtLevel=1`).
+- `CLAUDE.md`: regra de memória atualizada para esses valores.
 
 ## Próximos passos
 - [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)
