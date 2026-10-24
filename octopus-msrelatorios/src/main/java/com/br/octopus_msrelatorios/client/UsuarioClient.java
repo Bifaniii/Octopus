@@ -46,6 +46,23 @@ public class UsuarioClient {
                 }), SERVICO);
     }
 
+    // Manda o e-mail ao endereço cadastrado do tutor. Devolve o destinatário.
+    public String enviarMensagemAoTutor(Long tutorId, String assunto, String texto) {
+        java.util.Map<String, String> resposta = ClientesHttp.chamar(() -> restClient.post()
+                .uri("/api/tutores/{id}/mensagens", tutorId)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .body(java.util.Map.of("assunto", assunto, "texto", texto))
+                .retrieve()
+                .onStatus(status -> status.value() == 422, (req, res) -> {
+                    throw new com.br.octopus_msrelatorios.exception.RegraDeNegocioException(
+                            "O tutor não tem e-mail cadastrado.");
+                })
+                .onStatus(HttpStatusCode::isError, ClientesHttp.erros(SERVICO))
+                .body(new ParameterizedTypeReference<java.util.Map<String, String>>() {
+                }), SERVICO);
+        return resposta == null ? null : resposta.get("destinatario");
+    }
+
     // ADMIN, RECEPCIONISTA e VETERINARIO. Cada tutor já vem com os animais.
     public List<TutorDto> tutores() {
         return ClientesHttp.chamar(() -> restClient.get()

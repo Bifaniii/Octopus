@@ -25,11 +25,23 @@ public class Pessoas {
     public Nomes carregar() {
         List<UsuarioNomeDto> lista = usuarioClient.nomes();
         Map<String, String> porEmail = new HashMap<>();
-        lista.forEach(u -> porEmail.put(u.email().toLowerCase(Locale.ROOT), u.nome()));
-        return new Nomes(porEmail);
+        Map<String, String> perfis = new HashMap<>();
+        lista.forEach(u -> {
+            porEmail.put(u.email().toLowerCase(Locale.ROOT), u.nome());
+            if (u.role() != null) {
+                perfis.put(u.email().toLowerCase(Locale.ROOT), u.role());
+            }
+        });
+        return new Nomes(porEmail, perfis);
     }
 
-    public record Nomes(Map<String, String> porEmail) {
+    public record Nomes(Map<String, String> porEmail, Map<String, String> perfis) {
+
+        /** Perfil legível da pessoa (ex.: "Veterinário"); nulo se a conta não informa. */
+        public String perfilDe(String email) {
+            String role = email == null ? null : perfis.get(email.toLowerCase(Locale.ROOT));
+            return role == null ? null : Rotulos.perfil(role);
+        }
 
         /** Nome da pessoa; se o e-mail não for de nenhuma conta, o próprio e-mail. */
         public String de(String email) {

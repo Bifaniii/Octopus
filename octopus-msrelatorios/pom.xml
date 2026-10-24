@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.br</groupId>
 	<artifactId>octopus-msrelatorios</artifactId>
-	<version>0.0.3-SNAPSHOT</version>
+	<version>0.0.4-SNAPSHOT</version>
 	<name>octopus-msrelatorios</name>
 	<description>Microsserviço de relatórios do Plantão (VidaPet): exporta PDF e XLSX com os dados dos outros módulos</description>
 	<properties>

@@ -5,6 +5,7 @@ import com.br.octopus_msrelatorios.client.DoseClient;
 import com.br.octopus_msrelatorios.client.InternacaoClient;
 import com.br.octopus_msrelatorios.client.MedicacaoClient;
 import com.br.octopus_msrelatorios.client.PrescricaoClient;
+import com.br.octopus_msrelatorios.client.dto.InternacaoEventoDto;
 import com.br.octopus_msrelatorios.client.dto.PrescricaoDto;
 import com.br.octopus_msrelatorios.exception.RecursoNaoEncontradoException;
 import com.br.octopus_msrelatorios.client.UsuarioClient;
@@ -46,6 +47,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -95,7 +97,7 @@ class RelatorioApiTest {
                 new UsuarioNomeDto("paulo@vidapet.com", "Paulo Souza"),
                 new UsuarioNomeDto("recepcao@vidapet.com", "Ana Recepção")));
         when(usuarioClient.tutores()).thenReturn(List.of(new TutorDto(1L, "Marina Costa", "Rua das Flores, 10",
-                LocalDate.of(1988, 4, 2), "11988887777", List.of(
+                LocalDate.of(1988, 4, 2), "11988887777", "marina@exemplo.com", List.of(
                 new TutorDto.AnimalDto(10L, "Thor", 1L, "Cão", LocalDate.of(2025, 10, 3), null),
                 new TutorDto.AnimalDto(11L, "Nina", 1L, "Gato", LocalDate.of(2026, 2, 15), null)))));
         when(usuarioClient.usuarios(any(), any())).thenReturn(List.of(
@@ -318,6 +320,114 @@ class RelatorioApiTest {
 
         mockMvc.perform(get("/api/relatorios/prescricoes/99").header("Authorization", VET))
                 .andExpect(status().isNotFound());
+    }
+
+    /** Thor (animal 10, tutora Marina) internado na 6 e com alta autorizada; atendido por Rodrigo e Paulo. */
+    private void internacaoComAlta(String statusDaAlta) {
+        when(usuarioClient.nomes()).thenReturn(List.of(
+                new UsuarioNomeDto("recepcao@vidapet.com", "Ana Recepção", "ROLE_RECEPCIONISTA"),
+                new UsuarioNomeDto("rodrigo@vidapet.com", "Dr. Rodrigo Alves", "ROLE_VETERINARIO"),
+                new UsuarioNomeDto("paulo@vidapet.com", "Paulo Souza", "ROLE_AUXILIAR"),
+                new UsuarioNomeDto("admin@vidapet.com", "Administrador", "ROLE_ADMIN")));
+        when(internacaoClient.listar()).thenReturn(List.of(
+                new InternacaoDto(6L, 10L, "Thor", "Cão", 9L, statusDaAlta, "Gastroenterite",
+                        LocalDateTime.of(2026, 10, 9, 9, 0), LocalDateTime.of(2026, 10, 12, 9, 30), null,
+                        "recepcao@vidapet.com")));
+        when(internacaoClient.eventos(6L)).thenReturn(List.of(
+                new InternacaoEventoDto(null, "ADMITIDA", 9L, "recepcao@vidapet.com", LocalDateTime.of(2026, 10, 9, 9, 0)),
+                new InternacaoEventoDto("ADMITIDA", "EM_TRATAMENTO", 9L, "rodrigo@vidapet.com", LocalDateTime.of(2026, 10, 9, 10, 0)),
+                new InternacaoEventoDto("EM_TRATAMENTO", statusDaAlta, 9L, "rodrigo@vidapet.com", LocalDateTime.of(2026, 10, 12, 9, 30))));
+        when(prescricaoClient.listarDaInternacao(6L)).thenReturn(List.of(
+                new PrescricaoDto(7L, 6L, "rodrigo@vidapet.com", "Manter em repouso", true,
+                        LocalDateTime.of(2026, 10, 9, 10, 15), List.of(
+                        new PrescricaoDto.ItemDto(1L, 1L, "1 comprimido", false, 8, 6,
+                                LocalDateTime.of(2026, 10, 9, 14, 0), null))),
+                new PrescricaoDto(8L, 6L, "rodrigo@vidapet.com", null, false,
+                        LocalDateTime.of(2026, 10, 9, 10, 20), List.of(
+                        new PrescricaoDto.ItemDto(2L, 1L, "2 gotas", false, 12, 4,
+                                LocalDateTime.of(2026, 10, 9, 14, 0), null)))));
+        when(doseClient.listarDaInternacao(6L)).thenReturn(List.of(
+                new DoseDto(1L, 7L, 6L, 1L, LocalDateTime.of(2026, 10, 9, 14, 0), "APLICADA",
+                        LocalDateTime.of(2026, 10, 9, 14, 5), "paulo@vidapet.com", null, null, null),
+                new DoseDto(2L, 7L, 6L, 1L, LocalDateTime.of(2026, 10, 9, 22, 0), "APLICADA",
+                        LocalDateTime.of(2026, 10, 9, 22, 10), "paulo@vidapet.com", null, null, null),
+                new DoseDto(3L, 7L, 6L, 1L, LocalDateTime.of(2026, 10, 10, 6, 0), "PERDIDA", null, null, null, null, null)));
+    }
+
+    @Test
+    void enviaResumoDeAltaAoEmailDoTutorComAtendimentoEquipeMedicacoesECuidados() throws Exception {
+        internacaoComAlta("ALTA_AUTORIZADA");
+        when(usuarioClient.enviarMensagemAoTutor(any(), any(), any())).thenReturn("marina@exemplo.com");
+
+        mockMvc.perform(post("/api/relatorios/altas/6/email").header("Authorization", VET))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.destinatario").value("marina@exemplo.com"));
+
+        org.mockito.ArgumentCaptor<String> assunto = org.mockito.ArgumentCaptor.forClass(String.class);
+        org.mockito.ArgumentCaptor<String> texto = org.mockito.ArgumentCaptor.forClass(String.class);
+        org.mockito.Mockito.verify(usuarioClient).enviarMensagemAoTutor(org.mockito.ArgumentMatchers.eq(1L),
+                assunto.capture(), texto.capture());
+        assertThat(assunto.getValue()).isEqualTo("Resumo de alta de Thor - Plantão VidaPet");
+        assertThat(texto.getValue()).contains("Olá, Marina Costa.", "Thor (Cão)", "Gastroenterite",
+                "alta autorizada pelo veterinário",
+                "Ana Recepção (Recepcionista): registrou a admissão",
+                "Dr(a). Rodrigo Alves (Veterinário): iniciou o tratamento; autorizou a alta; prescreveu 1 medicamento",
+                "Paulo Souza (Auxiliar): aplicou 2 doses",
+                "Antibiótico A 500 mg, 1 comprimido, a cada 8 h: 2 doses aplicadas",
+                "1 dose não foi aplicada no horário",
+                "Manter em repouso", "## Cuidados para os próximos 7 dias", "## Procure a clínica na hora se")
+                .doesNotContain("2 gotas"); // prescrição desativada sem nenhuma aplicação não entra
+    }
+
+    @Test
+    void resumoDeAltaUsaOsCuidadosDoGatoParaGatoEAltaAPedidoDoTutor() throws Exception {
+        internacaoComAlta("ALTA_A_PEDIDO_DO_TUTOR");
+        when(internacaoClient.listar()).thenReturn(List.of(
+                new InternacaoDto(6L, 11L, "Nina", "Gato", 9L, "ALTA_A_PEDIDO_DO_TUTOR", "Cirurgia",
+                        LocalDateTime.of(2026, 10, 9, 9, 0), LocalDateTime.of(2026, 10, 12, 9, 30), null,
+                        "recepcao@vidapet.com")));
+        when(usuarioClient.enviarMensagemAoTutor(any(), any(), any())).thenReturn("marina@exemplo.com");
+
+        mockMvc.perform(post("/api/relatorios/altas/6/email").header("Authorization", ADMIN)).andExpect(status().isOk());
+
+        org.mockito.ArgumentCaptor<String> texto = org.mockito.ArgumentCaptor.forClass(String.class);
+        org.mockito.Mockito.verify(usuarioClient).enviarMensagemAoTutor(any(), any(), texto.capture());
+        assertThat(texto.getValue()).contains("alta a pedido do tutor", "caixa de areia");
+    }
+
+    @Test
+    void tutorSemEmailRecebe422NoEnvioEOPdfSaiParaImprimir() throws Exception {
+        internacaoComAlta("ALTA_AUTORIZADA");
+        when(usuarioClient.tutores()).thenReturn(List.of(new TutorDto(1L, "Marina Costa", "Rua das Flores, 10",
+                LocalDate.of(1988, 4, 2), "11988887777", null, List.of(
+                new TutorDto.AnimalDto(10L, "Thor", 1L, "Cão", LocalDate.of(2025, 10, 3), null)))));
+
+        mockMvc.perform(post("/api/relatorios/altas/6/email").header("Authorization", VET))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.mensagem").value(org.hamcrest.Matchers.containsString("não tem e-mail")));
+        org.mockito.Mockito.verify(usuarioClient, org.mockito.Mockito.never()).enviarMensagemAoTutor(any(), any(), any());
+
+        MvcResult pdf = mockMvc.perform(get("/api/relatorios/altas/6").header("Authorization", VET))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "application/pdf"))
+                .andReturn();
+        assertThat(textoDoPdf(pdf.getResponse().getContentAsByteArray())).contains("Resumo de alta", "Thor",
+                "Marina Costa", "Paulo Souza", "Antibiótico A 500 mg", "Procure a clínica na hora se");
+    }
+
+    @Test
+    void resumoDeAltaSoDepoisDaAltaESoParaQuemAtende() throws Exception {
+        // A internação 5 (EM_TRATAMENTO, do @BeforeEach) ainda não teve alta.
+        mockMvc.perform(post("/api/relatorios/altas/5/email").header("Authorization", VET))
+                .andExpect(status().isUnprocessableEntity());
+        mockMvc.perform(get("/api/relatorios/altas/5").header("Authorization", VET))
+                .andExpect(status().isUnprocessableEntity());
+        mockMvc.perform(get("/api/relatorios/altas/99").header("Authorization", VET))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/relatorios/altas/5").header("Authorization", AUXILIAR))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/relatorios/altas/5/email").header("Authorization", AUXILIAR))
+                .andExpect(status().isForbidden());
     }
 
     private static String textoDoPdf(byte[] pdf) throws Exception {

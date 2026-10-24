@@ -22,6 +22,15 @@ public class DoseClient {
         this.restClient = ClientesHttp.criar(baseUrl);
     }
 
+    public List<DoseDto> listarDaInternacao(Long internacaoId) {
+        return ClientesHttp.chamar(() -> restClient.get()
+                .uri(uri -> uri.path("/api/doses").queryParam("internacaoId", internacaoId).build())
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, ClientesHttp.erros(SERVICO))
+                .body(new ParameterizedTypeReference<List<DoseDto>>() {
+                }), SERVICO);
+    }
+
     public List<DoseDto> listar(LocalDate de, LocalDate ate) {
         return ClientesHttp.chamar(() -> restClient.get()
                 .uri(uri -> uri.path("/api/doses")

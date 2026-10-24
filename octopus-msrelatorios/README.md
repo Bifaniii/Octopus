@@ -28,8 +28,12 @@ Stack: Java 17, Spring Boot 4.1.1, Spring Web (webmvc), Spring Security, Lombok,
 | `GET /api/relatorios/baias` | nenhum | qualquer autenticado |
 | `GET /api/relatorios/usuarios` | `perfil` (`ROLE_*`), `ativo` | `ADMIN` |
 | `GET /api/relatorios/prescricoes/{id}` | nenhum (só PDF) | `ADMIN`, `VETERINARIO` |
+| `GET /api/relatorios/altas/{internacaoId}` | nenhum (só PDF) | `ADMIN`, `RECEPCIONISTA`, `VETERINARIO` |
+| `POST /api/relatorios/altas/{internacaoId}/email` | nenhum | `ADMIN`, `RECEPCIONISTA`, `VETERINARIO` |
 
 A prescrição sai em uma página: paciente, tutor, medicamentos e, no fim, o carimbo "Dr. <nome> ASSINADO DIGITALMENTE" com a data e a hora da emissão. É um carimbo, não certificado digital. Lê a prescrição no `msprescricao` (`MS_PRESCRICAO_URL`, padrão `http://localhost:8084`); na EC2 o `relatorios.env` precisa dessa variável. Prescrição que não existe responde 404.
+
+**Resumo de alta.** Quando uma internação tem alta (autorizada, a pedido do tutor ou já encerrada), o `ms-internacao` chama o `POST .../email`, que descreve no corpo do e-mail ao tutor o atendimento, quem atendeu (admissão, veterinário e auxiliares, com o que cada um fez), as medicações aplicadas e os cuidados dos próximos 7 dias, em texto padrão por espécie (`resources/cuidados/cao.txt`, `gato.txt` e `outros.txt`, fáceis de editar; `## ` é título e `- ` é item). O envio passa pelo `POST /api/tutores/{id}/mensagens` do `msusuario`, que só escreve ao e-mail cadastrado. Tutor sem e-mail responde 422 e a recepção baixa o mesmo conteúdo em PDF no `GET .../altas/{id}`. Internação sem alta responde 422. Os cuidados são gerais e não substituem a orientação do veterinário.
 
 Erros: filtro inválido responde 400; módulo fora do ar ou com erro responde 503 (o relatório não sai pela metade).
 
@@ -52,5 +56,6 @@ e as `MS_*_URL` apontando para os outros containers.
 
 ## Últimas alterações
 _Push de 24/10/2026 na branch `feature/relatorios`_
+- Resumo de alta ao tutor: `POST /api/relatorios/altas/{id}/email` (corpo do e-mail com atendimento, equipe, medicações e cuidados de 7 dias) e `GET /api/relatorios/altas/{id}` (PDF para tutor sem e-mail). Depende do e-mail do tutor no `msusuario` (`0.0.6`) e do gatilho no `ms-internacao` (`0.0.5`). Versão `0.0.3` para `0.0.4-SNAPSHOT`.
 - Novo `GET /api/relatorios/prescricoes/{id}`: PDF da prescrição para o veterinário imprimir, com a assinatura digital carimbada. Versão `0.0.2` para `0.0.3-SNAPSHOT`.
 - Nova variável `MS_PRESCRICAO_URL` (adicionar ao `relatorios.env` na EC2 antes do deploy).

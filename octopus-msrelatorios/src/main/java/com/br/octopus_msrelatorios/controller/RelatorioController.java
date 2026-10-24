@@ -4,6 +4,7 @@ import com.br.octopus_msrelatorios.domain.SituacaoDose;
 import com.br.octopus_msrelatorios.domain.Turno;
 import com.br.octopus_msrelatorios.relatorio.ExportadorRelatorio;
 import com.br.octopus_msrelatorios.relatorio.Formato;
+import com.br.octopus_msrelatorios.service.RelatorioAltaService;
 import com.br.octopus_msrelatorios.service.RelatorioBaiasService;
 import com.br.octopus_msrelatorios.service.RelatorioDosesService;
 import com.br.octopus_msrelatorios.service.RelatorioInternacoesService;
@@ -19,11 +20,13 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 // Cada relatório sai em PDF ou XLSX (?formato=PDF|XLSX). A permissão é a mesma de quem lê aqueles dados no
 // sistema: o token é repassado aos outros módulos, que também conferem.
@@ -41,6 +44,7 @@ public class RelatorioController {
     private final RelatorioBaiasService baiasService;
     private final RelatorioUsuariosService usuariosService;
     private final RelatorioPrescricaoService prescricaoService;
+    private final RelatorioAltaService altaService;
 
     // Sem período, o dia de hoje. auxiliar é o e-mail de quem aplicou.
     @GetMapping("/doses")
@@ -96,5 +100,20 @@ public class RelatorioController {
     @PreAuthorize("hasAnyRole('ADMIN', 'VETERINARIO')")
     public ResponseEntity<byte[]> prescricao(@PathVariable Long id, Authentication autenticacao) {
         return exportador.exportar(prescricaoService.gerar(id, autenticacao), Formato.PDF);
+    }
+
+    // Resumo de alta em PDF, para entregar ao tutor que não tem e-mail. Só depois da alta.
+    @GetMapping("/altas/{internacaoId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPCIONISTA', 'VETERINARIO')")
+    public ResponseEntity<byte[]> resumoDeAlta(@PathVariable Long internacaoId, Authentication autenticacao) {
+        return exportador.exportar(altaService.pdf(internacaoId, autenticacao), Formato.PDF);
+    }
+
+    // Manda o resumo de alta ao e-mail cadastrado do tutor (o ms-internacao chama ao registrar a alta; a recepção
+    // pode reenviar). 422 se a internação não teve alta ou o tutor não tem e-mail.
+    @PostMapping("/altas/{internacaoId}/email")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPCIONISTA', 'VETERINARIO')")
+    public Map<String, String> enviarResumoDeAlta(@PathVariable Long internacaoId) {
+        return Map.of("destinatario", altaService.enviar(internacaoId).destinatario());
     }
 }
