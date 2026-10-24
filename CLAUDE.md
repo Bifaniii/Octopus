@@ -485,12 +485,16 @@ permite rodar manualmente pela aba Actions.
 
 Ao criar um módulo novo, copie o arquivo de qualquer branch e troque a branch e o bloco `env`.
 
-Memória: cada serviço roda com teto de 400 MB (`--memory 400m --memory-swap 400m` no `docker run` do
-`pipeline.yml`). O `Dockerfile` ajusta a JVM a esse teto: heap em até 50% (`-XX:MaxRAMPercentage=50`, cerca
-de 200 MB), metaspace até 128 MB, cache de código até 48 MB, pilha de 512 KB por thread e `SerialGC`. Se o
-processo passar do teto, o Docker o encerra e o `--restart unless-stopped` sobe de novo. O teto passa a valer
-no próximo deploy do módulo; num container que já está no ar, aplique na EC2 com
-`docker update --memory 400m --memory-swap 400m <container>`. Módulo novo copia as duas coisas.
+Memória: cada serviço roda com 256 MB de RAM e até 768 MB contando swap (`--memory 256m --memory-swap 768m`
+no `docker run` do `pipeline.yml`). A JVM recebe as opções nesse mesmo `docker run`, por `JAVA_TOOL_OPTIONS`:
+heap de 128 MB (`-Xmx128m`), metaspace até 128 MB, pilha de 256 KB por thread, `SerialGC` e
+`-XX:TieredStopAtLevel=1` (só o compilador C1, que gasta menos memória). Os 512 MB além da RAM só existem se a
+EC2 tiver swap configurado; sem swap, o teto efetivo é 256 MB. Se o processo passar do teto, o Docker o encerra
+e o `--restart unless-stopped` sobe de novo. Tudo isso vale a partir do próximo deploy do módulo; num container
+que já está no ar, `docker update --memory 256m --memory-swap 768m <container>` aplica só o teto. Atenção: se o
+`ENTRYPOINT` do `Dockerfile` também passar opções da JVM (`-Xss512k`, `-XX:MaxRAMPercentage=50`), as da linha de
+comando vencem as do `JAVA_TOOL_OPTIONS`; o `-Xmx128m` prevalece sobre o percentual, mas a pilha fica em 512 KB.
+Módulo novo copia o `subir()` do pipeline.
 
 ## Segurança entre módulos
 

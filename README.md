@@ -6,10 +6,11 @@ doses, internações, tutores e animais, ocupação de baias e usuários. Arquit
 módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 13/10/2026 na branch `feature/relatorios`_
-- Versão do módulo de `0.0.1-SNAPSHOT` para `0.0.2-SNAPSHOT`: este push publica na EC2 a imagem nova, com o teto de
-  400 MB de memória (`--memory 400m --memory-swap 400m`) e a JVM ajustada a ele no `Dockerfile` (heap em
-  até 50%, metaspace até 128 MB, cache de código até 48 MB, `SerialGC`).
+_Push de 24/10/2026 na branch `feature/relatorios`_
+- `subir()` do `pipeline.yml`: container com 256 MB de RAM e até 768 MB com swap
+  (`--memory 256m --memory-swap 768m`) e a JVM configurada no `docker run` por `JAVA_TOOL_OPTIONS`
+  (`-Xmx128m`, metaspace até 128 MB, pilha de 256 KB, `SerialGC`, `-XX:TieredStopAtLevel=1`).
+- `CLAUDE.md`: regra de memória atualizada para esses valores.
 
 ## Próximos passos
 - [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)
