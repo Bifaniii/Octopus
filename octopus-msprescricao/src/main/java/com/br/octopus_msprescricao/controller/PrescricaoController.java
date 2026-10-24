@@ -56,4 +56,10 @@ public class PrescricaoController {
     public PrescricaoResponse desativar(@PathVariable Long id) {
         return prescricaoService.desativar(id);
     }
+
+    @PatchMapping("/{id}/ativar")
+    @PreAuthorize("hasRole('VETERINARIO')")
+    public PrescricaoResponse ativar(@PathVariable Long id) {
+        return prescricaoService.ativar(id);
+    }
 }

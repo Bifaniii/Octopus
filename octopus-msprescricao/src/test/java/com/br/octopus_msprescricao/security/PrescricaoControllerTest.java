@@ -288,6 +288,18 @@ class PrescricaoControllerTest {
                 .andExpect(jsonPath("$.ativo").value(false));
     }
 
+    @Test
+    void ativarSoOVeterinarioEPrescricaoJaAtivaContinuaAtiva() throws Exception {
+        String id = criarPrescricao(novaInternacao());
+        mockMvc.perform(patch("/api/prescricoes/" + id + "/desativar").header("Authorization", VET))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(patch("/api/prescricoes/" + id + "/ativar").header("Authorization", AUXILIAR))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(patch("/api/prescricoes/999999/ativar").header("Authorization", VET))
+                .andExpect(status().isNotFound());
+    }
+
     // Registro inconsistente da carga do enunciado: prescrição sem intervalo. E item de horário fixo sem quantidade.
     @Test
     void itemSemIntervaloOuSemQuantidadeRecebe400ComOCampo() throws Exception {

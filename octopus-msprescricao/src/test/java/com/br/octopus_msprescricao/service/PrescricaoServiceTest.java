@@ -4,6 +4,7 @@ import com.br.octopus_msprescricao.client.DoseClient;
 import com.br.octopus_msprescricao.client.InternacaoClient;
 import com.br.octopus_msprescricao.client.MedicacaoClient;
 import com.br.octopus_msprescricao.client.dto.AgendamentoDosesDto;
+import com.br.octopus_msprescricao.client.dto.DoseDto;
 import com.br.octopus_msprescricao.client.dto.InternacaoDto;
 import com.br.octopus_msprescricao.client.dto.MedicacaoDto;
 import com.br.octopus_msprescricao.domain.ItemPrescricao;
@@ -399,6 +400,121 @@ class PrescricaoServiceTest {
         prescricaoService.desativar(5L);
 
         verify(doseClient, never()).cancelar(anyLong());
+    }
+
+    private Prescricao desativada(Long medicacaoId) {
+        return desativada(medicacaoId, AS_8H);
+    }
+
+    /** Prescrição desativada com um item de 3 doses a cada 8 h, a partir de `inicio` (o relógio dos testes é 09/10, 10h). */
+    private Prescricao desativada(Long medicacaoId, LocalDateTime inicio) {
+        Prescricao prescricao = Prescricao.builder().id(5L).internacaoId(INTERNACAO).ativo(false)
+                .veterinarioEmail("vet@teste.local").criadoEm(AGORA).build();
+        prescricao.adicionarItem(ItemPrescricao.builder().medicacaoId(medicacaoId).dosagem("5 mg").intervaloHoras(8)
+                .quantidadeDoses(3).inicio(inicio).build());
+        when(prescricaoRepository.findById(5L)).thenReturn(Optional.of(prescricao));
+        return prescricao;
+    }
+
+    private static List<DoseDto> pendentes(int quantidade) {
+        return java.util.stream.IntStream.rangeClosed(1, quantidade).mapToObj(i -> new DoseDto((long) i, "PENDENTE")).toList();
+    }
+
+    @Test
+    void ativar_reativaAPrescricaoQuandoAsDosesVoltam() {
+        internacaoEm("EM_TRATAMENTO");
+        desativada(novoId());
+        when(doseClient.reativar(5L)).thenReturn(pendentes(3));
+
+        PrescricaoResponse resposta = prescricaoService.ativar(5L);
+
+        assertThat(resposta.ativo()).isTrue();
+        verify(doseClient).reativar(5L);
+    }
+
+    @Test
+    void ativar_prescricaoJaAtivaNaoChamaNada() {
+        Prescricao ativa = Prescricao.builder().id(5L).internacaoId(INTERNACAO).veterinarioEmail("vet@teste.local")
+                .criadoEm(AGORA).build();
+        when(prescricaoRepository.findById(5L)).thenReturn(Optional.of(ativa));
+
+        assertThat(prescricaoService.ativar(5L).ativo()).isTrue();
+
+        verify(doseClient, never()).reativar(anyLong());
+        verify(internacaoClient, never()).buscar(anyLong());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ALTA_AUTORIZADA", "ALTA_A_PEDIDO_DO_TUTOR", "ENCERRADA"})
+    void ativar_recusaInternacaoComAltaOuEncerrada(String status) {
+        internacaoEm(status);
+        Prescricao prescricao = desativada(novoId());
+
+        assertThatThrownBy(() -> prescricaoService.ativar(5L))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining(status);
+        assertThat(prescricao.isAtivo()).isFalse();
+        verify(doseClient, never()).reativar(anyLong());
+    }
+
+    @Test
+    void ativar_recusaQuandoJaNaoHaDoseParaAplicar() {
+        internacaoEm("EM_TRATAMENTO");
+        Prescricao prescricao = desativada(novoId());
+        when(doseClient.reativar(5L)).thenReturn(List.of(new DoseDto(1L, "CANCELADA"), new DoseDto(2L, "PERDIDA")));
+
+        assertThatThrownBy(() -> prescricaoService.ativar(5L))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("nova prescrição");
+        assertThat(prescricao.isAtivo()).isFalse();
+    }
+
+    @Test
+    void ativar_semSaldoOuComMsdosesForaNaoReativaNada() {
+        internacaoEm("EM_TRATAMENTO");
+        Prescricao prescricao = desativada(novoId());
+        when(doseClient.reativar(5L)).thenThrow(new RegraDeNegocioException("Estoque insuficiente de X: 0 em estoque, 3 pedidas."));
+        assertThatThrownBy(() -> prescricaoService.ativar(5L)).hasMessageContaining("Estoque insuficiente");
+        assertThat(prescricao.isAtivo()).isFalse();
+
+        doThrow(new ServicoIndisponivelException("octopus-msdoses não respondeu.")).when(doseClient).reativar(5L);
+        assertThatThrownBy(() -> prescricaoService.ativar(5L)).isInstanceOf(ServicoIndisponivelException.class);
+        assertThat(prescricao.isAtivo()).isFalse();
+    }
+
+    // RN-06 também vale ao reativar, mas só nos horários que ainda não passaram (relógio dos testes: 09/10, 10h).
+    @Test
+    void ativar_aplicaORn06ContraAsPrescricoesAtivasNosHorariosFuturos() {
+        internacaoEm("EM_TRATAMENTO");
+        Long antibiotico = novoId();
+        Long analgesico = novoId();
+        interacaoProibida(antibiotico, "Antibiótico A", analgesico, "Analgésico C");
+        LocalDateTime as6h = LocalDateTime.of(2026, 10, 9, 6, 0); // horários 06h, 14h e 22h
+        desativada(antibiotico, as6h);
+        // Outra prescrição ativa, com o Analgésico C às 14h de hoje: horário futuro em comum.
+        when(prescricaoRepository.itensEmUso(INTERNACAO))
+                .thenReturn(List.of(emUso(analgesico, 24, 1, LocalDateTime.of(2026, 10, 9, 14, 0))));
+
+        assertThatThrownBy(() -> prescricaoService.ativar(5L))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("RN-06")
+                .hasMessageContaining("já prescrito nesta internação");
+        verify(doseClient, never()).reativar(anyLong());
+    }
+
+    @Test
+    void ativar_ignoraNoRn06OHorarioQueJaPassou() {
+        internacaoEm("EM_TRATAMENTO");
+        Long antibiotico = novoId();
+        Long analgesico = novoId();
+        interacaoProibida(antibiotico, "Antibiótico A", analgesico, "Analgésico C");
+        LocalDateTime as6h = LocalDateTime.of(2026, 10, 9, 6, 0);
+        desativada(antibiotico, as6h);
+        // O único horário em comum é 06h de hoje, quatro horas antes do relógio: já passou e não barra.
+        when(prescricaoRepository.itensEmUso(INTERNACAO)).thenReturn(List.of(emUso(analgesico, 24, 1, as6h)));
+        when(doseClient.reativar(5L)).thenReturn(pendentes(2));
+
+        assertThat(prescricaoService.ativar(5L).ativo()).isTrue();
     }
 
     private ItemPrescricaoRequest seNecessario(Long medicacaoId, int intervaloMinimo) {

@@ -7,10 +7,9 @@ medicamentos para uma internação, com a RN-06 (interação proibida no mesmo h
 Arquitetura e convenções de todos os módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 13/10/2026 na branch `feature/prescricao`_
-- Versão do módulo de `0.0.1-SNAPSHOT` para `0.0.2-SNAPSHOT`: este push publica na EC2 a imagem nova, com o teto de
-  400 MB de memória (`--memory 400m --memory-swap 400m`) e a JVM ajustada a ele no `Dockerfile` (heap em
-  até 50%, metaspace até 128 MB, cache de código até 48 MB, `SerialGC`).
+_Push de 24/10/2026 na branch `feature/prescricao`_
+- Novo `PATCH /api/prescricoes/{id}/ativar` (`VETERINARIO`): reativa a prescrição, refaz o RN-06 só nos horários que ainda não passaram e pede ao msdoses que traga as doses de volta. Recusa se a internação teve alta ou foi encerrada, se faltar estoque ou se nenhuma dose ainda vale.
+- Versão `0.0.2` para `0.0.3-SNAPSHOT`.
 
 ## Próximos passos
 - [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)

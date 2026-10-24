@@ -4,6 +4,7 @@ import com.br.octopus_msprescricao.client.DoseClient;
 import com.br.octopus_msprescricao.client.InternacaoClient;
 import com.br.octopus_msprescricao.client.MedicacaoClient;
 import com.br.octopus_msprescricao.client.dto.AgendamentoDosesDto;
+import com.br.octopus_msprescricao.client.dto.DoseDto;
 import com.br.octopus_msprescricao.client.dto.InternacaoDto;
 import com.br.octopus_msprescricao.client.dto.MedicacaoDto;
 import com.br.octopus_msprescricao.domain.ItemPrescricao;
@@ -82,7 +83,7 @@ public class PrescricaoService {
         for (ItemPrescricao item : prescricao.getItens()) {
             medicacoes.computeIfAbsent(item.getMedicacaoId(), medicacaoClient::buscar);
         }
-        exigirSemInteracaoNoMesmoHorario(prescricao.getItens(), medicacoes, internacao.id());
+        exigirSemInteracaoNoMesmoHorario(prescricao.getItens(), medicacoes, internacao.id(), LocalDateTime.MIN);
         exigirEstoque(prescricao.getItens(), medicacoes);
 
         Prescricao salva = transacao.execute(status -> prescricaoRepository.save(prescricao));
@@ -132,23 +133,74 @@ public class PrescricaoService {
     }
 
     /**
+     * Reativa uma prescrição desativada. Só vale com a internação ainda aberta. O RN-06 é conferido de novo contra as
+     * prescrições ativas, mas só nos horários que ainda não passaram. O octopus-msdoses traz de volta as doses
+     * canceladas que ainda estão na janela e reserva o estoque (422 se faltar saldo). Se nenhuma dose volta, nada
+     * é reativado: já não há o que aplicar, e o caminho é uma prescrição nova.
+     */
+    public PrescricaoResponse ativar(Long id) {
+        Prescricao prescricao = transacao.execute(status -> {
+            Prescricao p = obter(id);
+            p.getItens().size(); // carrega os itens: são usados fora desta transação
+            return p;
+        });
+        if (prescricao.isAtivo()) {
+            return PrescricaoResponse.from(prescricao);
+        }
+
+        InternacaoDto internacao = internacaoClient.buscar(prescricao.getInternacaoId());
+        if (!STATUS_QUE_ACEITAM_PRESCRICAO.contains(internacao.status())) {
+            throw new RegraDeNegocioException("A internação " + internacao.id() + " está " + internacao.status()
+                    + " e não aceita reativar a prescrição.");
+        }
+        Map<Long, MedicacaoDto> medicacoes = new HashMap<>();
+        for (ItemPrescricao item : prescricao.getItens()) {
+            medicacoes.computeIfAbsent(item.getMedicacaoId(), medicacaoClient::buscar);
+        }
+        // O que já passou há mais de 30 minutos não volta, então também não conta para o RN-06.
+        exigirSemInteracaoNoMesmoHorario(prescricao.getItens(), medicacoes, internacao.id(),
+                LocalDateTime.now(clock).minusMinutes(30));
+
+        List<DoseDto> doses = doseClient.reativar(id);
+        boolean temSeNecessario = prescricao.getItens().stream().anyMatch(ItemPrescricao::isSeNecessario);
+        if (!temSeNecessario && doses.stream().noneMatch(d -> "PENDENTE".equals(d.status()))) {
+            throw new RegraDeNegocioException("Todas as doses desta prescrição já passaram. Faça uma nova prescrição.");
+        }
+        try {
+            return transacao.execute(status -> {
+                Prescricao p = obter(id);
+                p.setAtivo(true);
+                return PrescricaoResponse.from(p);
+            });
+        } catch (RuntimeException falha) {
+            // As doses já voltaram no msdoses: se a gravação aqui falhar, elas são canceladas de novo.
+            try {
+                doseClient.cancelar(id);
+            } catch (RuntimeException e) {
+                log.warn("Prescrição {} segue inativa, mas o cancelamento das doses reativadas falhou: {}", id, e.getMessage());
+            }
+            throw falha;
+        }
+    }
+
+    /**
      * RN-06: a prescrição não pode ter dois medicamentos com interação proibida no mesmo horário. Vale entre os
      * itens novos e entre eles e os itens das prescrições ativas da mesma internação, aplicados no mesmo animal.
      * As interações vêm do octopus-msmedications, que grava o par nos dois sentidos: basta a lista do medicamento
      * novo.
      */
     private void exigirSemInteracaoNoMesmoHorario(List<ItemPrescricao> novos, Map<Long, MedicacaoDto> medicacoes,
-                                                  Long internacaoId) {
+                                                  Long internacaoId, LocalDateTime aPartirDe) {
         for (int i = 0; i < novos.size(); i++) {
             for (int j = i + 1; j < novos.size(); j++) {
-                conferir(novos.get(i), novos.get(j), medicacoes, "");
+                conferir(novos.get(i), novos.get(j), medicacoes, "", aPartirDe);
             }
         }
 
         List<ItemPrescricao> emUso = prescricaoRepository.itensEmUso(internacaoId);
         for (ItemPrescricao novo : novos) {
             for (ItemPrescricao existente : emUso) {
-                conferir(novo, existente, medicacoes, ", já prescrito nesta internação");
+                conferir(novo, existente, medicacoes, ", já prescrito nesta internação", aPartirDe);
             }
         }
     }
@@ -182,22 +234,26 @@ public class PrescricaoService {
     }
 
     private void conferir(ItemPrescricao novo, ItemPrescricao outro, Map<Long, MedicacaoDto> medicacoes,
-                          String complemento) {
+                          String complemento, LocalDateTime aPartirDe) {
         MedicacaoDto medicacao = medicacoes.get(novo.getMedicacaoId());
         String nomeOutro = medicacao.nomeDaInteracaoCom(outro.getMedicacaoId());
         if (nomeOutro == null) {
             return;
         }
-        primeiroHorarioEmComum(novo, outro).ifPresent(horario -> {
+        primeiroHorarioEmComum(novo, outro, aPartirDe).ifPresent(horario -> {
             throw new RegraDeNegocioException("RN-06: " + medicacao.nomeComercial() + " tem interação proibida com "
                     + nomeOutro + complemento + ", e os dois cairiam no mesmo horário (" + horario.format(HORARIO)
                     + ").");
         });
     }
 
-    private Optional<LocalDateTime> primeiroHorarioEmComum(ItemPrescricao a, ItemPrescricao b) {
+    // Só os horários a partir de `aPartirDe`: na reativação o que já passou não pode barrar a prescrição.
+    private Optional<LocalDateTime> primeiroHorarioEmComum(ItemPrescricao a, ItemPrescricao b, LocalDateTime aPartirDe) {
         Set<LocalDateTime> horariosDeB = Set.copyOf(b.horarios());
-        return a.horarios().stream().filter(horariosDeB::contains).findFirst();
+        return a.horarios().stream()
+                .filter(h -> !h.isBefore(aPartirDe))
+                .filter(horariosDeB::contains)
+                .findFirst();
     }
 
     private Prescricao obter(Long id) {

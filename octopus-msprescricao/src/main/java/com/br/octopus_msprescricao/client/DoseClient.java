@@ -1,6 +1,7 @@
 package com.br.octopus_msprescricao.client;
 
 import com.br.octopus_msprescricao.client.dto.AgendamentoDosesDto;
+import com.br.octopus_msprescricao.client.dto.DoseDto;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import java.time.Duration;
+import java.util.List;
 
 // As doses moram no octopus-msdoses. Os dois endpoints exigem ROLE_VETERINARIO, que é quem prescreve, e são
 // idempotentes lá: repetir o agendamento ou o cancelamento de uma prescrição não duplica nem muda nada.
@@ -43,5 +45,16 @@ public class DoseClient {
                 .retrieve()
                 .onStatus(HttpStatusCode::isError, ClientesHttp.erros(NAO_ENCONTRADA, SERVICO, prescricaoId))
                 .toBodilessEntity(), SERVICO);
+    }
+
+    // As doses canceladas que ainda estão na janela voltam a ficar pendentes e reservam o estoque de novo (422 se faltar
+    // saldo). Devolve todas as doses da prescrição, para quem chamou ver o que voltou.
+    public List<DoseDto> reativar(Long prescricaoId) {
+        DoseDto[] doses = ClientesHttp.chamar(() -> restClient.patch()
+                .uri("/api/doses/prescricoes/{id}/reativar", prescricaoId)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, ClientesHttp.erros(NAO_ENCONTRADA, SERVICO, prescricaoId))
+                .body(DoseDto[].class), SERVICO);
+        return doses == null ? List.of() : List.of(doses);
     }
 }
