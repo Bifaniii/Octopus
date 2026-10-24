@@ -2,6 +2,7 @@ package com.br.octopus_msusuario.dto.request;
 
 import com.br.octopus_msusuario.validation.Celular;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
@@ -15,6 +16,7 @@ public record TutorRequest(
         @NotBlank @Size(max = 255) String endereco,
         @NotNull @Past LocalDate dataNascimento,
         @NotBlank @Celular String telefone,
+        @Email @Size(max = 150) String email,
         @Valid List<AnimalRequest> animais
 ) {
 }

@@ -11,6 +11,7 @@ public record TutorResponse(
         String endereco,
         LocalDate dataNascimento,
         String telefone,
+        String email,
         List<AnimalResponse> animais
 ) {
     public static TutorResponse from(Tutor tutor) {
@@ -20,6 +21,7 @@ public record TutorResponse(
                 tutor.getEndereco(),
                 tutor.getDataNascimento(),
                 tutor.getTelefone(),
+                tutor.getEmail(),
                 tutor.getAnimais().stream().map(AnimalResponse::from).toList()
         );
     }

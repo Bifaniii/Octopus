@@ -32,6 +32,9 @@ class CadastrosApiTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private com.br.octopus_msusuario.mail.EmailService emailService;
+
     private String admin;
     private String sufixo;
 
@@ -359,5 +362,45 @@ class CadastrosApiTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(corpoAnimal("Rex", null)))
                 .andExpect(status().isForbidden());
+    }
+
+    // E-mail do tutor é opcional, guardado em minúsculas, e recebe o resumo de alta só no endereço cadastrado.
+    @Test
+    void tutorGuardaEmailOpcionalERecebeMensagemSoNoEnderecoCadastrado() throws Exception {
+        String comEmail = mockMvc.perform(post("/api/tutores").header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"nome": "Ana %s", "endereco": "Rua A, 10", "dataNascimento": "1980-01-01",
+                                 "telefone": "11999990000", "email": "Ana.Tutora@Exemplo.com"}
+                                """.formatted(sufixo)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.email").value("ana.tutora@exemplo.com"))
+                .andReturn().getResponse().getContentAsString();
+        long tutor = ((Number) JsonPath.read(comEmail, "$.id")).longValue();
+
+        mockMvc.perform(post("/api/tutores/{id}/mensagens", tutor).header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"assunto": "Resumo de alta", "texto": "## Atendimento\\n- Thor foi medicado"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.destinatario").value("ana.tutora@exemplo.com"));
+        org.mockito.Mockito.verify(emailService).enviarMensagemAoTutor(
+                org.mockito.ArgumentMatchers.eq("ana.tutora@exemplo.com"),
+                org.mockito.ArgumentMatchers.eq("Resumo de alta"), org.mockito.ArgumentMatchers.contains("Thor"));
+
+        // E-mail inválido: 400. Sem e-mail cadastrado: 422 e nada é enviado.
+        mockMvc.perform(post("/api/tutores").header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"nome": "Bia %s", "endereco": "Rua A, 10", "dataNascimento": "1980-01-01",
+                                 "telefone": "11999990000", "email": "isso-nao-e-email"}
+                                """.formatted(sufixo)))
+                .andExpect(status().isBadRequest());
+        long semEmail = criarTutor("Caio " + sufixo);
+        mockMvc.perform(post("/api/tutores/{id}/mensagens", semEmail).header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"assunto\": \"x\", \"texto\": \"y\"}"))
+                .andExpect(status().isUnprocessableEntity());
     }
 }

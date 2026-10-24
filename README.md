@@ -135,6 +135,7 @@ _Push de 24/10/2026 na branch `main`_
   aceitos. Sem migration: a coluna `crmv_uf` já era `VARCHAR(2)`.
 - 72 testes (11 novos, em `validation/`).
 - Novos `PATCH /api/{veterinarios|auxiliares|recepcionistas}/{id}/ativar` (só `ADMIN`): o admin reativa quem desativou, e o acesso volta.
+- Tutor com e-mail opcional (`V8`, campo `email`, minúsculo, validado) e novo `POST /api/tutores/{id}/mensagens` (`ADMIN`, `RECEPCIONISTA`, `VETERINARIO`): manda um e-mail ao endereço cadastrado do tutor (usado pelo resumo de alta). Tutor sem e-mail responde 422. Versão `0.0.5` para `0.0.6-SNAPSHOT`.
 
 ## Próximos passos
 - [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)

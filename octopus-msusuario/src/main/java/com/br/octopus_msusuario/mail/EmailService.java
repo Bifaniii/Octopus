@@ -51,6 +51,47 @@ public class EmailService {
         }
     }
 
+    /**
+     * Mensagem livre ao tutor (resumo de alta). Texto puro e HTML no mesmo e-mail; ver
+     * {@link com.br.octopus_msusuario.dto.request.MensagemAoTutorRequest} para as marcações aceitas.
+     */
+    public void enviarMensagemAoTutor(String destinatario, String assunto, String texto) {
+        try {
+            MimeMessage mime = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mime, true, StandardCharsets.UTF_8.name());
+            helper.setFrom(remetente, NOME_REMETENTE);
+            helper.setTo(destinatario);
+            helper.setSubject(assunto);
+            helper.setText(MensagemFormatada.textoPuro(texto), htmlDaMensagem(assunto, texto));
+            mailSender.send(mime);
+        } catch (jakarta.mail.MessagingException | UnsupportedEncodingException e) {
+            throw new IllegalStateException("Falha ao montar o e-mail para o tutor", e);
+        }
+    }
+
+    private String htmlDaMensagem(String assunto, String texto) {
+        return """
+                <!doctype html>
+                <html lang="pt-BR">
+                <body style="margin:0;padding:24px 12px;background:#f1f5f9;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif;">
+                  <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
+                    <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"
+                           style="max-width:600px;width:100%%;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+                      <tr><td style="padding:20px 28px;background:#1e40af;">
+                        <div style="color:#ffffff;font-size:19px;font-weight:700;">Plantão VidaPet</div>
+                        <div style="color:#dbeafe;font-size:13px;padding-top:2px;">%s</div>
+                      </td></tr>
+                      <tr><td style="padding:24px 28px;color:#0f172a;font-size:15px;line-height:1.55;">%s</td></tr>
+                      <tr><td style="padding:14px 28px;border-top:1px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:12px;">
+                        Mensagem automática do sistema Plantão. Não responda a este e-mail.
+                      </td></tr>
+                    </table>
+                  </td></tr></table>
+                </body>
+                </html>
+                """.formatted(MensagemFormatada.escapar(assunto), MensagemFormatada.html(texto));
+    }
+
     private String textoPuro(String codigo, int validadeMinutos) {
         return """
                 Plantão | Clínica Veterinária VidaPet

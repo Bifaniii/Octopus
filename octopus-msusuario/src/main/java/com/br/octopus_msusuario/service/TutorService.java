@@ -1,9 +1,12 @@
 package com.br.octopus_msusuario.service;
 
 import com.br.octopus_msusuario.domain.Tutor;
+import com.br.octopus_msusuario.dto.request.MensagemAoTutorRequest;
 import com.br.octopus_msusuario.dto.request.TutorRequest;
 import com.br.octopus_msusuario.dto.response.TutorResponse;
 import com.br.octopus_msusuario.exception.RecursoNaoEncontradoException;
+import com.br.octopus_msusuario.exception.RegraNegocioException;
+import com.br.octopus_msusuario.mail.EmailService;
 import com.br.octopus_msusuario.repository.AnimalRepository;
 import com.br.octopus_msusuario.repository.TutorRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +21,7 @@ public class TutorService {
 
     private final TutorRepository tutorRepository;
     private final AnimalRepository animalRepository;
+    private final EmailService emailService;
 
     @Transactional
     public TutorResponse criar(TutorRequest request) {
@@ -26,6 +30,7 @@ public class TutorService {
                 .endereco(request.endereco())
                 .dataNascimento(request.dataNascimento())
                 .telefone(request.telefone())
+                .email(emailOuNulo(request.email()))
                 .build();
 
         if (request.animais() != null) {
@@ -52,7 +57,26 @@ public class TutorService {
         tutor.setEndereco(request.endereco());
         tutor.setDataNascimento(request.dataNascimento());
         tutor.setTelefone(request.telefone());
+        tutor.setEmail(emailOuNulo(request.email()));
         return TutorResponse.from(tutor);
+    }
+
+    /**
+     * Manda uma mensagem ao e-mail do tutor (hoje, o resumo de alta). O destinatário é sempre o e-mail
+     * cadastrado: o endpoint não aceita endereço no corpo. Sem e-mail cadastrado, 422.
+     */
+    @Transactional(readOnly = true)
+    public String enviarMensagem(Long id, MensagemAoTutorRequest mensagem) {
+        Tutor tutor = obter(id);
+        if (tutor.getEmail() == null) {
+            throw new RegraNegocioException("O tutor " + tutor.getNome() + " não tem e-mail cadastrado.");
+        }
+        emailService.enviarMensagemAoTutor(tutor.getEmail(), mensagem.assunto(), mensagem.texto());
+        return tutor.getEmail();
+    }
+
+    private static String emailOuNulo(String email) {
+        return email == null || email.isBlank() ? null : email.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
     Tutor obter(Long id) {

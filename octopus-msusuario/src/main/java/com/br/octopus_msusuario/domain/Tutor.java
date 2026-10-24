@@ -32,6 +32,9 @@ public class Tutor {
     @Column(name = "telefone", length = 20, nullable = false)
     private String telefone;
 
+    @Column(name = "email", length = 150)
+    private String email;
+
     @Builder.Default
     @OneToMany(mappedBy = "tutor", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Animal> animais = new ArrayList<>();

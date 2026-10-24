@@ -48,7 +48,7 @@ sobe um MySQL separado.
 - **Prescrição e Painel de Doses (Sprint 3):** itens de medicação com intervalos e geração automática de
   horários; painel com doses atrasadas, próximas e perdidas; janela de aplicação de 30 minutos (RN-03 a RN-06).
 - **Relatório de Doses (Sprint 4):** doses aplicadas, atrasadas e perdidas, por turno e por auxiliar (RN-07, RN-08).
-- **Restrições do TAP:** nada de integrações externas, notificações automáticas (e-mail/push) ou apps mobile;
+- **Restrições do TAP:** nada de integrações externas, notificações automáticas (e-mail/push) ou apps mobile (exceção autorizada pelo professor, em 24/10/2026: ao registrar a alta, o resumo do atendimento é enviado por e-mail ao tutor; sem e-mail cadastrado, a recepção imprime o PDF);
   login simples baseado em perfis, sem infraestrutura de auth avançada.
 
 O enunciado do professor (PDF "Projeto Octopus") é mais detalhado que o TAP e prevalece quando os dois
@@ -231,6 +231,7 @@ Portas de host default: 8080/3307 (usuário), 8081/3308 (baias), 8082/3309 (medi
 - `Dockerfile` multi-stage (maven, depois temurin 17 JRE, usuário não-root), usado pelo `docker-compose.yml`.
 - Testes: 61 no total, entre unitários com JUnit 5 e Mockito (`service/`) e integração com MockMvc
   (`security/AutenticacaoEAutorizacaoTest`, `service/RecuperacaoSenhaTest` e `controller/CadastrosApiTest`).
+- Tutor tem `email` opcional (migration `V8`). `POST /api/tutores/{id}/mensagens` envia assunto e texto ao e-mail cadastrado (nunca a outro endereço) com `EmailService.enviarMensagemAoTutor`; é como o resumo de alta chega ao tutor.
 - `mail/EmailService` envia o e-mail de redefinição de senha via `JavaMailSender`. Ele lê
   `${spring.mail.username}` como remetente, e as propriedades `spring.mail.*` vêm do `.env`. O host tem default
   porque sem ele o Spring nem cria o bean e a aplicação não sobe; usuário e senha ficam vazios, então quem não

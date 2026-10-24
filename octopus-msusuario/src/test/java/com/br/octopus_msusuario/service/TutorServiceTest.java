@@ -33,13 +33,16 @@ class TutorServiceTest {
     @Mock
     private AnimalRepository animalRepository;
 
+    @Mock
+    private com.br.octopus_msusuario.mail.EmailService emailService;
+
     @InjectMocks
     private TutorService tutorService;
 
     @Test
     void criar_deveVincularOsAnimaisAoTutor() {
         when(tutorRepository.save(any(Tutor.class))).thenAnswer(inv -> inv.getArgument(0));
-        var request = new TutorRequest("João", "Rua A, 10", LocalDate.of(1985, 1, 1), "11988887777",
+        var request = new TutorRequest("João", "Rua A, 10", LocalDate.of(1985, 1, 1), "11988887777", null,
                 List.of(new AnimalRequest("Rex", "Cão", null, null), new AnimalRequest("Mia", "Gato", null, null)));
 
         TutorResponse response = tutorService.criar(request);
@@ -55,7 +58,7 @@ class TutorServiceTest {
     @Test
     void criar_deveAceitarTutorSemAnimais() {
         when(tutorRepository.save(any(Tutor.class))).thenAnswer(inv -> inv.getArgument(0));
-        var request = new TutorRequest("João", "Rua A, 10", LocalDate.of(1985, 1, 1), "11988887777", null);
+        var request = new TutorRequest("João", "Rua A, 10", LocalDate.of(1985, 1, 1), "11988887777", null, null);
 
         assertThat(tutorService.criar(request).animais()).isEmpty();
     }

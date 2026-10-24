@@ -1,6 +1,7 @@
 package com.br.octopus_msusuario.controller;
 
 import com.br.octopus_msusuario.dto.request.AnimalRequest;
+import com.br.octopus_msusuario.dto.request.MensagemAoTutorRequest;
 import com.br.octopus_msusuario.dto.request.TutorRequest;
 import com.br.octopus_msusuario.dto.response.AnimalResponse;
 import com.br.octopus_msusuario.dto.response.TutorResponse;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/tutores")
@@ -57,6 +59,13 @@ public class TutorController {
     @PutMapping("/{id}")
     public TutorResponse atualizar(@PathVariable Long id, @Valid @RequestBody TutorRequest request) {
         return tutorService.atualizar(id, request);
+    }
+
+    // Quem fecha a alta (recepção e veterinário) manda o resumo; o endereço é sempre o cadastrado no tutor.
+    @PostMapping("/{id}/mensagens")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPCIONISTA', 'VETERINARIO')")
+    public Map<String, String> enviarMensagem(@PathVariable Long id, @Valid @RequestBody MensagemAoTutorRequest mensagem) {
+        return Map.of("destinatario", tutorService.enviarMensagem(id, mensagem));
     }
 
     @PostMapping("/{id}/animais")
