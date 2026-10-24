@@ -30,12 +30,16 @@ final class ClientesHttp {
     // HttpClient do JDK, e não o HttpURLConnection do SimpleClientHttpRequestFactory: este recusa PATCH, que é o
     // verbo do cancelamento das doses no encerramento.
     static RestClient criar(String baseUrl) {
+        return criar(baseUrl, LEITURA);
+    }
+
+    static RestClient criar(String baseUrl, Duration leitura) {
         HttpClient httpClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
                 .connectTimeout(CONEXAO)
                 .build();
         var fabrica = new JdkClientHttpRequestFactory(httpClient);
-        fabrica.setReadTimeout(LEITURA);
+        fabrica.setReadTimeout(leitura);
         return RestClient.builder()
                 .baseUrl(baseUrl)
                 .requestFactory(fabrica)

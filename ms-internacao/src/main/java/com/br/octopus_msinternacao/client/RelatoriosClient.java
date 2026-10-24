@@ -16,7 +16,8 @@ public class RelatoriosClient {
     private final RestClient restClient;
 
     public RelatoriosClient(@Value("${app.servicos.relatorios-url}") String baseUrl) {
-        this.restClient = ClientesHttp.criar(baseUrl);
+        // O msrelatorios lê quatro módulos e ainda fala com o SMTP: os 3 s dos outros clients são pouco.
+        this.restClient = ClientesHttp.criar(baseUrl, java.time.Duration.ofSeconds(20));
     }
 
     /**
