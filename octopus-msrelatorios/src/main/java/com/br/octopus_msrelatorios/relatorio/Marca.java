@@ -18,14 +18,23 @@ final class Marca {
     static final Color BORDA = new Color(0xe2, 0xe8, 0xf0);
     static final Color FUNDO_ALTERNADO = new Color(0xf8, 0xfa, 0xfc);
 
-    /** Cada linha: x, y (y para baixo, como no SVG) e raio. */
-    static final float[][] PATA = {
-            {12f, 14.5f, 4.2f},
-            {5f, 7.5f, 2.1f},
-            {10.2f, 4.3f, 2.1f},
-            {14.8f, 4.3f, 2.1f},
-            {19f, 7.5f, 2.1f},
-    };
+    /** Logo do sistema (pata sobre quadrado azul arredondado), 256 px, igual à do front: resources/logo/logo-app.png. */
+    private static final byte[] LOGO_PNG = carregarLogo();
+
+    static byte[] logoPng() {
+        return LOGO_PNG;
+    }
+
+    private static byte[] carregarLogo() {
+        try (java.io.InputStream entrada = Marca.class.getResourceAsStream("/logo/logo-app.png")) {
+            if (entrada == null) {
+                throw new java.io.UncheckedIOException(new java.io.FileNotFoundException("logo/logo-app.png"));
+            }
+            return entrada.readAllBytes();
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        }
+    }
 
     private Marca() {
     }

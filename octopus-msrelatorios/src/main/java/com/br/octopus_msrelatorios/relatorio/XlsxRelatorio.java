@@ -21,13 +21,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Component;
 
-import javax.imageio.ImageIO;
 import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
-import java.awt.geom.Ellipse2D;
-import java.awt.geom.RoundRectangle2D;
-import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -51,12 +45,10 @@ public class XlsxRelatorio {
     // A coluna A precisa caber a logo.
     private static final int LARGURA_MINIMA_A = 8;
 
-    private final byte[] logoPng = desenharLogo(96);
-
     public byte[] gerar(Relatorio relatorio) {
         try (XSSFWorkbook planilha = new XSSFWorkbook(); ByteArrayOutputStream saida = new ByteArrayOutputStream()) {
             Estilos estilos = new Estilos(planilha);
-            int logo = planilha.addPicture(logoPng, Workbook.PICTURE_TYPE_PNG);
+            int logo = planilha.addPicture(Marca.logoPng(), Workbook.PICTURE_TYPE_PNG);
             Set<String> nomesUsados = new HashSet<>();
             for (Relatorio.Tabela tabela : relatorio.tabelas()) {
                 XSSFSheet aba = planilha.createSheet(nomeDaAba(tabela.titulo(), nomesUsados));
@@ -152,31 +144,6 @@ public class XlsxRelatorio {
             nome = base.substring(0, Math.min(base.length(), 31 - sufixo.length())) + sufixo;
         }
         return nome;
-    }
-
-    private static byte[] desenharLogo(int lado) {
-        BufferedImage imagem = new BufferedImage(lado, lado, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g = imagem.createGraphics();
-        try {
-            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g.setColor(Marca.PRIMARIA);
-            g.fill(new RoundRectangle2D.Float(0, 0, lado, lado, lado * 0.44f, lado * 0.44f));
-            float escala = lado * 0.78f / 24f;
-            float origem = (lado - 24 * escala) / 2;
-            g.setColor(Color.WHITE);
-            for (float[] dedo : Marca.PATA) {
-                float r = dedo[2] * escala;
-                g.fill(new Ellipse2D.Float(origem + dedo[0] * escala - r, origem + dedo[1] * escala - r, 2 * r, 2 * r));
-            }
-        } finally {
-            g.dispose();
-        }
-        try (ByteArrayOutputStream saida = new ByteArrayOutputStream()) {
-            ImageIO.write(imagem, "png", saida);
-            return saida.toByteArray();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
     }
 
     private static final class Estilos {

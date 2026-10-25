@@ -233,21 +233,18 @@ public class PdfRelatorio {
             totalDePaginas.endText();
         }
 
-        // Quadrado azul de cantos arredondados com a pata branca, como o ícone da sidebar do front.
+        // A logo do sistema, a mesma do front, como imagem.
         private void logo(PdfContentByte cb, float x, float y, float lado) {
-            cb.saveState();
-            cb.setColorFill(Marca.PRIMARIA);
-            cb.roundRectangle(x, y, lado, lado, lado * 0.22f);
-            cb.fill();
-            float escala = lado * 0.78f / 24f;
-            float origemX = x + (lado - 24 * escala) / 2;
-            float origemY = y + (lado - 24 * escala) / 2;
-            cb.setColorFill(Color.WHITE);
-            for (float[] dedo : Marca.PATA) {
-                cb.circle(origemX + dedo[0] * escala, origemY + (24 - dedo[1]) * escala, dedo[2] * escala);
-                cb.fill();
+            try {
+                com.lowagie.text.Image imagem = com.lowagie.text.Image.getInstance(Marca.logoPng());
+                imagem.scaleAbsolute(lado, lado);
+                imagem.setAbsolutePosition(x, y);
+                cb.addImage(imagem);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            } catch (com.lowagie.text.DocumentException e) {
+                throw new IllegalStateException("Logo inválida", e);
             }
-            cb.restoreState();
         }
     }
 }
