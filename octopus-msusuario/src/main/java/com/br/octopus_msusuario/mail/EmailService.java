@@ -40,11 +40,13 @@ public class EmailService {
     public void enviarEmailRedefinicaoSenha(String destinatario, String codigo, int validadeMinutos) {
         try {
             MimeMessage mime = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mime, true, StandardCharsets.UTF_8.name());
+            MimeMessageHelper helper = new MimeMessageHelper(mime, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED,
+                    StandardCharsets.UTF_8.name());
             helper.setFrom(remetente, NOME_REMETENTE);
             helper.setTo(destinatario);
             helper.setSubject("Seu código para redefinir a senha do Plantão");
             helper.setText(textoPuro(codigo, validadeMinutos), html(codigo, validadeMinutos));
+            anexarLogo(helper);
             mailSender.send(mime);
         } catch (jakarta.mail.MessagingException | UnsupportedEncodingException e) {
             throw new IllegalStateException("Falha ao montar o e-mail de redefinição de senha", e);
@@ -58,15 +60,25 @@ public class EmailService {
     public void enviarMensagemAoTutor(String destinatario, String assunto, String texto) {
         try {
             MimeMessage mime = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mime, true, StandardCharsets.UTF_8.name());
+            MimeMessageHelper helper = new MimeMessageHelper(mime, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED,
+                    StandardCharsets.UTF_8.name());
             helper.setFrom(remetente, NOME_REMETENTE);
             helper.setTo(destinatario);
             helper.setSubject(assunto);
             helper.setText(MensagemFormatada.textoPuro(texto), htmlDaMensagem(assunto, texto));
+            anexarLogo(helper);
             mailSender.send(mime);
         } catch (jakarta.mail.MessagingException | UnsupportedEncodingException e) {
             throw new IllegalStateException("Falha ao montar o e-mail para o tutor", e);
         }
+    }
+
+    /**
+     * A logo vai dentro do próprio e-mail (imagem "cid:logo"), porque SVG não abre nos clientes de e-mail e
+     * imagem por link costuma vir bloqueada. É a pata do front em PNG, pensada para a faixa azul do cabeçalho.
+     */
+    private void anexarLogo(MimeMessageHelper helper) throws jakarta.mail.MessagingException {
+        helper.addInline("logo", new org.springframework.core.io.ClassPathResource("mail/logo-pata.png"), "image/png");
     }
 
     private String htmlDaMensagem(String assunto, String texto) {
@@ -77,9 +89,14 @@ public class EmailService {
                   <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
                     <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"
                            style="max-width:600px;width:100%%;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
-                      <tr><td style="padding:20px 28px;background:#1e40af;">
-                        <div style="color:#ffffff;font-size:19px;font-weight:700;">Plantão VidaPet</div>
-                        <div style="color:#dbeafe;font-size:13px;padding-top:2px;">%s</div>
+                      <tr><td style="padding:18px 28px;background:#1e40af;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+                          <td style="padding-right:12px;"><img src="cid:logo" width="40" height="40" alt="" style="display:block;border:0;"></td>
+                          <td>
+                            <div style="color:#ffffff;font-size:19px;font-weight:700;">Plantão VidaPet</div>
+                            <div style="color:#dbeafe;font-size:13px;padding-top:2px;">%s</div>
+                          </td>
+                        </tr></table>
                       </td></tr>
                       <tr><td style="padding:24px 28px;color:#0f172a;font-size:15px;line-height:1.55;">%s</td></tr>
                       <tr><td style="padding:14px 28px;border-top:1px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:12px;">
@@ -129,9 +146,14 @@ public class EmailService {
                              style="max-width:520px;width:100%%;background:%2$s;border:1px solid %3$s;
                                     border-radius:14px;overflow:hidden;">
                         <tr>
-                          <td style="padding:20px 28px;background:%4$s;">
-                            <div style="color:%5$s;font-size:19px;font-weight:700;letter-spacing:-0.2px;">Plantão</div>
-                            <div style="color:%6$s;font-size:13px;padding-top:2px;">Clínica Veterinária VidaPet</div>
+                          <td style="padding:18px 28px;background:%4$s;">
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+                              <td style="padding-right:12px;"><img src="cid:logo" width="40" height="40" alt="" style="display:block;border:0;"></td>
+                              <td>
+                                <div style="color:%5$s;font-size:19px;font-weight:700;letter-spacing:-0.2px;">Plantão</div>
+                                <div style="color:%6$s;font-size:13px;padding-top:2px;">Clínica Veterinária VidaPet</div>
+                              </td>
+                            </tr></table>
                           </td>
                         </tr>
                         <tr>
