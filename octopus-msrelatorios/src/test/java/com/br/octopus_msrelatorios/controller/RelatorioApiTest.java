@@ -416,6 +416,18 @@ class RelatorioApiTest {
     }
 
     @Test
+    void servidorDeEmailRecusandoVira502ComMensagem() throws Exception {
+        internacaoComAlta("ALTA_AUTORIZADA");
+        when(usuarioClient.enviarMensagemAoTutor(any(), any(), any()))
+                .thenThrow(new com.br.octopus_msrelatorios.exception.EmailNaoEnviadoException(
+                        "O servidor de e-mail não aceitou o envio."));
+
+        mockMvc.perform(post("/api/relatorios/altas/6/email").header("Authorization", VET))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.mensagem").value(org.hamcrest.Matchers.containsString("servidor de e-mail")));
+    }
+
+    @Test
     void resumoDeAltaSoDepoisDaAltaESoParaQuemAtende() throws Exception {
         // A internação 5 (EM_TRATAMENTO, do @BeforeEach) ainda não teve alta.
         mockMvc.perform(post("/api/relatorios/altas/5/email").header("Authorization", VET))

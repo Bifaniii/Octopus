@@ -37,6 +37,12 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), req, null);
     }
 
+    // 502: o relatório foi montado, mas o servidor de e-mail não aceitou o envio.
+    @ExceptionHandler(EmailNaoEnviadoException.class)
+    public ResponseEntity<ErroResponse> handleEmailNaoEnviado(EmailNaoEnviadoException ex, HttpServletRequest req) {
+        return build(HttpStatus.BAD_GATEWAY, ex.getMessage(), req, null);
+    }
+
     @ExceptionHandler(ServicoIndisponivelException.class)
     public ResponseEntity<ErroResponse> handleServicoIndisponivel(ServicoIndisponivelException ex, HttpServletRequest req) {
         return build(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), req, null);

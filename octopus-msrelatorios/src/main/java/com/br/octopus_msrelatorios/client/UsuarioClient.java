@@ -57,6 +57,11 @@ public class UsuarioClient {
                     throw new com.br.octopus_msrelatorios.exception.RegraDeNegocioException(
                             "O tutor não tem e-mail cadastrado.");
                 })
+                .onStatus(status -> status.value() == 502, (req, res) -> {
+                    throw new com.br.octopus_msrelatorios.exception.EmailNaoEnviadoException(
+                            "O servidor de e-mail não aceitou o envio. Confira a conta de envio do sistema "
+                                    + "(MAIL_USERNAME e MAIL_PASSWORD) e tente de novo.");
+                })
                 .onStatus(HttpStatusCode::isError, ClientesHttp.erros(SERVICO))
                 .body(new ParameterizedTypeReference<java.util.Map<String, String>>() {
                 }), SERVICO);
