@@ -403,4 +403,27 @@ class CadastrosApiTest {
                         .content("{\"assunto\": \"x\", \"texto\": \"y\"}"))
                 .andExpect(status().isUnprocessableEntity());
     }
+
+    // Gmail recusando o login (ou rede fora) vira 502 com mensagem clara, e não um 500 genérico.
+    @Test
+    void falhaDoServidorDeEmailVira502ComMensagemClara() throws Exception {
+        String corpo = mockMvc.perform(post("/api/tutores").header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"nome": "Dani %s", "endereco": "Rua A, 10", "dataNascimento": "1980-01-01",
+                                 "telefone": "11999990000", "email": "dani@exemplo.com"}
+                                """.formatted(sufixo)))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        long tutor = ((Number) JsonPath.read(corpo, "$.id")).longValue();
+        org.mockito.Mockito.doThrow(new com.br.octopus_msusuario.exception.EnvioDeEmailException(
+                        "O servidor de e-mail não aceitou o envio.", new RuntimeException("535")))
+                .when(emailService).enviarMensagemAoTutor(org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+
+        mockMvc.perform(post("/api/tutores/{id}/mensagens", tutor).header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"assunto\": \"x\", \"texto\": \"y\"}"))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.mensagem").value(org.hamcrest.Matchers.containsString("servidor de e-mail")));
+    }
 }

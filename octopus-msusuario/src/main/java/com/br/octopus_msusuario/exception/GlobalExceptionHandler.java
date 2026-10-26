@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
+@lombok.extern.slf4j.Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -103,8 +104,17 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.FORBIDDEN, "Acesso negado", req, null);
     }
 
+    // 502: o problema está no servidor de e-mail (conta de envio, senha de app, rede), e a mensagem diz isso.
+    @ExceptionHandler(EnvioDeEmailException.class)
+    public ResponseEntity<ErroResponse> handleEnvioDeEmail(EnvioDeEmailException ex, HttpServletRequest req) {
+        log.error("Falha ao enviar e-mail em {}: {}", req.getRequestURI(), ex.getCause() == null ? ex.getMessage()
+                : ex.getCause().toString());
+        return build(HttpStatus.BAD_GATEWAY, ex.getMessage(), req, null);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErroResponse> handleGenerico(Exception ex, HttpServletRequest req) {
+        log.error("Erro não tratado em {}", req.getRequestURI(), ex);
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno", req, null);
     }
 

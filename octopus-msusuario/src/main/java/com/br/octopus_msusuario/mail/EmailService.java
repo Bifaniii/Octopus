@@ -1,5 +1,6 @@
 package com.br.octopus_msusuario.mail;
 
+import com.br.octopus_msusuario.exception.EnvioDeEmailException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -70,6 +71,9 @@ public class EmailService {
             mailSender.send(mime);
         } catch (jakarta.mail.MessagingException | UnsupportedEncodingException e) {
             throw new IllegalStateException("Falha ao montar o e-mail para o tutor", e);
+        } catch (org.springframework.mail.MailException e) {
+            throw new EnvioDeEmailException("O servidor de e-mail não aceitou o envio. Confira a conta de envio do "
+                    + "sistema (MAIL_USERNAME e MAIL_PASSWORD) e tente de novo.", e);
         }
     }
 
