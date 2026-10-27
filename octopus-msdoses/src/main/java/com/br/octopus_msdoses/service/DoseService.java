@@ -6,6 +6,7 @@ import com.br.octopus_msdoses.domain.enums.StatusDose;
 import com.br.octopus_msdoses.dto.request.AgendamentoRequest;
 import com.br.octopus_msdoses.dto.response.DoseResponse;
 import com.br.octopus_msdoses.dto.response.ItemSeNecessarioResponse;
+import com.br.octopus_msdoses.dto.response.SituacaoPrescricaoResponse;
 import com.br.octopus_msdoses.dto.response.PainelResponse;
 import com.br.octopus_msdoses.exception.RecursoNaoEncontradoException;
 import com.br.octopus_msdoses.exception.RegraDeNegocioException;
@@ -95,6 +96,19 @@ public class DoseService {
     }
 
     /** A prescrição foi desativada: as pendentes viram CANCELADA, as aplicadas ficam como estão. Idempotente. */
+    /**
+     * Para cada prescrição, quantas doses ainda estão pendentes e se há item "se necessário" ativo. A varredura roda
+     * antes, para uma dose cuja janela fechou já contar como perdida (e, no esquema contínuo, como reaplicada).
+     */
+    public List<SituacaoPrescricaoResponse> situacaoDasPrescricoes(List<Long> prescricaoIds) {
+        varredura.executar(agora());
+        return prescricaoIds.stream().distinct()
+                .map(id -> new SituacaoPrescricaoResponse(id,
+                        doseRepository.countByPrescricaoIdAndStatus(id, StatusDose.PENDENTE),
+                        itemSeNecessarioRepository.existsByPrescricaoIdAndAtivoTrue(id)))
+                .toList();
+    }
+
     public List<DoseResponse> cancelarDaPrescricao(Long prescricaoId) {
         return transacao.execute(status -> {
             itemSeNecessarioRepository.findByPrescricaoId(prescricaoId).forEach(ItemSeNecessario::desativar);

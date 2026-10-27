@@ -351,4 +351,48 @@ class RegrasDasDosesTest {
 
         aplicarSeNecessario(item).andExpect(status().isCreated());
     }
+
+    // Uma prescrição "acabou" quando não resta dose pendente nem item "se necessário" ativo (o msprescricao a conclui).
+    @Test
+    void situacaoDasPrescricoesContaPendentesEAcompanhaAAplicacaoEAPerda() throws Exception {
+        long prescricao = prescrever(PROXIMO.incrementAndGet(), ANALGESICO_B, "SINTOMATICO",
+                "2026-11-03T14:00:00", "2026-11-03T22:00:00");
+
+        mockMvc.perform(get("/api/doses/prescricoes/situacao").param("ids", String.valueOf(prescricao))
+                        .header("Authorization", AUXILIAR))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].prescricaoId").value(prescricao))
+                .andExpect(jsonPath("$[0].pendentes").value(2))
+                .andExpect(jsonPath("$[0].seNecessarioAtivo").value(false));
+
+        // 14h: aplica a primeira. Às 22h50 a segunda passou da janela e foi perdida: nada mais pendente.
+        relogio.acertar(AS_14H);
+        mockMvc.perform(patch("/api/doses/{id}/aplicar", primeiraDose(prescricao)).header("Authorization", AUXILIAR))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/doses/prescricoes/situacao").param("ids", String.valueOf(prescricao))
+                        .header("Authorization", AUXILIAR))
+                .andExpect(jsonPath("$[0].pendentes").value(1));
+        relogio.acertar(AS_14H.plusHours(8).plusMinutes(50));
+        mockMvc.perform(get("/api/doses/prescricoes/situacao").param("ids", String.valueOf(prescricao))
+                        .header("Authorization", AUXILIAR))
+                .andExpect(jsonPath("$[0].pendentes").value(0))
+                .andExpect(jsonPath("$[0].seNecessarioAtivo").value(false));
+    }
+
+    @Test
+    void situacaoDeItemSeNecessarioFicaAtivaAteAPrescricaoSerCancelada() throws Exception {
+        long item = prescreverSeNecessario(PROXIMO.incrementAndGet(), 4);
+        long prescricao = item / 10;
+
+        mockMvc.perform(get("/api/doses/prescricoes/situacao").param("ids", String.valueOf(prescricao))
+                        .header("Authorization", AUXILIAR))
+                .andExpect(jsonPath("$[0].pendentes").value(0))
+                .andExpect(jsonPath("$[0].seNecessarioAtivo").value(true));
+
+        mockMvc.perform(patch("/api/doses/prescricoes/{id}/cancelar", prescricao).header("Authorization", VET))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/doses/prescricoes/situacao").param("ids", String.valueOf(prescricao))
+                        .header("Authorization", AUXILIAR))
+                .andExpect(jsonPath("$[0].seNecessarioAtivo").value(false));
+    }
 }

@@ -5,6 +5,7 @@ import com.br.octopus_msdoses.dto.request.AgendamentoRequest;
 import com.br.octopus_msdoses.dto.request.AplicacaoRequest;
 import com.br.octopus_msdoses.dto.response.DoseResponse;
 import com.br.octopus_msdoses.dto.response.PainelResponse;
+import com.br.octopus_msdoses.dto.response.SituacaoPrescricaoResponse;
 import com.br.octopus_msdoses.service.DoseService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -44,6 +45,12 @@ public class DoseController {
     @PreAuthorize("hasRole('VETERINARIO')")
     public List<DoseResponse> agendar(@Valid @RequestBody AgendamentoRequest request) {
         return doseService.agendar(request);
+    }
+
+    // Leitura para o msprescricao decidir quando uma prescrição acabou. Qualquer perfil autenticado.
+    @GetMapping("/prescricoes/situacao")
+    public List<SituacaoPrescricaoResponse> situacaoDasPrescricoes(@RequestParam List<Long> ids) {
+        return doseService.situacaoDasPrescricoes(ids);
     }
 
     @PatchMapping("/prescricoes/{prescricaoId}/cancelar")

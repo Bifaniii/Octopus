@@ -392,6 +392,7 @@ que acontece com ela.
 | :------- | :-------- |
 | `POST /api/doses/agendamentos` | `VETERINARIO` (chamado pelo msprescricao com o token de quem prescreveu) |
 | `PATCH /api/doses/prescricoes/{prescricaoId}/cancelar` | `VETERINARIO` |
+| `GET /api/doses/prescricoes/situacao?ids=` | autenticado (pendentes e "se necessário" ativo por prescrição) |
 | `PATCH /api/doses/prescricoes/{prescricaoId}/reativar` | `VETERINARIO` (doses canceladas ainda na janela voltam a pendentes e reservam estoque) |
 | `PATCH /api/doses/internacoes/{internacaoId}/cancelar` | `RECEPCIONISTA`, `VETERINARIO` (chamado pelo ms-internacao ao encerrar) |
 | `GET /api/doses?internacaoId=&prescricaoId=&status=&de=&ate=`, `GET /{id}` | autenticado |

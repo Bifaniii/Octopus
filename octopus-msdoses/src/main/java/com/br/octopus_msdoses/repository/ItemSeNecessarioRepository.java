@@ -20,6 +20,8 @@ public interface ItemSeNecessarioRepository extends JpaRepository<ItemSeNecessar
 
     List<ItemSeNecessario> findByPrescricaoId(Long prescricaoId);
 
+    boolean existsByPrescricaoIdAndAtivoTrue(Long prescricaoId);
+
     List<ItemSeNecessario> findByInternacaoId(Long internacaoId);
 
     // Painel: itens ativos, de uma internação ou de todas.
