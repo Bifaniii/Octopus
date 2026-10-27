@@ -162,8 +162,8 @@ public class RelatorioAltaService {
                 List<LocalDateTime> aplicadas = doItem.stream().filter(d -> "APLICADA".equals(d.status()))
                         .map(DoseDto::aplicadaEm).filter(java.util.Objects::nonNull).sorted().toList();
                 long naoAplicadas = doItem.stream().filter(d -> "PERDIDA".equals(d.status())).count();
-                if (!p.ativo() && aplicadas.isEmpty()) {
-                    continue; // prescrição desativada que nunca foi aplicada não entra no resumo
+                if (p.desativada() && aplicadas.isEmpty()) {
+                    continue; // prescrição desativada à mão que nunca foi aplicada não entra no resumo
                 }
                 lista.add(new ResumoAlta.Medicacao(
                         nomes.getOrDefault(item.medicacaoId(), "Medicamento " + item.medicacaoId()),
@@ -173,7 +173,7 @@ public class RelatorioAltaService {
                         aplicadas.size(), naoAplicadas,
                         aplicadas.isEmpty() ? null : aplicadas.get(0),
                         aplicadas.isEmpty() ? null : aplicadas.get(aplicadas.size() - 1),
-                        !p.ativo()));
+                        p.desativada()));
             }
         }
         lista.sort(Comparator.comparing(ResumoAlta.Medicacao::nome));

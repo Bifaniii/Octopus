@@ -285,7 +285,7 @@ class RelatorioApiTest {
     @Test
     void prescricaoSaiEmPdfComPacienteTutorEAssinaturaDoVeterinario() throws Exception {
         when(prescricaoClient.buscar(7L)).thenReturn(new PrescricaoDto(7L, 5L, "rodrigo@vidapet.com",
-                "Manter em repouso", true, LocalDateTime.of(2026, 10, 11, 10, 0), List.of(
+                "Manter em repouso", true, "ATIVA", LocalDateTime.of(2026, 10, 11, 10, 0), List.of(
                 new PrescricaoDto.ItemDto(1L, 1L, "1 comprimido", false, 8, 6,
                         LocalDateTime.of(2026, 10, 11, 14, 0), null))));
 
@@ -304,7 +304,7 @@ class RelatorioApiTest {
 
     @Test
     void prescricaoSoParaVeterinarioEAdmin() throws Exception {
-        when(prescricaoClient.buscar(7L)).thenReturn(new PrescricaoDto(7L, 5L, "rodrigo@vidapet.com", null, true,
+        when(prescricaoClient.buscar(7L)).thenReturn(new PrescricaoDto(7L, 5L, "rodrigo@vidapet.com", null, true, "ATIVA",
                 LocalDateTime.of(2026, 10, 11, 10, 0), List.of()));
 
         mockMvc.perform(get("/api/relatorios/prescricoes/7")).andExpect(status().isUnauthorized());
@@ -338,11 +338,11 @@ class RelatorioApiTest {
                 new InternacaoEventoDto("ADMITIDA", "EM_TRATAMENTO", 9L, "rodrigo@vidapet.com", LocalDateTime.of(2026, 10, 9, 10, 0)),
                 new InternacaoEventoDto("EM_TRATAMENTO", statusDaAlta, 9L, "rodrigo@vidapet.com", LocalDateTime.of(2026, 10, 12, 9, 30))));
         when(prescricaoClient.listarDaInternacao(6L)).thenReturn(List.of(
-                new PrescricaoDto(7L, 6L, "rodrigo@vidapet.com", "Manter em repouso", true,
+                new PrescricaoDto(7L, 6L, "rodrigo@vidapet.com", "Manter em repouso", true, "ATIVA",
                         LocalDateTime.of(2026, 10, 9, 10, 15), List.of(
                         new PrescricaoDto.ItemDto(1L, 1L, "1 comprimido", false, 8, 6,
                                 LocalDateTime.of(2026, 10, 9, 14, 0), null))),
-                new PrescricaoDto(8L, 6L, "rodrigo@vidapet.com", null, false,
+                new PrescricaoDto(8L, 6L, "rodrigo@vidapet.com", null, false, "DESATIVADA",
                         LocalDateTime.of(2026, 10, 9, 10, 20), List.of(
                         new PrescricaoDto.ItemDto(2L, 1L, "2 gotas", false, 12, 4,
                                 LocalDateTime.of(2026, 10, 9, 14, 0), null)))));
@@ -458,5 +458,23 @@ class RelatorioApiTest {
 
     private static XSSFWorkbook planilha(MvcResult resultado) throws Exception {
         return new XSSFWorkbook(new ByteArrayInputStream(resultado.getResponse().getContentAsByteArray()));
+    }
+
+    // Prescrição que acabou sozinha (CONCLUIDA) é inativa, mas não foi "interrompida pelo veterinário".
+    @Test
+    void resumoDeAltaNaoChamaDeInterrompidaAPrescricaoQueAcabouSozinha() throws Exception {
+        internacaoComAlta("ALTA_AUTORIZADA");
+        when(prescricaoClient.listarDaInternacao(6L)).thenReturn(List.of(
+                new PrescricaoDto(7L, 6L, "rodrigo@vidapet.com", null, false, "CONCLUIDA",
+                        LocalDateTime.of(2026, 10, 9, 10, 15), List.of(
+                        new PrescricaoDto.ItemDto(1L, 1L, "1 comprimido", false, 8, 3,
+                                LocalDateTime.of(2026, 10, 9, 14, 0), null)))));
+        when(usuarioClient.enviarMensagemAoTutor(any(), any(), any())).thenReturn("marina@exemplo.com");
+
+        mockMvc.perform(post("/api/relatorios/altas/6/email").header("Authorization", VET)).andExpect(status().isOk());
+
+        org.mockito.ArgumentCaptor<String> texto = org.mockito.ArgumentCaptor.forClass(String.class);
+        org.mockito.Mockito.verify(usuarioClient).enviarMensagemAoTutor(any(), any(), texto.capture());
+        assertThat(texto.getValue()).contains("Antibiótico A 500 mg").doesNotContain("interrompido");
     }
 }

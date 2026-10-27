@@ -55,7 +55,8 @@ quando a `<version>` do `pom.xml` muda. Na EC2, `~/octopus-env/relatorios.env` p
 e as `MS_*_URL` apontando para os outros containers.
 
 ## Últimas alterações
-_Push de 24/10/2026 na branch `feature/relatorios`_
+_Push de 27/10/2026 na branch `feature/relatorios`_
+- Acompanha a `situacao` da prescrição (`ATIVA`, `CONCLUIDA`, `DESATIVADA`): só a desativada à mão é descrita como interrompida pelo veterinário no resumo de alta; a que acabou sozinha aparece como um tratamento normal, e o PDF da prescrição diz "CONCLUÍDA" ou "DESATIVADA".
 - PDF e planilha saem com a logo nova (`resources/logo/logo-app.png`, a mesma do front), no lugar da pata desenhada em código.
 - Resumo de alta ao tutor: `POST /api/relatorios/altas/{id}/email` (corpo do e-mail com atendimento, equipe, medicações e cuidados de 7 dias) e `GET /api/relatorios/altas/{id}` (PDF para tutor sem e-mail). Depende do e-mail do tutor no `msusuario` (`0.0.6`) e do gatilho no `ms-internacao` (`0.0.5`). Versão `0.0.3` para `0.0.4-SNAPSHOT`.
 - Novo `GET /api/relatorios/prescricoes/{id}`: PDF da prescrição para o veterinário imprimir, com a assinatura digital carimbada. Versão `0.0.2` para `0.0.3-SNAPSHOT`.

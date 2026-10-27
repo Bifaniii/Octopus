@@ -91,8 +91,10 @@ public class RelatorioPrescricaoService {
         List<String> filtros = new ArrayList<>();
         filtros.add("Prescrição " + prescricao.id() + " · internação " + internacao.id());
         filtros.add("Prescrita em " + Valores.texto(prescricao.criadoEm()));
-        if (!prescricao.ativo()) {
+        if (prescricao.desativada()) {
             filtros.add("PRESCRIÇÃO DESATIVADA");
+        } else if (prescricao.concluida()) {
+            filtros.add("PRESCRIÇÃO CONCLUÍDA");
         }
 
         return new Relatorio(
