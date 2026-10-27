@@ -106,18 +106,86 @@ public class PrescricaoService {
         }
     }
 
-    /** Devolve ativas e inativas, com o campo {@code ativo}. Com {@code internacaoId}, só as daquela internação. */
-    @Transactional(readOnly = true)
+    /**
+     * Devolve ativas e inativas, com {@code ativo} e {@code situacao}. Com {@code internacaoId}, só as daquela
+     * internação. Antes de responder, conclui as prescrições que já acabaram (ver {@link #concluirAsQueAcabaram}).
+     */
     public List<PrescricaoResponse> listar(Long internacaoId) {
-        List<Prescricao> prescricoes = internacaoId == null
+        List<PrescricaoResponse> lista = transacao.execute(status -> respostas(internacaoId == null
                 ? prescricaoRepository.findAll(Sort.by(Sort.Direction.DESC, "criadoEm"))
-                : prescricaoRepository.findByInternacaoIdOrderByCriadoEmDesc(internacaoId);
+                : prescricaoRepository.findByInternacaoIdOrderByCriadoEmDesc(internacaoId)));
+        if (!concluirAsQueAcabaram(lista)) {
+            return lista;
+        }
+        return transacao.execute(status -> respostas(internacaoId == null
+                ? prescricaoRepository.findAll(Sort.by(Sort.Direction.DESC, "criadoEm"))
+                : prescricaoRepository.findByInternacaoIdOrderByCriadoEmDesc(internacaoId)));
+    }
+
+    public PrescricaoResponse buscar(Long id) {
+        PrescricaoResponse resposta = transacao.execute(status -> PrescricaoResponse.from(obter(id)));
+        if (!concluirAsQueAcabaram(List.of(resposta))) {
+            return resposta;
+        }
+        return transacao.execute(status -> PrescricaoResponse.from(obter(id)));
+    }
+
+    private List<PrescricaoResponse> respostas(List<Prescricao> prescricoes) {
         return prescricoes.stream().map(PrescricaoResponse::from).toList();
     }
 
-    @Transactional(readOnly = true)
-    public PrescricaoResponse buscar(Long id) {
-        return PrescricaoResponse.from(obter(id));
+    /**
+     * Uma prescrição ativa acaba quando o animal já saiu (internação encerrada) ou quando não resta dose pendente
+     * nem item "se necessário" ativo no msdoses (todas aplicadas, perdidas ou canceladas). Ela vira inativa e
+     * "concluída"; só isso, nada é apagado. Roda ao ler, como a varredura de doses perdidas: se o msdoses ou o
+     * ms-internacao não responderem, a prescrição fica como está e a listagem não falha. As criadas há menos de 2
+     * minutos ficam de fora, porque as doses ainda podem estar sendo agendadas. Devolve se concluiu alguma.
+     */
+    private boolean concluirAsQueAcabaram(List<PrescricaoResponse> lista) {
+        LocalDateTime agora = LocalDateTime.now(clock);
+        List<PrescricaoResponse> ativas = lista.stream().filter(PrescricaoResponse::ativo).toList();
+        if (ativas.isEmpty()) {
+            return false;
+        }
+        Set<Long> concluir = new java.util.HashSet<>();
+        List<PrescricaoResponse> aindaEmAberto = new java.util.ArrayList<>();
+        Map<Long, Boolean> animalSaiu = new HashMap<>();
+        for (PrescricaoResponse p : ativas) {
+            boolean saiu = animalSaiu.computeIfAbsent(p.internacaoId(), id -> {
+                try {
+                    return "ENCERRADA".equals(internacaoClient.buscar(id).status());
+                } catch (RuntimeException e) {
+                    log.warn("Não deu para ver se a internação {} já encerrou: {}", id, e.getMessage());
+                    return false;
+                }
+            });
+            if (saiu) {
+                concluir.add(p.id());
+            } else if (p.criadoEm().isBefore(agora.minusMinutes(2))) {
+                aindaEmAberto.add(p);
+            }
+        }
+        if (!aindaEmAberto.isEmpty()) {
+            try {
+                for (var situacao : doseClient.situacao(aindaEmAberto.stream().map(PrescricaoResponse::id).toList())) {
+                    if (situacao.pendentes() == 0 && !situacao.seNecessarioAtivo()) {
+                        concluir.add(situacao.prescricaoId());
+                    }
+                }
+            } catch (RuntimeException e) {
+                log.warn("Não deu para ver a situação das doses: {}", e.getMessage());
+            }
+        }
+        if (concluir.isEmpty()) {
+            return false;
+        }
+        transacao.executeWithoutResult(status -> concluir.forEach(id -> {
+            Prescricao prescricao = obter(id);
+            if (prescricao.isAtivo()) {
+                prescricao.concluir(agora);
+            }
+        }));
+        return true;
     }
 
     /** Nada é apagado: a prescrição fica com ativo = false e as doses ainda pendentes são canceladas. */
@@ -146,6 +214,10 @@ public class PrescricaoService {
         });
         if (prescricao.isAtivo()) {
             return PrescricaoResponse.from(prescricao);
+        }
+        if (prescricao.getConcluidaEm() != null) {
+            throw new RegraDeNegocioException("Esta prescrição já foi concluída: não há mais doses a aplicar. "
+                    + "Faça uma nova prescrição.");
         }
 
         InternacaoDto internacao = internacaoClient.buscar(prescricao.getInternacaoId());

@@ -11,6 +11,8 @@ public record PrescricaoResponse(
         String veterinarioEmail,
         String observacao,
         boolean ativo,
+        String situacao,
+        LocalDateTime concluidaEm,
         LocalDateTime criadoEm,
         List<ItemPrescricaoResponse> itens
 ) {
@@ -23,6 +25,8 @@ public record PrescricaoResponse(
                 prescricao.getVeterinarioEmail(),
                 prescricao.getObservacao(),
                 prescricao.isAtivo(),
+                prescricao.situacao(),
+                prescricao.getConcluidaEm(),
                 prescricao.getCriadoEm(),
                 prescricao.getItens().stream().map(ItemPrescricaoResponse::from).toList()
         );

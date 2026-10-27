@@ -36,6 +36,10 @@ public class Prescricao {
     @Column(name = "ativo", nullable = false)
     private boolean ativo = true;
 
+    // Quando a prescrição acabou sozinha. Nulo nas ativas e nas desativadas à mão pelo veterinário.
+    @Column(name = "concluida_em")
+    private LocalDateTime concluidaEm;
+
     // Vem do Clock (hora da clínica), não de LocalDateTime.now(): o container roda em UTC.
     @Column(name = "criado_em", nullable = false, updatable = false)
     private LocalDateTime criadoEm;
@@ -44,6 +48,20 @@ public class Prescricao {
     @OneToMany(mappedBy = "prescricao", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("inicio ASC")
     private List<ItemPrescricao> itens = new ArrayList<>();
+
+    /** Não há mais o que aplicar (sem dose pendente, ou o animal já saiu): inativa e marcada como concluída. */
+    public void concluir(LocalDateTime agora) {
+        this.ativo = false;
+        this.concluidaEm = agora;
+    }
+
+    /** ATIVA, CONCLUIDA (acabou sozinha) ou DESATIVADA (o veterinário desativou). */
+    public String situacao() {
+        if (ativo) {
+            return "ATIVA";
+        }
+        return concluidaEm != null ? "CONCLUIDA" : "DESATIVADA";
+    }
 
     public void adicionarItem(ItemPrescricao item) {
         item.setPrescricao(this);

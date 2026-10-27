@@ -5,6 +5,7 @@ import com.br.octopus_msprescricao.client.InternacaoClient;
 import com.br.octopus_msprescricao.client.MedicacaoClient;
 import com.br.octopus_msprescricao.client.dto.AgendamentoDosesDto;
 import com.br.octopus_msprescricao.client.dto.DoseDto;
+import com.br.octopus_msprescricao.client.dto.SituacaoDosesDto;
 import com.br.octopus_msprescricao.client.dto.InternacaoDto;
 import com.br.octopus_msprescricao.client.dto.MedicacaoDto;
 import com.br.octopus_msprescricao.domain.ItemPrescricao;
@@ -515,6 +516,99 @@ class PrescricaoServiceTest {
         when(doseClient.reativar(5L)).thenReturn(pendentes(2));
 
         assertThat(prescricaoService.ativar(5L).ativo()).isTrue();
+    }
+
+    /** Prescrição ativa da internação, criada `minutosAtras` minutos antes do relógio dos testes. */
+    private Prescricao ativaCriadaHa(long id, int minutosAtras) {
+        Prescricao p = Prescricao.builder().id(id).internacaoId(INTERNACAO).veterinarioEmail("vet@teste.local")
+                .criadoEm(AGORA.minusMinutes(minutosAtras)).build();
+        when(prescricaoRepository.findByInternacaoIdOrderByCriadoEmDesc(INTERNACAO)).thenReturn(List.of(p));
+        lenient().when(prescricaoRepository.findById(id)).thenReturn(Optional.of(p));
+        return p;
+    }
+
+    @Test
+    void listar_concluiAPrescricaoQuandoOAnimalJaSaiu() {
+        Prescricao p = ativaCriadaHa(5L, 600);
+        internacaoEm("ENCERRADA");
+
+        List<PrescricaoResponse> lista = prescricaoService.listar(INTERNACAO);
+
+        assertThat(p.isAtivo()).isFalse();
+        assertThat(p.getConcluidaEm()).isEqualTo(AGORA);
+        assertThat(lista.get(0).situacao()).isEqualTo("CONCLUIDA");
+        verify(doseClient, never()).situacao(any());
+    }
+
+    @Test
+    void listar_concluiAPrescricaoSemDosePendenteNemSeNecessarioAtivo() {
+        Prescricao p = ativaCriadaHa(5L, 600);
+        internacaoEm("EM_TRATAMENTO");
+        when(doseClient.situacao(List.of(5L))).thenReturn(List.of(new SituacaoDosesDto(5L, 0, false)));
+
+        PrescricaoResponse resposta = prescricaoService.listar(INTERNACAO).get(0);
+
+        assertThat(p.isAtivo()).isFalse();
+        assertThat(resposta.ativo()).isFalse();
+        assertThat(resposta.situacao()).isEqualTo("CONCLUIDA");
+    }
+
+    @Test
+    void listar_naoConcluiEnquantoHaDosePendenteOuSeNecessarioAtivo() {
+        Prescricao comPendente = ativaCriadaHa(5L, 600);
+        internacaoEm("EM_TRATAMENTO");
+        when(doseClient.situacao(List.of(5L))).thenReturn(List.of(new SituacaoDosesDto(5L, 2, false)));
+        assertThat(prescricaoService.listar(INTERNACAO).get(0).situacao()).isEqualTo("ATIVA");
+        assertThat(comPendente.isAtivo()).isTrue();
+
+        when(doseClient.situacao(List.of(5L))).thenReturn(List.of(new SituacaoDosesDto(5L, 0, true)));
+        assertThat(prescricaoService.listar(INTERNACAO).get(0).situacao()).isEqualTo("ATIVA");
+    }
+
+    @Test
+    void listar_naoConcluiPrescricaoRecemCriadaPoisAsDosesPodemEstarSendoAgendadas() {
+        Prescricao p = ativaCriadaHa(5L, 1);
+        internacaoEm("EM_TRATAMENTO");
+
+        assertThat(prescricaoService.listar(INTERNACAO).get(0).situacao()).isEqualTo("ATIVA");
+
+        assertThat(p.isAtivo()).isTrue();
+        verify(doseClient, never()).situacao(any());
+    }
+
+    @Test
+    void listar_seOMsdosesOuAInternacaoNaoRespondemNadaMudaENaoFalha() {
+        Prescricao p = ativaCriadaHa(5L, 600);
+        when(internacaoClient.buscar(INTERNACAO)).thenThrow(new ServicoIndisponivelException("ms-internacao fora"));
+        when(doseClient.situacao(any())).thenThrow(new ServicoIndisponivelException("msdoses fora"));
+
+        assertThat(prescricaoService.listar(INTERNACAO)).hasSize(1);
+
+        assertThat(p.isAtivo()).isTrue();
+    }
+
+    @Test
+    void listar_naoMexeNaPrescricaoQueOVeterinarioDesativou() {
+        Prescricao p = Prescricao.builder().id(5L).internacaoId(INTERNACAO).ativo(false)
+                .veterinarioEmail("vet@teste.local").criadoEm(AGORA.minusMinutes(600)).build();
+        when(prescricaoRepository.findByInternacaoIdOrderByCriadoEmDesc(INTERNACAO)).thenReturn(List.of(p));
+
+        assertThat(prescricaoService.listar(INTERNACAO).get(0).situacao()).isEqualTo("DESATIVADA");
+
+        verify(internacaoClient, never()).buscar(anyLong());
+        verify(doseClient, never()).situacao(any());
+    }
+
+    @Test
+    void ativar_recusaPrescricaoJaConcluidaPoisNaoHaMaisDoses() {
+        Prescricao p = Prescricao.builder().id(5L).internacaoId(INTERNACAO).ativo(false).concluidaEm(AGORA)
+                .veterinarioEmail("vet@teste.local").criadoEm(AGORA.minusMinutes(600)).build();
+        when(prescricaoRepository.findById(5L)).thenReturn(Optional.of(p));
+
+        assertThatThrownBy(() -> prescricaoService.ativar(5L))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("concluída");
+        verify(doseClient, never()).reativar(anyLong());
     }
 
     private ItemPrescricaoRequest seNecessario(Long medicacaoId, int intervaloMinimo) {

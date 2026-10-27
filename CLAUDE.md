@@ -354,6 +354,7 @@ Pacote `com.br.octopus_msprescricao`, mesmas camadas dos outros módulos.
 | :------- | :-------- |
 | `POST /api/prescricoes` | `VETERINARIO` |
 | `GET /api/prescricoes?internacaoId=`, `GET /{id}` | autenticado |
+| `GET` (lista e `/{id}`) | autenticado; conclui sozinha a prescrição que acabou (animal saiu ou sem dose pendente, via `msdoses`), com `situacao` e `concluidaEm` |
 | `PATCH /{id}/desativar` | `VETERINARIO` |
 | `PATCH /{id}/ativar` | `VETERINARIO` (refaz o RN-06 nos horários futuros e reativa as doses ainda na janela) |
 

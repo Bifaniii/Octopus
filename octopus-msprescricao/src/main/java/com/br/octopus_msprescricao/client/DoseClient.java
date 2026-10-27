@@ -2,6 +2,7 @@ package com.br.octopus_msprescricao.client;
 
 import com.br.octopus_msprescricao.client.dto.AgendamentoDosesDto;
 import com.br.octopus_msprescricao.client.dto.DoseDto;
+import com.br.octopus_msprescricao.client.dto.SituacaoDosesDto;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
@@ -56,5 +57,16 @@ public class DoseClient {
                 .onStatus(HttpStatusCode::isError, ClientesHttp.erros(NAO_ENCONTRADA, SERVICO, prescricaoId))
                 .body(DoseDto[].class), SERVICO);
         return doses == null ? List.of() : List.of(doses);
+    }
+
+    // Pendentes e "se necessário" ativo de cada prescrição, depois da varredura de doses perdidas do msdoses.
+    public List<SituacaoDosesDto> situacao(List<Long> prescricaoIds) {
+        SituacaoDosesDto[] situacoes = ClientesHttp.chamar(() -> restClient.get()
+                .uri(uri -> uri.path("/api/doses/prescricoes/situacao")
+                        .queryParam("ids", prescricaoIds.toArray()).build())
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, ClientesHttp.erros(NAO_ENCONTRADA, SERVICO, prescricaoIds))
+                .body(SituacaoDosesDto[].class), SERVICO);
+        return situacoes == null ? List.of() : List.of(situacoes);
     }
 }
