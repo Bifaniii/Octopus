@@ -137,6 +137,7 @@ _Push de 24/10/2026 na branch `main`_
 - Novos `PATCH /api/{veterinarios|auxiliares|recepcionistas}/{id}/ativar` (só `ADMIN`): o admin reativa quem desativou, e o acesso volta.
 - Tutor com e-mail opcional (`V8`, campo `email`, minúsculo, validado) e novo `POST /api/tutores/{id}/mensagens` (`ADMIN`, `RECEPCIONISTA`, `VETERINARIO`): manda um e-mail ao endereço cadastrado do tutor (usado pelo resumo de alta). Tutor sem e-mail responde 422. Versão `0.0.5` para `0.0.6-SNAPSHOT`.
 - Os e-mails (redefinição de senha e resumo de alta) levam a logo nova no cabeçalho, embutida na mensagem (`cid:logo`, `resources/mail/logo-pata.png`).
+- Nome de pessoa (usuários e tutor) não aceita números e exige nome e sobrenome (`@NomeCompleto`). O CNPJ aceita o formato alfanumérico de 2026 (12 posições de 0-9 e A-Z maiúsculo mais 2 dígitos); o dígito verificador usa o código ASCII menos 48 de cada caractere, e os CNPJs só de números continuam válidos.
 
 ## Próximos passos
 - [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)

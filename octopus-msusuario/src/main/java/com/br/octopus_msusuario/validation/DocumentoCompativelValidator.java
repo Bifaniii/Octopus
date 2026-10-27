@@ -18,7 +18,7 @@ public class DocumentoCompativelValidator implements ConstraintValidator<Documen
             contexto.disableDefaultConstraintViolation();
             contexto.buildConstraintViolationWithTemplate(fisica
                             ? "CPF inválido: pessoa física precisa de um CPF com 11 dígitos, sem pontos nem traço"
-                            : "CNPJ inválido: pessoa jurídica precisa de um CNPJ com 14 dígitos, sem pontos, barra nem traço")
+                            : "CNPJ inválido: pessoa jurídica precisa de um CNPJ com 14 caracteres (números e letras maiúsculas), sem pontos, barra nem traço")
                     .addPropertyNode("cpfCnpj")
                     .addConstraintViolation();
         }

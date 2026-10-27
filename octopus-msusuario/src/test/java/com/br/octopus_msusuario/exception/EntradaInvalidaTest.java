@@ -43,7 +43,7 @@ class EntradaInvalidaTest {
                         .header("Authorization", tokenAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email": "recep@teste.local", "senha": "teste123", "nome": "Guilherme",
+                                {"email": "recep@teste.local", "senha": "teste123", "nome": "Guilherme Bifani",
                                  "cpf": "48449476801", "dataNascimento": "07-06-2003", "telefone": "11964834564"}
                                 """))
                 .andExpect(status().isBadRequest())

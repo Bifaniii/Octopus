@@ -104,7 +104,7 @@ class AutenticacaoEAutorizacaoTest {
                         .header("Authorization", veterinario)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nome": "X", "endereco": "Rua", "dataNascimento": "1980-01-01", "telefone": "11988887777"}
+                                {"nome": "Xavier Souza", "endereco": "Rua", "dataNascimento": "1980-01-01", "telefone": "11988887777"}
                                 """))
                 .andExpect(status().isForbidden());
     }
@@ -118,7 +118,7 @@ class AutenticacaoEAutorizacaoTest {
                         .header("Authorization", admin)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email": "vet.duplicado@vidapet.com", "senha": "senha-forte-123", "nome": "Outro",
+                                {"email": "vet.duplicado@vidapet.com", "senha": "senha-forte-123", "nome": "Outro Veterinário",
                                  "cpfCnpj": "52998224725", "tipoPessoa": "PF", "dataNascimento": "1990-05-10",
                                  "telefone": "11999990000", "crmv": "1", "crmvUf": "RJ"}
                                 """))
@@ -183,7 +183,7 @@ class AutenticacaoEAutorizacaoTest {
                         .header("Authorization", admin)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nome": "João", "endereco": "Rua A, 10", "dataNascimento": "1985-01-01",
+                                {"nome": "João Silva", "endereco": "Rua A, 10", "dataNascimento": "1985-01-01",
                                  "telefone": "11988887777",
                                  "animais": [{"nome": "Rex", "especie": "Cão", "dataAntirrabica": "2026-03-01"}]}
                                 """))
@@ -211,7 +211,7 @@ class AutenticacaoEAutorizacaoTest {
                         .header("Authorization", admin)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nome": "João", "endereco": "Rua A, 10", "dataNascimento": "1985-01-01",
+                                {"nome": "João Silva", "endereco": "Rua A, 10", "dataNascimento": "1985-01-01",
                                  "telefone": "11988887777", "animais": [{"nome": "Rex"}]}
                                 """))
                 .andExpect(status().isBadRequest())

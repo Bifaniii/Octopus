@@ -32,6 +32,19 @@ public final class GeradorDeDocumentos {
         return cnpj.toString();
     }
 
+    /** CNPJ alfanumérico (formato de 2026): 8 caracteres aleatórios de 0-9 e A-Z, filial 0001 e os dois dígitos. */
+    public static String cnpjAlfanumerico() {
+        String alfabeto = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        StringBuilder cnpj = new StringBuilder();
+        for (int i = 0; i < 8; i++) {
+            cnpj.append(alfabeto.charAt(ThreadLocalRandom.current().nextInt(alfabeto.length())));
+        }
+        cnpj.append("0001");
+        cnpj.append(digitoCnpj(cnpj, new int[]{5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2}));
+        cnpj.append(digitoCnpj(cnpj, new int[]{6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2}));
+        return cnpj.toString();
+    }
+
     private static int digitoCpf(CharSequence base, int pesoInicial) {
         int soma = 0;
         for (int i = 0; i < base.length(); i++) {

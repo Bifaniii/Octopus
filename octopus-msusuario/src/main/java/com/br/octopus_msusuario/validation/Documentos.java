@@ -9,6 +9,9 @@ public final class Documentos {
     private static final int[] PESOS_CNPJ_1 = {5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2};
     private static final int[] PESOS_CNPJ_2 = {6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2};
 
+    /** 12 posições alfanuméricas maiúsculas e 2 dígitos verificadores numéricos. */
+    public static final String CNPJ_REGEX = "[0-9A-Z]{12}\\d{2}";
+
     private Documentos() {
     }
 
@@ -20,9 +23,13 @@ public final class Documentos {
         return digitoCpf(cpf, 9) == cpf.charAt(9) - '0' && digitoCpf(cpf, 10) == cpf.charAt(10) - '0';
     }
 
-    /** 14 dígitos, sem máscara, não todos iguais, com os dois dígitos verificadores certos. */
+    /**
+     * CNPJ numérico ou alfanumérico (formato de 2026): 12 posições de 0-9 ou A-Z maiúsculo e 2 dígitos verificadores,
+     * sem máscara e não todos iguais. O cálculo é o de sempre, mas cada caractere vale o seu código ASCII menos 48
+     * (0 a 9 valem 0 a 9, A vale 17 e Z vale 42), então os CNPJs só de números continuam válidos.
+     */
     public static boolean cnpjValido(String cnpj) {
-        if (cnpj == null || !cnpj.matches("\\d{14}") || todosIguais(cnpj)) {
+        if (cnpj == null || !cnpj.matches(CNPJ_REGEX) || todosIguais(cnpj)) {
             return false;
         }
         return digitoCnpj(cnpj, PESOS_CNPJ_1) == cnpj.charAt(12) - '0'

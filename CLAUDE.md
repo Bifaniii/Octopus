@@ -215,6 +215,7 @@ Portas de host default: 8080/3307 (usuário), 8081/3308 (baias), 8082/3309 (medi
   `@PreAuthorize` no controller: `hasRole('ADMIN')` para cadastro e desativação de veterinário, auxiliar,
   recepcionista e admin; `hasAnyRole('ADMIN','RECEPCIONISTA')` para tutores e animais. Os erros da filter chain
   (401 e 403) são escritos em JSON pelo `SecurityErrorHandlers`, porque não passam pelo `@RestControllerAdvice`.
+- Nomes e CNPJ (27/10/2026): `@NomeCompleto` recusa número e símbolo e exige duas palavras de 2 letras ou mais, em usuários e tutor (nome de animal fica fora). `Documentos.cnpjValido` aceita o CNPJ alfanumérico; a coluna `cpf_cnpj` (VARCHAR 14) já comporta. Nos testes, `GeradorDeDocumentos.cnpjAlfanumerico()`.
 - Validação dos cadastros (24/10/2026), em `validation/`: `@Cpf` e `@DocumentoCompativel` conferem o dígito verificador
   de CPF e CNPJ (pessoa física exige CPF, jurídica exige CNPJ, com o erro no campo `cpfCnpj`); `@Celular` aceita só
   celular de 11 dígitos com DDD que existe, sem máscara (telefone fixo não, por enquanto); o CRMV tem de 1 a 5 dígitos

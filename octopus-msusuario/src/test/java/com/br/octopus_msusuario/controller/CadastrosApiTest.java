@@ -41,7 +41,9 @@ class CadastrosApiTest {
     @BeforeEach
     void entrar() throws Exception {
         admin = login("admin@teste.local", "senha-de-teste");
-        sufixo = String.valueOf(ThreadLocalRandom.current().nextInt(100_000, 999_999));
+        // Só letras: o sufixo entra em nomes de pessoas, que não aceitam números.
+        sufixo = String.valueOf(ThreadLocalRandom.current().nextInt(100_000, 999_999)).chars()
+                .mapToObj(c -> String.valueOf((char) ('a' + (c - '0')))).collect(java.util.stream.Collectors.joining());
     }
 
     private String login(String email, String senha) throws Exception {
@@ -304,7 +306,7 @@ class CadastrosApiTest {
                         .header("Authorization", admin)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email": "adm%s@teste.local", "senha": "senha-forte-123", "nome": "Supervisor"}
+                                {"email": "adm%s@teste.local", "senha": "senha-forte-123", "nome": "Supervisor Chefe"}
                                 """.formatted(sufixo)))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
@@ -325,7 +327,7 @@ class CadastrosApiTest {
         mockMvc.perform(put("/api/admins/{id}", id)
                         .header("Authorization", login(email, "senha-forte-123"))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\": \"x@teste.local\", \"nome\": \"X\"}"))
+                        .content("{\"email\": \"x@teste.local\", \"nome\": \"Xavier Souza\"}"))
                 .andExpect(status().isForbidden());
     }
 
@@ -354,7 +356,7 @@ class CadastrosApiTest {
                         .header("Authorization", vet)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nome": "X", "endereco": "Rua", "dataNascimento": "1980-01-01", "telefone": "11988887777"}
+                                {"nome": "Xavier Souza", "endereco": "Rua", "dataNascimento": "1980-01-01", "telefone": "11988887777"}
                                 """))
                 .andExpect(status().isForbidden());
         mockMvc.perform(put("/api/animais/{id}", criarAnimal(tutor, "Rex", null))

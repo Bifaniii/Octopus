@@ -1,5 +1,6 @@
 package com.br.octopus_msusuario.dto.request;
 
+import com.br.octopus_msusuario.validation.NomeCompleto;
 import com.br.octopus_msusuario.validation.Celular;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -12,7 +13,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 public record TutorRequest(
-        @NotBlank @Size(max = 100) String nome,
+        @NotBlank @Size(max = 100) @NomeCompleto String nome,
         @NotBlank @Size(max = 255) String endereco,
         @NotNull @Past LocalDate dataNascimento,
         @NotBlank @Celular String telefone,

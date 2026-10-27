@@ -64,7 +64,7 @@ class ValidacaoDeCadastrosTest {
         return mockMvc.perform(post("/api/auxiliares").header("Authorization", admin)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                        {"email": "%s", "senha": "senha-forte-123", "nome": "Paulo", "cpf": "%s",
+                        {"email": "%s", "senha": "senha-forte-123", "nome": "Paulo Souza", "cpf": "%s",
                          "dataNascimento": "1995-01-01", "telefone": "%s"}
                         """.formatted(email, cpf, telefone)));
     }
@@ -152,7 +152,7 @@ class ValidacaoDeCadastrosTest {
     @DisplayName("tutor também só aceita celular")
     void tutorSoComCelular() throws Exception {
         String corpo = """
-                {"nome": "João", "endereco": "Rua A, 10", "dataNascimento": "1985-01-01", "telefone": "%s"}
+                {"nome": "João Silva", "endereco": "Rua A, 10", "dataNascimento": "1985-01-01", "telefone": "%s"}
                 """;
         mockMvc.perform(post("/api/tutores").header("Authorization", admin).contentType(MediaType.APPLICATION_JSON)
                         .content(corpo.formatted("1133334444")))
@@ -195,5 +195,30 @@ class ValidacaoDeCadastrosTest {
         assertThat(Documentos.cnpjValido("11222333000182")).isFalse();
         assertThat(Documentos.cnpjValido("00000000000000")).isFalse();
         assertThat(Documentos.cpfValido(null)).isFalse();
+    }
+
+    @Test
+    @DisplayName("nome sem sobrenome ou com número: 400 no campo nome")
+    void nomeDePessoaPrecisaDeSobrenomeESemNumero() throws Exception {
+        for (String nome : new String[]{"aaa12131241", "Paulo", "Paulo Souza 2"}) {
+            mockMvc.perform(post("/api/auxiliares").header("Authorization", admin)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"email": "aux%d@teste.local", "senha": "senha-forte-123", "nome": "%s", "cpf": "%s",
+                                     "dataNascimento": "1995-01-01", "telefone": "11988887777"}
+                                    """.formatted(ThreadLocalRandom.current().nextInt(1_000_000), nome,
+                                    GeradorDeDocumentos.cpf())))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.campos.nome").exists());
+        }
+    }
+
+    @Test
+    @DisplayName("veterinário pessoa jurídica com CNPJ alfanumérico: aceito")
+    void cnpjAlfanumericoEhAceito() throws Exception {
+        veterinario(GeradorDeDocumentos.cnpjAlfanumerico(), "PJ", "11988887777", crmv(), "SP")
+                .andExpect(status().isCreated());
+        veterinario("12abc34501de35", "PJ", "11988887777", crmv(), "SP").andExpect(status().isBadRequest());
+        veterinario("12ABC34501DE36", "PJ", "11988887777", crmv(), "SP").andExpect(status().isBadRequest());
     }
 }
