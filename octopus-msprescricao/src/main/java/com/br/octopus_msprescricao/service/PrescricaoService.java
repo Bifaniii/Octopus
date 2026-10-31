@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -38,6 +39,8 @@ public class PrescricaoService {
     // Depois da alta (autorizada ou a pedido do tutor) e com a internação encerrada não se prescreve mais.
     private static final Set<String> STATUS_QUE_ACEITAM_PRESCRICAO = Set.of("ADMITIDA", "EM_TRATAMENTO", "ISOLAMENTO");
     private static final DateTimeFormatter HORARIO = DateTimeFormatter.ofPattern("dd/MM 'às' HH:mm");
+    // RN-06: medicamentos com interação proibida precisam de pelo menos 8 horas entre as doses.
+    private static final Duration INTERVALO_MINIMO_ENTRE_INTERACOES = Duration.ofHours(8);
 
     private final PrescricaoRepository prescricaoRepository;
     private final InternacaoClient internacaoClient;
@@ -83,9 +86,9 @@ public class PrescricaoService {
         for (ItemPrescricao item : prescricao.getItens()) {
             medicacoes.computeIfAbsent(item.getMedicacaoId(), medicacaoClient::buscar);
         }
-        exigirSemInteracaoNoMesmoHorario(prescricao.getItens(), medicacoes, internacao.id(), LocalDateTime.MIN);
+        exigirIntervaloEntreInteracoes(prescricao.getItens(), medicacoes, internacao.id(), LocalDateTime.MIN);
         exigirEstoque(prescricao.getItens(), medicacoes);
-
+        /*Mexer nesssa parte e emlementa a logica antes do save*/
         Prescricao salva = transacao.execute(status -> prescricaoRepository.save(prescricao));
         try {
             doseClient.agendar(AgendamentoDosesDto.de(salva, medicacoes));
@@ -230,7 +233,7 @@ public class PrescricaoService {
             medicacoes.computeIfAbsent(item.getMedicacaoId(), medicacaoClient::buscar);
         }
         // O que já passou há mais de 30 minutos não volta, então também não conta para o RN-06.
-        exigirSemInteracaoNoMesmoHorario(prescricao.getItens(), medicacoes, internacao.id(),
+        exigirIntervaloEntreInteracoes(prescricao.getItens(), medicacoes, internacao.id(),
                 LocalDateTime.now(clock).minusMinutes(30));
 
         List<DoseDto> doses = doseClient.reativar(id);
@@ -256,13 +259,14 @@ public class PrescricaoService {
     }
 
     /**
-     * RN-06: a prescrição não pode ter dois medicamentos com interação proibida no mesmo horário. Vale entre os
-     * itens novos e entre eles e os itens das prescrições ativas da mesma internação, aplicados no mesmo animal.
+     * RN-06: dois medicamentos com interação proibida precisam de pelo menos 8 horas entre as doses; os que não têm
+     * interação não exigem intervalo. Vale entre os itens novos e entre eles e os itens das prescrições ativas da
+     * mesma internação, aplicados no mesmo animal.
      * As interações vêm do octopus-msmedications, que grava o par nos dois sentidos: basta a lista do medicamento
      * novo.
      */
-    private void exigirSemInteracaoNoMesmoHorario(List<ItemPrescricao> novos, Map<Long, MedicacaoDto> medicacoes,
-                                                  Long internacaoId, LocalDateTime aPartirDe) {
+    private void exigirIntervaloEntreInteracoes(List<ItemPrescricao> novos, Map<Long, MedicacaoDto> medicacoes,
+                                                Long internacaoId, LocalDateTime aPartirDe) {
         for (int i = 0; i < novos.size(); i++) {
             for (int j = i + 1; j < novos.size(); j++) {
                 conferir(novos.get(i), novos.get(j), medicacoes, "", aPartirDe);
@@ -310,22 +314,35 @@ public class PrescricaoService {
         MedicacaoDto medicacao = medicacoes.get(novo.getMedicacaoId());
         String nomeOutro = medicacao.nomeDaInteracaoCom(outro.getMedicacaoId());
         if (nomeOutro == null) {
-            return;
+            return; // sem interação: não exige intervalo
         }
-        primeiroHorarioEmComum(novo, outro, aPartirDe).ifPresent(horario -> {
+        primeiroConflito(novo, outro, aPartirDe).ifPresent(c -> {
             throw new RegraDeNegocioException("RN-06: " + medicacao.nomeComercial() + " tem interação proibida com "
-                    + nomeOutro + complemento + ", e os dois cairiam no mesmo horário (" + horario.format(HORARIO)
-                    + ").");
+                    + nomeOutro + complemento + " e exige 8 horas de intervalo, mas há doses em "
+                    + c.horarioA().format(HORARIO) + " e em " + c.horarioB().format(HORARIO) + ".");
         });
     }
 
+    private record Conflito(LocalDateTime horarioA, LocalDateTime horarioB) {
+    }
+
+    // Primeiro par de horários, um de cada item, com menos de 8 horas entre eles (8 horas exatas é aceito).
     // Só os horários a partir de `aPartirDe`: na reativação o que já passou não pode barrar a prescrição.
-    private Optional<LocalDateTime> primeiroHorarioEmComum(ItemPrescricao a, ItemPrescricao b, LocalDateTime aPartirDe) {
-        Set<LocalDateTime> horariosDeB = Set.copyOf(b.horarios());
-        return a.horarios().stream()
-                .filter(h -> !h.isBefore(aPartirDe))
-                .filter(horariosDeB::contains)
-                .findFirst();
+    private Optional<Conflito> primeiroConflito(ItemPrescricao a, ItemPrescricao b, LocalDateTime aPartirDe) {
+        for (LocalDateTime horarioA : a.horarios()) {
+            if (horarioA.isBefore(aPartirDe)) {
+                continue;
+            }
+            for (LocalDateTime horarioB : b.horarios()) {
+                if (horarioB.isBefore(aPartirDe)) {
+                    continue;
+                }
+                if (Duration.between(horarioA, horarioB).abs().compareTo(INTERVALO_MINIMO_ENTRE_INTERACOES) < 0) {
+                    return Optional.of(new Conflito(horarioA, horarioB));
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     private Prescricao obter(Long id) {

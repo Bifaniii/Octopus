@@ -293,17 +293,33 @@ class PrescricaoServiceTest {
     }
 
     @Test
-    void rn06_deveAceitarMedicamentosComInteracaoEmHorariosDiferentes() {
+    void rn06_deveAceitarMedicamentosComInteracaoComIntervaloDe8Horas() {
         internacaoEm("ADMITIDA");
         Long antibiotico = novoId();
         Long analgesico = novoId();
         interacaoProibida(antibiotico, "Antibiótico A", analgesico, "Analgésico C");
 
-        // A: 08h, 16h e 00h. C: 12h e 12h do dia seguinte. Nenhum horário em comum.
-        prescricaoService.criar(pedido(item(antibiotico, 8, 3, AS_8H), item(analgesico, 24, 2, AS_8H.plusHours(4))),
+        // A: 08h. C: 16h. Exatamente 8 horas de intervalo é aceito.
+        prescricaoService.criar(pedido(item(antibiotico, 8, 1, AS_8H), item(analgesico, 24, 1, AS_8H.plusHours(8))),
                 "vet@teste.local");
 
         verify(prescricaoRepository).save(any(Prescricao.class));
+    }
+
+    @Test
+    void rn06_deveRecusarMedicamentosComInteracaoComMenosDe8HorasDeIntervalo() {
+        internacaoEm("ADMITIDA");
+        Long antibiotico = novoId();
+        Long analgesico = novoId();
+        interacaoProibida(antibiotico, "Antibiótico A", analgesico, "Analgésico C");
+
+        // A: 08h. C: 12h. Só 4 horas de intervalo.
+        assertThatThrownBy(() -> prescricaoService.criar(
+                pedido(item(antibiotico, 8, 1, AS_8H), item(analgesico, 24, 1, AS_8H.plusHours(4))), "vet@teste.local"))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("RN-06")
+                .hasMessageContaining("8 horas");
+        verify(prescricaoRepository, never()).save(any());
     }
 
     @Test
@@ -336,14 +352,16 @@ class PrescricaoServiceTest {
     }
 
     @Test
-    void rn06_deveAceitarMedicamentoEmHorarioDiferenteDoJaPrescrito() {
+    void rn06_deveAceitarMedicamentoComIntervaloDe8HorasDoJaPrescrito() {
         internacaoEm("EM_TRATAMENTO");
         Long antibiotico = novoId();
         Long analgesico = novoId();
         interacaoProibida(analgesico, "Analgésico C", antibiotico, "Antibiótico A");
-        when(prescricaoRepository.itensEmUso(INTERNACAO)).thenReturn(List.of(emUso(antibiotico, 8, 3, AS_14H)));
+        // Já prescrito: uma dose às 14h.
+        when(prescricaoRepository.itensEmUso(INTERNACAO)).thenReturn(List.of(emUso(antibiotico, 8, 1, AS_14H)));
 
-        prescricaoService.criar(pedido(item(analgesico, 12, 1, AS_14H.plusHours(1))), "vet@teste.local");
+        // Novo: 22h, exatamente 8 horas depois.
+        prescricaoService.criar(pedido(item(analgesico, 12, 1, AS_14H.plusHours(8))), "vet@teste.local");
 
         verify(prescricaoRepository).save(any(Prescricao.class));
     }
