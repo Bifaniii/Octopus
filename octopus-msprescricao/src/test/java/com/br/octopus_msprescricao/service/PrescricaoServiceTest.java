@@ -343,7 +343,72 @@ class PrescricaoServiceTest {
         interacaoProibida(analgesico, "Analgésico C", antibiotico, "Antibiótico A");
         when(prescricaoRepository.itensEmUso(INTERNACAO)).thenReturn(List.of(emUso(antibiotico, 8, 3, AS_14H)));
 
-        prescricaoService.criar(pedido(item(analgesico, 12, 1, AS_14H.plusHours(1))), "vet@teste.local");
+        prescricaoService.criar(pedido(item(analgesico, 12, 1, AS_14H.plusHours(2))), "vet@teste.local");
+
+        verify(prescricaoRepository).save(any(Prescricao.class));
+    }
+
+    // "Mesmo horário" são janelas da RN-03 que se cruzam: 08:00 e 08:10 seriam aplicados juntos pelo auxiliar.
+    @Test
+    void rn06_deveRecusarHorariosComMinutosDiferentesQuandoAsJanelasSeCruzam() {
+        internacaoEm("ADMITIDA");
+        Long antibiotico = novoId();
+        Long analgesico = novoId();
+        interacaoProibida(antibiotico, "Antibiótico A", analgesico, "Analgésico C");
+
+        assertThatThrownBy(() -> prescricaoService.criar(
+                pedido(item(antibiotico, 8, 3, AS_8H), item(analgesico, 12, 2, AS_8H.plusMinutes(10))),
+                "vet@teste.local"))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("RN-06")
+                .hasMessageContaining("10/10 às 08:00")
+                .hasMessageContaining("10/10 às 08:10");
+        verify(prescricaoRepository, never()).save(any());
+    }
+
+    @Test
+    void rn06_deveRecusarComUmaHoraExataPoisOsLimitesDaJanelaSaoInclusivos() {
+        internacaoEm("ADMITIDA");
+        Long antibiotico = novoId();
+        Long analgesico = novoId();
+        interacaoProibida(antibiotico, "Antibiótico A", analgesico, "Analgésico C");
+
+        // A às 08h e C às 09h: às 08h30 as duas doses estão dentro da janela e podem ser aplicadas juntas.
+        assertThatThrownBy(() -> prescricaoService.criar(
+                pedido(item(antibiotico, 8, 3, AS_8H), item(analgesico, 12, 2, AS_8H.plusHours(1))),
+                "vet@teste.local"))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("RN-06");
+    }
+
+    @Test
+    void rn06_deveRecusarNovaPrescricaoA59MinutosDeOutraJaAtivaNaInternacao() {
+        internacaoEm("EM_TRATAMENTO");
+        Long antibiotico = novoId();
+        Long analgesico = novoId();
+        interacaoProibida(analgesico, "Analgésico C", antibiotico, "Antibiótico A");
+        when(prescricaoRepository.itensEmUso(INTERNACAO)).thenReturn(List.of(emUso(antibiotico, 8, 3, AS_14H)));
+
+        // A às 14h, 22h e 06h; C às 14h59: as janelas (13h30–14h30 e 14h29–15h29) se cruzam por um minuto.
+        assertThatThrownBy(() -> prescricaoService.criar(pedido(item(analgesico, 12, 1, AS_14H.plusMinutes(59))),
+                "vet@teste.local"))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("já prescrito nesta internação")
+                .hasMessageContaining("10/10 às 14:59");
+        verify(prescricaoRepository, never()).save(any());
+        verify(doseClient, never()).agendar(any());
+    }
+
+    @Test
+    void rn06_deveAceitarNaMesmaPrescricaoComMaisDeUmaHoraDeDiferenca() {
+        internacaoEm("ADMITIDA");
+        Long antibiotico = novoId();
+        Long analgesico = novoId();
+        interacaoProibida(antibiotico, "Antibiótico A", analgesico, "Analgésico C");
+
+        // A às 08h (janela 07h30–08h30) e C às 09h01 (janela 08h31–09h31): não há momento em que os dois caibam.
+        prescricaoService.criar(pedido(item(antibiotico, 8, 3, AS_8H), item(analgesico, 12, 2, AS_8H.plusMinutes(61))),
+                "vet@teste.local");
 
         verify(prescricaoRepository).save(any(Prescricao.class));
     }

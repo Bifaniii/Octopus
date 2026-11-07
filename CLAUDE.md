@@ -340,9 +340,10 @@ Pacote `com.br.octopus_msprescricao`, mesmas camadas dos outros módulos.
 - RN-06: antes de iniciar o tratamento e gravar, o `MedicacaoClient` busca cada medicamento novo no
   msmedications (`GET /api/medicacoes/{id}`, uma vez por medicamento) e a prescrição é recusada com 422 se dois
   medicamentos com interação proibida cairiam **no mesmo horário**: entre os itens novos ou entre um item novo e
-  os itens das prescrições ativas da mesma internação. Em horários diferentes o par é aceito, como diz o
-  enunciado. Basta olhar a lista do medicamento novo, porque o msmedications grava o par nos dois sentidos. URL em
-  `MS_MEDICACOES_URL`.
+  os itens das prescrições ativas da mesma internação. "Mesmo horário" são janelas da RN-03 que se cruzam, isto é,
+  doses a até 60 minutos uma da outra (limites inclusivos, como no msdoses), decidido em 07/11/2026 no lugar da
+  igualdade ao minuto. Com mais de 60 minutos o par é aceito, como diz o enunciado. Basta olhar a lista do
+  medicamento novo, porque o msmedications grava o par nos dois sentidos. URL em `MS_MEDICACOES_URL`.
 - Migrations: `V1__prescricoes.sql` (versão do Douglas, já aplicada em produção) e `V2__itens_medicacao_long.sql`,
   que passa `medicacao_id` a `BIGINT` e descarta as prescrições de teste.
 - Item "se necessário" (mudança contratada): `seNecessario = true`, `intervaloHoras` é o mínimo entre aplicações, sem

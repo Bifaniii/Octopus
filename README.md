@@ -7,14 +7,19 @@ medicamentos para uma internação, com a RN-06 (interação proibida no mesmo h
 Arquitetura e convenções de todos os módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 27/10/2026 na branch `feature/prescricao`_
-- A prescrição passa a se concluir sozinha. Ao listar ou buscar, o módulo confere se o animal já saiu (internação `ENCERRADA`) ou se o `msdoses` não tem mais dose pendente nem item "se necessário" ativo; se sim, ela fica `ativo = false` com `concluidaEm` preenchido (migration `V4`). A resposta ganhou `situacao` (`ATIVA`, `CONCLUIDA` ou `DESATIVADA`) e `concluidaEm`. As criadas há menos de 2 minutos ficam de fora, e se o `msdoses` ou o `ms-internacao` não responderem nada muda. Prescrição concluída não pode ser reativada (422): não há mais doses. Versão `0.0.3` para `0.0.4-SNAPSHOT`.
-- Ajuste de memória do Douglas (24/10), mantido:
-  - `subir()` do `pipeline.yml`: container com 256 MB de RAM e até 768 MB com swap
-  (`--memory 256m --memory-swap 768m`) e a JVM configurada no `docker run` por `JAVA_TOOL_OPTIONS`
-  (`-Xmx128m`, metaspace até 128 MB, pilha de 256 KB, `SerialGC`, `-XX:TieredStopAtLevel=1`).
-  - `CLAUDE.md`: regra de memória atualizada para esses valores.
+_Push de 07/11/2026 na branch `claude/medicamentos-500-error-gjvu1q` (para a `feature/prescricao`)_
+- RN-06: "mesmo horário" passa a ser o cruzamento das janelas de aplicação da RN-03, e não o mesmo minuto. Duas doses
+  com interação proibida a até 60 minutos uma da outra são recusadas (08:00 e 08:10 eram aceitas, embora o auxiliar
+  aplicasse as duas juntas); com mais de 60 minutos o par continua aceito, como diz o enunciado. Vale entre os itens
+  da prescrição nova e entre eles e as prescrições ativas da internação, e também ao reativar.
+- A mensagem de erro mostra os dois horários em conflito.
+- 4 testes novos no `PrescricaoServiceTest` (71 no módulo), com a borda de 60 minutos exatos recusada, porque os
+  limites da janela são inclusivos.
+- Substitui a proposta de 8 horas da `fix/validacao_medicacao`, que proibia o par em qualquer horário.
 
 ## Próximos passos
+- [ ] Levar a mudança para a `feature/prescricao` e subir a versão do `pom.xml` para publicar
+- [ ] Encerrar a `fix/validacao_medicacao`
+- [ ] Avaliar a conferência da RN-06 na aplicação do item "se necessário" (msdoses), que não tem horário
 - [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)
-- [ ] Publicar em produção junto com os outros módulos (ver o documento de deploy)
+

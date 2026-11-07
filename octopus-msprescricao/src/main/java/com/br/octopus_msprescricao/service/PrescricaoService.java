@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -38,6 +39,12 @@ public class PrescricaoService {
     // Depois da alta (autorizada ou a pedido do tutor) e com a internação encerrada não se prescreve mais.
     private static final Set<String> STATUS_QUE_ACEITAM_PRESCRICAO = Set.of("ADMITIDA", "EM_TRATAMENTO", "ISOLAMENTO");
     private static final DateTimeFormatter HORARIO = DateTimeFormatter.ofPattern("dd/MM 'às' HH:mm");
+    // RN-03: cada dose pode ser aplicada até 30 minutos antes ou depois do horário previsto.
+    private static final Duration JANELA_DE_APLICACAO = Duration.ofMinutes(30);
+    // RN-06: duas doses estão "no mesmo horário" quando as janelas de aplicação delas se cruzam, isto é, quando o
+    // auxiliar poderia aplicar as duas no mesmo momento. Com janelas de 30 minutos e limites inclusivos (como no
+    // msdoses), isso é até 60 minutos de diferença: com 60 exatos, as duas ainda podem ser aplicadas no meio.
+    private static final Duration MESMO_HORARIO = JANELA_DE_APLICACAO.multipliedBy(2);
 
     private final PrescricaoRepository prescricaoRepository;
     private final InternacaoClient internacaoClient;
@@ -256,8 +263,10 @@ public class PrescricaoService {
     }
 
     /**
-     * RN-06: a prescrição não pode ter dois medicamentos com interação proibida no mesmo horário. Vale entre os
-     * itens novos e entre eles e os itens das prescrições ativas da mesma internação, aplicados no mesmo animal.
+     * RN-06: a prescrição não pode ter dois medicamentos com interação proibida no mesmo horário. "Mesmo horário"
+     * quer dizer janelas de aplicação da RN-03 que se cruzam (até 60 minutos entre as doses), e não o mesmo
+     * minuto: 08:00 e 08:10 seriam aplicados juntos. Vale entre os itens novos e entre eles e os itens das
+     * prescrições ativas da mesma internação, aplicados no mesmo animal.
      * As interações vêm do octopus-msmedications, que grava o par nos dois sentidos: basta a lista do medicamento
      * novo.
      */
@@ -312,20 +321,34 @@ public class PrescricaoService {
         if (nomeOutro == null) {
             return;
         }
-        primeiroHorarioEmComum(novo, outro, aPartirDe).ifPresent(horario -> {
+        primeiroConflito(novo, outro, aPartirDe).ifPresent(conflito -> {
             throw new RegraDeNegocioException("RN-06: " + medicacao.nomeComercial() + " tem interação proibida com "
-                    + nomeOutro + complemento + ", e os dois cairiam no mesmo horário (" + horario.format(HORARIO)
-                    + ").");
+                    + nomeOutro + complemento + ", e os dois cairiam no mesmo horário: " + medicacao.nomeComercial()
+                    + " em " + conflito.horarioNovo().format(HORARIO) + " e " + nomeOutro + " em "
+                    + conflito.horarioOutro().format(HORARIO) + ", a até " + MESMO_HORARIO.toMinutes()
+                    + " minutos um do outro.");
         });
     }
 
-    // Só os horários a partir de `aPartirDe`: na reativação o que já passou não pode barrar a prescrição.
-    private Optional<LocalDateTime> primeiroHorarioEmComum(ItemPrescricao a, ItemPrescricao b, LocalDateTime aPartirDe) {
-        Set<LocalDateTime> horariosDeB = Set.copyOf(b.horarios());
-        return a.horarios().stream()
-                .filter(h -> !h.isBefore(aPartirDe))
-                .filter(horariosDeB::contains)
-                .findFirst();
+    private record Conflito(LocalDateTime horarioNovo, LocalDateTime horarioOutro) {
+    }
+
+    // Primeiro par de horários, um de cada item, cujas janelas de aplicação se cruzam. Só os horários a partir de
+    // `aPartirDe`: na reativação o que já passou não pode barrar a prescrição. Item "se necessário" não tem horário
+    // e não entra aqui.
+    private Optional<Conflito> primeiroConflito(ItemPrescricao novo, ItemPrescricao outro, LocalDateTime aPartirDe) {
+        List<LocalDateTime> horariosDoOutro = outro.horarios().stream().filter(h -> !h.isBefore(aPartirDe)).toList();
+        for (LocalDateTime horarioNovo : novo.horarios()) {
+            if (horarioNovo.isBefore(aPartirDe)) {
+                continue;
+            }
+            for (LocalDateTime horarioOutro : horariosDoOutro) {
+                if (Duration.between(horarioNovo, horarioOutro).abs().compareTo(MESMO_HORARIO) <= 0) {
+                    return Optional.of(new Conflito(horarioNovo, horarioOutro));
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     private Prescricao obter(Long id) {
