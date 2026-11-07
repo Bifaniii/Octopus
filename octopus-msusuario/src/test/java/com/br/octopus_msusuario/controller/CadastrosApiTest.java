@@ -75,7 +75,7 @@ class CadastrosApiTest {
                         .header("Authorization", admin)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nome": "%s", "especie": "Cão", "dataAntirrabica": "2026-03-01", "maeId": %s}
+                                {"nome": "%s", "especie": "Cão", "sexo": "FEMEA", "dataAntirrabica": "2026-03-01", "maeId": %s}
                                 """.formatted(nome, maeId)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.tutorId").value(tutorId))
@@ -85,7 +85,7 @@ class CadastrosApiTest {
 
     private String corpoAnimal(String nome, Long maeId) {
         return """
-                {"nome": "%s", "especie": "Cão", "dataAntirrabica": "2026-05-10", "maeId": %s}
+                {"nome": "%s", "especie": "Cão", "sexo": "FEMEA", "dataAntirrabica": "2026-05-10", "maeId": %s}
                 """.formatted(nome, maeId);
     }
 
@@ -99,6 +99,50 @@ class CadastrosApiTest {
         mockMvc.perform(get("/api/animais/{id}", filhote).header("Authorization", admin))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.maeId").value(mae));
+    }
+
+    @Test
+    void especieForaDaListaRecebe400ComOsValoresAceitos() throws Exception {
+        long tutor = criarTutor("Rita " + sufixo);
+
+        mockMvc.perform(post("/api/animais").param("tutorId", String.valueOf(tutor))
+                        .header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"nome": "Loro", "especie": "Papagaio", "sexo": "MACHO"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.campos.especie").value(org.hamcrest.Matchers.containsString("Cão, Gato, Outro")));
+    }
+
+    @Test
+    void especieESexoVoltamNaResposta() throws Exception {
+        long tutor = criarTutor("Sara " + sufixo);
+        long animal = criarAnimal(tutor, "Nina", null);
+
+        mockMvc.perform(get("/api/animais/{id}", animal).header("Authorization", admin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.especie").value("Cão"))
+                .andExpect(jsonPath("$.sexo").value("FEMEA"));
+    }
+
+    @Test
+    void machoNaoPodeSerIndicadoComoMae() throws Exception {
+        long tutor = criarTutor("Vera " + sufixo);
+        String corpoMacho = """
+                {"nome": "Thor", "especie": "Cão", "sexo": "MACHO"}
+                """;
+        String body = mockMvc.perform(post("/api/animais").param("tutorId", String.valueOf(tutor))
+                        .header("Authorization", admin).contentType(MediaType.APPLICATION_JSON).content(corpoMacho))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long thor = ((Number) JsonPath.read(body, "$.id")).longValue();
+
+        mockMvc.perform(post("/api/animais").param("tutorId", String.valueOf(tutor))
+                        .header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(corpoAnimal("Bidu", thor)))
+                .andExpect(status().isUnprocessableEntity());
     }
 
     @Test

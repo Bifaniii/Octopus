@@ -3,7 +3,10 @@ package com.br.octopus_msusuario.dto.request;
 import java.time.LocalDate;
 
 import com.br.octopus_msusuario.domain.Animal;
+import com.br.octopus_msusuario.domain.enums.Especie;
+import com.br.octopus_msusuario.domain.enums.SexoAnimal;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Size;
 
@@ -12,9 +15,12 @@ public record AnimalRequest(
         @NotBlank @Size(max = 100)
         String nome,
        
-        @NotBlank(message = "Especie é obrigatório")
-        @Size(max = 250)
-        String especie,
+        // "Cão", "Gato" ou "Outro"; outro valor recebe 400 com a lista dos aceitos.
+        @NotNull(message = "Espécie é obrigatória")
+        Especie especie,
+
+        @NotNull(message = "Sexo é obrigatório")
+        SexoAnimal sexo,
        
         @PastOrPresent
         LocalDate dataAntirrabica,
@@ -26,6 +32,7 @@ public record AnimalRequest(
         return Animal.builder()
                 .nome(nome)
                 .especie(especie)
+                .sexo(sexo)
                 .dataUltimaAntirrabica(dataAntirrabica)
                 .mae(mae)
                 .build();
