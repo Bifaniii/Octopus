@@ -136,9 +136,10 @@ _Push de 07/11/2026 na branch `fix/sexo-especie-animal` (para a `main`)_
   normalização da espécie em texto livre ("cão", "cachorro", "canino" viram `CAO`; "gato", "felino" viram `GATO`;
   o resto vira `OUTRO`). O animal sem espécie da carga fica nulo, e o ms-internacao continua recusando.
 - 9 testes novos (107 no módulo).
+- Versão `0.0.6-SNAPSHOT` para `0.0.7-SNAPSHOT`: o merge na `main` publica o msusuario com a `V9`.
 
 ## Próximos passos
-- [ ] Levar para a `main` e subir a versão do `pom.xml` para publicar, junto com o front
+- [ ] Mesclar o PR na `main` junto com o front (o back novo exige `sexo`, que o front antigo não manda)
 - [ ] Completar o sexo dos animais já cadastrados (Thor, Nina, Bidu) pela edição
 - [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)
 
