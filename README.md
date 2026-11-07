@@ -137,6 +137,7 @@ _Push de 07/11/2026 na branch `fix/sexo-especie-animal` (para a `main`)_
   o resto vira `OUTRO`). O animal sem espécie da carga fica nulo, e o ms-internacao continua recusando.
 - 9 testes novos (107 no módulo).
 - Versão `0.0.6-SNAPSHOT` para `0.0.7-SNAPSHOT`: o merge na `main` publica o msusuario com a `V9`.
+- Veterinário precisa ter pelo menos 23 anos (`@MinIdade`, no cadastro e na edição): o aniversário vale no próprio dia e a data de hoje é a de São Paulo. Os outros perfis não têm idade mínima por enquanto.
 
 ## Próximos passos
 - [ ] Mesclar o PR na `main` junto com o front (o back novo exige `sexo`, que o front antigo não manda)

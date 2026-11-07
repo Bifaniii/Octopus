@@ -221,4 +221,27 @@ class ValidacaoDeCadastrosTest {
         veterinario("12abc34501de35", "PJ", "11988887777", crmv(), "SP").andExpect(status().isBadRequest());
         veterinario("12ABC34501DE36", "PJ", "11988887777", crmv(), "SP").andExpect(status().isBadRequest());
     }
+
+    private ResultActions veterinarioNascidoEm(java.time.LocalDate nascimento) throws Exception {
+        String email = "vet" + ThreadLocalRandom.current().nextInt(1_000_000) + "@teste.local";
+        return mockMvc.perform(post("/api/veterinarios").header("Authorization", admin)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"email": "%s", "senha": "senha-forte-123", "nome": "Dra. Carla Souza", "cpfCnpj": "%s",
+                         "tipoPessoa": "PF", "dataNascimento": "%s", "telefone": "11988887777",
+                         "crmv": "%s", "crmvUf": "SP"}
+                        """.formatted(email, GeradorDeDocumentos.cpf(), nascimento, crmv())));
+    }
+
+    @Test
+    @DisplayName("veterinário precisa ter pelo menos 23 anos: no dia do aniversário de 23 passa, um dia antes não")
+    void veterinarioComMenosDe23AnosERecusado() throws Exception {
+        java.time.LocalDate hoje = java.time.LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo"));
+
+        veterinarioNascidoEm(hoje.minusYears(23)).andExpect(status().isCreated());
+        veterinarioNascidoEm(hoje.minusYears(23).minusDays(1)).andExpect(status().isCreated());
+        veterinarioNascidoEm(hoje.minusYears(23).plusDays(1)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.campos.dataNascimento").value(org.hamcrest.Matchers.containsString("23 anos")));
+        veterinarioNascidoEm(hoje.minusYears(20)).andExpect(status().isBadRequest());
+    }
 }
