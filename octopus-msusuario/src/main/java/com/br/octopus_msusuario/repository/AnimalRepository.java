@@ -8,6 +8,9 @@ import com.br.octopus_msusuario.exception.AnimalNaoEncontradoException;
 
 public interface AnimalRepository extends JpaRepository<Animal, Long> {
 
+    // Uma fêmea com filhotes cadastrados não pode virar macho nem trocar de espécie.
+    boolean existsByMaeId(Long maeId);
+
     // Mãe informada no cadastro do animal: null quando não informada, 404 quando o id não existe.
     default Animal buscarMae(Long maeId) {
         if (maeId == null) {

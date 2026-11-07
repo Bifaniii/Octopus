@@ -124,21 +124,22 @@ cd octopus-msusuario && ./mvnw test
 - Arquitetura e convenções para novos módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 24/10/2026 na branch `main`_
-- Versão do `msusuario` de `0.0.4-SNAPSHOT` para `0.0.5-SNAPSHOT`: este push publica a imagem com as regras abaixo.
-- CPF e CNPJ passam a ser validados aqui, com dígito verificador (`validation/Documentos`, `@Cpf` e
-  `@DocumentoCompativel`): pessoa física exige CPF e pessoa jurídica exige CNPJ. O erro vem no campo (`cpf`, `cpfCnpj`).
-- Telefone só celular (`@Celular`): DDD que existe, 9 e mais 8 dígitos, sem máscara. Vale para tutor, veterinário,
-  auxiliar e recepcionista, no cadastro e na edição.
-- CRMV com no máximo 5 dígitos numéricos.
-- A UF do CRMV é a enum `UnidadeFederativa` (as 27 siglas). Valor fora da enum devolve 400 dizendo o campo e os valores
-  aceitos. Sem migration: a coluna `crmv_uf` já era `VARCHAR(2)`.
-- 72 testes (11 novos, em `validation/`).
-- Novos `PATCH /api/{veterinarios|auxiliares|recepcionistas}/{id}/ativar` (só `ADMIN`): o admin reativa quem desativou, e o acesso volta.
-- Tutor com e-mail opcional (`V8`, campo `email`, minúsculo, validado) e novo `POST /api/tutores/{id}/mensagens` (`ADMIN`, `RECEPCIONISTA`, `VETERINARIO`): manda um e-mail ao endereço cadastrado do tutor (usado pelo resumo de alta). Tutor sem e-mail responde 422. Versão `0.0.5` para `0.0.6-SNAPSHOT`.
-- Os e-mails (redefinição de senha e resumo de alta) levam a logo nova no cabeçalho, embutida na mensagem (`cid:logo`, `resources/mail/logo-pata.png`).
-- Nome de pessoa (usuários e tutor) não aceita números e exige nome e sobrenome (`@NomeCompleto`). O CNPJ aceita o formato alfanumérico de 2026 (12 posições de 0-9 e A-Z maiúsculo mais 2 dígitos); o dígito verificador usa o código ASCII menos 48 de cada caractere, e os CNPJs só de números continuam válidos.
+_Push de 07/11/2026 na branch `fix/sexo-especie-animal` (para a `main`)_
+- `Animal` ganha `sexo` (`MACHO` ou `FEMEA`), obrigatório no cadastro e na edição.
+- `especie` passa a ser uma lista fixa: `Cão`, `Gato` ou `Outro` (enum `Especie`; no banco `CAO`, `GATO`, `OUTRO`).
+  O JSON continua com o rótulo, então o ms-internacao e os relatórios não mudam. Valor fora da lista recebe 400 com
+  os valores aceitos.
+- Mãe: precisa ser fêmea, da mesma espécie e com o sexo informado (422). Quem já é mãe de algum animal não pode
+  virar macho nem trocar de espécie. Vale em `POST /api/animais`, `PUT /api/animais/{id}` e `POST /api/tutores`
+  com a lista `animais`.
+- Migration `V9__animais_sexo_especie.sql`: coluna `sexo` anulável (animais antigos ficam sem sexo até a edição) e
+  normalização da espécie em texto livre ("cão", "cachorro", "canino" viram `CAO`; "gato", "felino" viram `GATO`;
+  o resto vira `OUTRO`). O animal sem espécie da carga fica nulo, e o ms-internacao continua recusando.
+- 9 testes novos (107 no módulo).
+- Versão `0.0.6-SNAPSHOT` para `0.0.7-SNAPSHOT`: o merge na `main` publica o msusuario com a `V9`.
 
 ## Próximos passos
+- [ ] Mesclar o PR na `main` junto com o front (o back novo exige `sexo`, que o front antigo não manda)
+- [ ] Completar o sexo dos animais já cadastrados (Thor, Nina, Bidu) pela edição
 - [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)
-- [ ] Publicar em produção junto com os outros módulos (ver o documento de deploy)
+

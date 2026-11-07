@@ -185,7 +185,7 @@ class AutenticacaoEAutorizacaoTest {
                         .content("""
                                 {"nome": "João Silva", "endereco": "Rua A, 10", "dataNascimento": "1985-01-01",
                                  "telefone": "11988887777",
-                                 "animais": [{"nome": "Rex", "especie": "Cão", "dataAntirrabica": "2026-03-01"}]}
+                                 "animais": [{"nome": "Rex", "especie": "Cão", "sexo": "FEMEA", "dataAntirrabica": "2026-03-01"}]}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.animais[0].especie").value("Cão"))
@@ -197,7 +197,7 @@ class AutenticacaoEAutorizacaoTest {
                         .header("Authorization", admin)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nome": "Mia", "especie": "Gato"}
+                                {"nome": "Mia", "especie": "Gato", "sexo": "FEMEA"}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.tutorId").value(tutorId));
@@ -226,7 +226,7 @@ class AutenticacaoEAutorizacaoTest {
                         .header("Authorization", admin)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"nome": "Mia", "especie": "Gato"}
+                                {"nome": "Mia", "especie": "Gato", "sexo": "FEMEA"}
                                 """))
                 .andExpect(status().isNotFound());
     }

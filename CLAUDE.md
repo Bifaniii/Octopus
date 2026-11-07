@@ -207,8 +207,13 @@ Portas de host default: 8080/3307 (usuário), 8081/3308 (baias), 8082/3309 (medi
 - Usuário e perfil se ligam por composição, não por herança. `Usuario` (`tb_usuarios`: email, senha BCrypt,
   `Role`, `ativo`) é uma entidade concreta, e cada perfil (`Admin`, `Veterinario`, `Auxiliar`, `Recepcionista`)
   é uma entidade própria com `@OneToOne(cascade = ALL) Usuario usuario`. `Tutor` é separado e não tem `Usuario`,
-  porque não faz login. `Animal` tem id, nome, tutor, espécie e data da última vacina antirrábica; a data é
-  anulável, e é ela que a RN-02 vai consultar na internação.
+  porque não faz login. `Animal` tem id, nome, tutor, espécie, sexo, mãe e data da última vacina antirrábica; a
+  data é anulável, e é ela que a RN-02 vai consultar na internação. Desde 07/11/2026 (`V9`) a espécie é a enum
+  `Especie` (`CAO`, `GATO`, `OUTRO` no banco; "Cão", "Gato" e "Outro" no JSON, que é o texto que o ms-internacao
+  copia) e o sexo é a enum `SexoAnimal`. Os dois são obrigatórios no cadastro e na edição, mas anuláveis no banco:
+  o animal sem espécie da carga fica nulo, e os antigos ficam sem sexo até serem editados. A mãe precisa ser fêmea,
+  da mesma espécie e com o sexo informado, e quem já é mãe não vira macho nem troca de espécie (422, em
+  `service/MaeDoAnimal`).
 - `Role` inclui `ROLE_TUTOR`, reservado e sem uso hoje; o `AuthService.login` rejeita essa role explicitamente.
 - Segurança: JWT stateless (jjwt 0.12, HS384). O `JwtAuthenticationFilter` valida o token, recarrega o usuário e
   ignora tokens de usuários desativados, então `ativo=false` invalida os tokens já emitidos. A autorização é por
@@ -239,7 +244,7 @@ Portas de host default: 8080/3307 (usuário), 8081/3308 (baias), 8082/3309 (medi
   configurou SMTP ainda consegue rodar o projeto.
 - `Tutor` e `Animal` têm id `Long` (`V7` converteu preservando os registros e as FKs). A conta (`Usuario`) e os
   perfis continuam `UUID`. `PUT /api/tutores/{id}` edita só os dados do tutor; `PUT /api/animais/{id}` edita nome,
-  espécie, antirrábica e mãe (a mãe não pode ser o próprio animal nem alguém da linha de ascendência dele: 422).
+  espécie, sexo, antirrábica e mãe (a mãe não pode ser o próprio animal nem alguém da linha de ascendência dele: 422).
   `POST /api/tutores` aceita a lista `animais` e grava tudo numa transação.
 - `PUT /api/veterinarios/{id}`, `/api/auxiliares/{id}`, `/api/recepcionistas/{id}` e `/api/admins/{id}` (só
   `ADMIN`) editam os dados do perfil e o e-mail de login, com as mesmas validações do cadastro e sem a senha, que só

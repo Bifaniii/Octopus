@@ -1,6 +1,8 @@
 package com.br.octopus_msusuario.service;
 
 import com.br.octopus_msusuario.domain.Tutor;
+import com.br.octopus_msusuario.domain.enums.Especie;
+import com.br.octopus_msusuario.domain.enums.SexoAnimal;
 import com.br.octopus_msusuario.dto.request.AnimalRequest;
 import com.br.octopus_msusuario.dto.request.TutorRequest;
 import com.br.octopus_msusuario.dto.response.TutorResponse;
@@ -43,7 +45,7 @@ class TutorServiceTest {
     void criar_deveVincularOsAnimaisAoTutor() {
         when(tutorRepository.save(any(Tutor.class))).thenAnswer(inv -> inv.getArgument(0));
         var request = new TutorRequest("João", "Rua A, 10", LocalDate.of(1985, 1, 1), "11988887777", null,
-                List.of(new AnimalRequest("Rex", "Cão", null, null), new AnimalRequest("Mia", "Gato", null, null)));
+                List.of(new AnimalRequest("Rex", Especie.CAO, SexoAnimal.FEMEA, null, null), new AnimalRequest("Mia", Especie.GATO, SexoAnimal.FEMEA, null, null)));
 
         TutorResponse response = tutorService.criar(request);
 
@@ -51,7 +53,7 @@ class TutorServiceTest {
         verify(tutorRepository).save(captor.capture());
         Tutor salvo = captor.getValue();
         assertThat(salvo.getAnimais()).hasSize(2).allSatisfy(animal -> assertThat(animal.getTutor()).isSameAs(salvo));
-        assertThat(salvo.getAnimais()).extracting("especie").containsExactly("Cão", "Gato");
+        assertThat(salvo.getAnimais()).extracting("especie").containsExactly(Especie.CAO, Especie.GATO);
         assertThat(response.animais()).hasSize(2);
     }
 

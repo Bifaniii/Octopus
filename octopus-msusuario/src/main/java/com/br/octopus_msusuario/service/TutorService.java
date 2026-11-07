@@ -1,5 +1,6 @@
 package com.br.octopus_msusuario.service;
 
+import com.br.octopus_msusuario.domain.Animal;
 import com.br.octopus_msusuario.domain.Tutor;
 import com.br.octopus_msusuario.dto.request.MensagemAoTutorRequest;
 import com.br.octopus_msusuario.dto.request.TutorRequest;
@@ -34,7 +35,11 @@ public class TutorService {
                 .build();
 
         if (request.animais() != null) {
-            request.animais().forEach(a -> tutor.adicionarAnimal(a.toEntity(animalRepository.buscarMae(a.maeId()))));
+            request.animais().forEach(a -> {
+                Animal mae = animalRepository.buscarMae(a.maeId());
+                MaeDoAnimal.exigirValida(null, a.especie(), mae);
+                tutor.adicionarAnimal(a.toEntity(mae));
+            });
         }
 
         return TutorResponse.from(tutorRepository.save(tutor));
