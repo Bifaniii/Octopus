@@ -138,6 +138,7 @@ _Push de 07/11/2026 na branch `fix/sexo-especie-animal` (para a `main`)_
 - 9 testes novos (107 no módulo).
 - Versão `0.0.6-SNAPSHOT` para `0.0.7-SNAPSHOT`: o merge na `main` publica o msusuario com a `V9`.
 - Veterinário precisa ter pelo menos 23 anos (`@MinIdade`, no cadastro e na edição): o aniversário vale no próprio dia e a data de hoje é a de São Paulo. Auxiliar, recepcionista e tutor precisam ter pelo menos 18 anos (`MinIdade.ADULTO`); o admin não tem data de nascimento e o animal fica fora.
+- Versão `0.0.7` para `0.0.8-SNAPSHOT`: publica a idade mínima (veterinário 23 anos; auxiliar, recepcionista e tutor 18), o nome sem números e com sobrenome, o CNPJ alfanumérico, o e-mail do tutor e o envio do resumo de alta.
 
 ## Próximos passos
 - [ ] Mesclar o PR na `main` junto com o front (o back novo exige `sexo`, que o front antigo não manda)
