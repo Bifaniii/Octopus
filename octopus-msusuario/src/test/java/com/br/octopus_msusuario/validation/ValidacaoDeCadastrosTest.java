@@ -244,4 +244,37 @@ class ValidacaoDeCadastrosTest {
                 .andExpect(jsonPath("$.campos.dataNascimento").value(org.hamcrest.Matchers.containsString("23 anos")));
         veterinarioNascidoEm(hoje.minusYears(20)).andExpect(status().isBadRequest());
     }
+
+    private ResultActions postNascidoEm(String url, String corpo, java.time.LocalDate nascimento) throws Exception {
+        return mockMvc.perform(post(url).header("Authorization", admin)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(corpo.formatted(ThreadLocalRandom.current().nextInt(1_000_000), GeradorDeDocumentos.cpf(),
+                        nascimento)));
+    }
+
+    @Test
+    @DisplayName("auxiliar, recepcionista e tutor precisam ser maiores de idade (18 anos)")
+    void auxiliarRecepcionistaETutorPrecisamTer18Anos() throws Exception {
+        java.time.LocalDate hoje = java.time.LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo"));
+        String auxiliar = """
+                {"email": "aux%d@teste.local", "senha": "senha-forte-123", "nome": "Paulo Souza", "cpf": "%s",
+                 "dataNascimento": "%s", "telefone": "11988887777"}
+                """;
+        String recepcionista = auxiliar.replace("aux%d", "rec%d").replace("Paulo Souza", "Ana Lima");
+        for (String[] caso : new String[][]{{"/api/auxiliares", auxiliar}, {"/api/recepcionistas", recepcionista}}) {
+            postNascidoEm(caso[0], caso[1], hoje.minusYears(18)).andExpect(status().isCreated());
+            postNascidoEm(caso[0], caso[1], hoje.minusYears(18).plusDays(1)).andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.campos.dataNascimento").value(org.hamcrest.Matchers.containsString("18 anos")));
+        }
+        String tutor = """
+                {"nome": "Marcos Souza", "endereco": "Rua A, 10", "dataNascimento": "%s", "telefone": "11988887777"}
+                """;
+        mockMvc.perform(post("/api/tutores").header("Authorization", admin).contentType(MediaType.APPLICATION_JSON)
+                        .content(tutor.formatted(hoje.minusYears(18))))
+                .andExpect(status().isCreated());
+        mockMvc.perform(post("/api/tutores").header("Authorization", admin).contentType(MediaType.APPLICATION_JSON)
+                        .content(tutor.formatted(hoje.minusYears(18).plusDays(1))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.campos.dataNascimento").value(org.hamcrest.Matchers.containsString("18 anos")));
+    }
 }

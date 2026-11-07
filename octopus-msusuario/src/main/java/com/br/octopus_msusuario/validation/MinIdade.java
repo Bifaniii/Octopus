@@ -10,7 +10,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Idade mínima, em anos completos, calculada a partir da data de nascimento (LocalDate). Faz 23 anos no dia do
+ * Idade mínima, em anos completos, calculada a partir da data de nascimento (LocalDate). Faz os anos no dia do
  * aniversário. Campo nulo é problema do @NotNull.
  */
 @Documented
@@ -21,6 +21,9 @@ public @interface MinIdade {
 
     /** Veterinário: o mínimo de uma formação em medicina veterinária concluída. */
     int VETERINARIO = 23;
+
+    /** Maioridade: auxiliar, recepcionista e tutor. */
+    int ADULTO = 18;
 
     int value();
 

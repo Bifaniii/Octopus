@@ -1,5 +1,6 @@
 package com.br.octopus_msusuario.dto.request;
 
+import com.br.octopus_msusuario.validation.MinIdade;
 import com.br.octopus_msusuario.validation.NomeCompleto;
 import com.br.octopus_msusuario.validation.Celular;
 import com.br.octopus_msusuario.validation.Cpf;
@@ -16,7 +17,7 @@ public record ColaboradorUpdateRequest(
         @NotBlank @Email @Size(max = 150) String email,
         @NotBlank @Size(max = 100) @NomeCompleto String nome,
         @NotBlank @Cpf String cpf,
-        @NotNull @Past LocalDate dataNascimento,
+        @NotNull @Past @MinIdade(value = MinIdade.ADULTO, message = "A pessoa precisa ter pelo menos {value} anos") LocalDate dataNascimento,
         @NotBlank @Celular String telefone
 ) {
 }
