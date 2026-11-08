@@ -1,5 +1,6 @@
 package com.br.octopus_msusuario.dto.request;
 
+import com.br.octopus_msusuario.validation.MaxIdade;
 import com.br.octopus_msusuario.validation.MinIdade;
 import com.br.octopus_msusuario.validation.NomeCompleto;
 import com.br.octopus_msusuario.domain.enums.Especializacao;
@@ -25,7 +26,7 @@ public record VeterinarioRequest(
         @NotBlank @Size(max = 100) @NomeCompleto String nome,
         @NotBlank @Pattern(regexp = "\\d{11}|" + Documentos.CNPJ_REGEX, message = "deve conter 11 dígitos (CPF) ou 14 caracteres (CNPJ, com números e letras maiúsculas), sem pontos nem traço") String cpfCnpj,
         @NotNull TipoPessoa tipoPessoa,
-        @NotNull @Past @MinIdade(value = MinIdade.VETERINARIO, message = "O veterinário precisa ter pelo menos {value} anos") LocalDate dataNascimento,
+        @NotNull @Past @MinIdade(value = MinIdade.VETERINARIO, message = "O veterinário precisa ter pelo menos {value} anos") @MaxIdade(value = MaxIdade.FUNCIONARIO, message = "O veterinário não pode ter mais de {value} anos") LocalDate dataNascimento,
         @NotBlank @Celular String telefone,
         @NotBlank @Pattern(regexp = "\\d{1,5}", message = "deve ter de 1 a 5 dígitos numéricos") String crmv,
         @NotNull UnidadeFederativa crmvUf,

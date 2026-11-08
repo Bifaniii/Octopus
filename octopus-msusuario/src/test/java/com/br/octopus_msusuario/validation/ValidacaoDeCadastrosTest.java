@@ -277,4 +277,36 @@ class ValidacaoDeCadastrosTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.campos.dataNascimento").value(org.hamcrest.Matchers.containsString("18 anos")));
     }
+
+    @Test
+    @DisplayName("idade máxima: 70 anos para quem trabalha na clínica, 120 para o tutor")
+    void idadeMaximaDeFuncionarioETutor() throws Exception {
+        java.time.LocalDate hoje = java.time.LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo"));
+        veterinarioNascidoEm(hoje.minusYears(70)).andExpect(status().isCreated());
+        veterinarioNascidoEm(hoje.minusYears(71).plusDays(1)).andExpect(status().isCreated());
+        veterinarioNascidoEm(hoje.minusYears(71)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.campos.dataNascimento").value(org.hamcrest.Matchers.containsString("70 anos")));
+        veterinarioNascidoEm(hoje.minusYears(200)).andExpect(status().isBadRequest());
+
+        String auxiliar = """
+                {"email": "aux%d@teste.local", "senha": "senha-forte-123", "nome": "Paulo Souza", "cpf": "%s",
+                 "dataNascimento": "%s", "telefone": "11988887777"}
+                """;
+        postNascidoEm("/api/auxiliares", auxiliar, hoje.minusYears(70)).andExpect(status().isCreated());
+        postNascidoEm("/api/auxiliares", auxiliar, hoje.minusYears(71)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.campos.dataNascimento").value(org.hamcrest.Matchers.containsString("70 anos")));
+
+        // Tutor idoso é comum numa clínica veterinária: o teto dele só barra data absurda.
+        String tutor = """
+                {"nome": "Marcos Souza", "endereco": "Rua A, 10", "dataNascimento": "%s", "telefone": "11988887777"}
+                """;
+        for (int anos : new int[]{75, 100, 120}) {
+            mockMvc.perform(post("/api/tutores").header("Authorization", admin).contentType(MediaType.APPLICATION_JSON)
+                            .content(tutor.formatted(hoje.minusYears(anos)))).andExpect(status().isCreated());
+        }
+        mockMvc.perform(post("/api/tutores").header("Authorization", admin).contentType(MediaType.APPLICATION_JSON)
+                        .content(tutor.formatted(hoje.minusYears(200))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.campos.dataNascimento").value(org.hamcrest.Matchers.containsString("120 anos")));
+    }
 }

@@ -1,5 +1,6 @@
 package com.br.octopus_msusuario.dto.request;
 
+import com.br.octopus_msusuario.validation.MaxIdade;
 import com.br.octopus_msusuario.validation.MinIdade;
 import com.br.octopus_msusuario.validation.NomeCompleto;
 import com.br.octopus_msusuario.validation.Celular;
@@ -17,7 +18,7 @@ public record RecepcionistaRequest(
         @NotBlank @Size(min = 8, max = 100) String senha,
         @NotBlank @Size(max = 100) @NomeCompleto String nome,
         @NotBlank @Cpf String cpf,
-        @NotNull @Past @MinIdade(value = MinIdade.ADULTO, message = "A pessoa precisa ter pelo menos {value} anos") LocalDate dataNascimento,
+        @NotNull @Past @MinIdade(value = MinIdade.ADULTO, message = "A pessoa precisa ter pelo menos {value} anos") @MaxIdade(value = MaxIdade.FUNCIONARIO, message = "A pessoa não pode ter mais de {value} anos") LocalDate dataNascimento,
         @NotBlank @Celular String telefone
 ) {
 }

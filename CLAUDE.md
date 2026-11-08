@@ -220,6 +220,7 @@ Portas de host default: 8080/3307 (usuário), 8081/3308 (baias), 8082/3309 (medi
   `@PreAuthorize` no controller: `hasRole('ADMIN')` para cadastro e desativação de veterinário, auxiliar,
   recepcionista e admin; `hasAnyRole('ADMIN','RECEPCIONISTA')` para tutores e animais. Os erros da filter chain
   (401 e 403) são escritos em JSON pelo `SecurityErrorHandlers`, porque não passam pelo `@RestControllerAdvice`.
+- Idade máxima (08/11/2026): `@MaxIdade`, 70 anos (`MaxIdade.FUNCIONARIO`) em veterinário, auxiliar e recepcionista, e 120 (`MaxIdade.TUTOR`) no tutor. Dado antigo fora da faixa só deixa de poder ser editado até corrigir a data.
 - Idade mínima (06/11/2026): `@MinIdade(MinIdade.VETERINARIO)`, 23 anos, em `VeterinarioRequest` e `VeterinarioUpdateRequest`; erro no campo `dataNascimento`. Auxiliar, recepcionista (cadastro e edição) e tutor: `MinIdade.ADULTO`, 18 anos. Admin não tem data de nascimento; animal fica fora.
 - Nomes e CNPJ (27/10/2026): `@NomeCompleto` recusa número e símbolo e exige duas palavras de 2 letras ou mais, em usuários e tutor (nome de animal fica fora). `Documentos.cnpjValido` aceita o CNPJ alfanumérico; a coluna `cpf_cnpj` (VARCHAR 14) já comporta. Nos testes, `GeradorDeDocumentos.cnpjAlfanumerico()`.
 - Validação dos cadastros (24/10/2026), em `validation/`: `@Cpf` e `@DocumentoCompativel` conferem o dígito verificador

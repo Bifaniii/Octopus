@@ -1,5 +1,6 @@
 package com.br.octopus_msusuario.dto.request;
 
+import com.br.octopus_msusuario.validation.MaxIdade;
 import com.br.octopus_msusuario.validation.MinIdade;
 import com.br.octopus_msusuario.validation.NomeCompleto;
 import com.br.octopus_msusuario.validation.Celular;
@@ -16,7 +17,7 @@ import java.util.List;
 public record TutorRequest(
         @NotBlank @Size(max = 100) @NomeCompleto String nome,
         @NotBlank @Size(max = 255) String endereco,
-        @NotNull @Past @MinIdade(value = MinIdade.ADULTO, message = "O tutor precisa ter pelo menos {value} anos") LocalDate dataNascimento,
+        @NotNull @Past @MinIdade(value = MinIdade.ADULTO, message = "O tutor precisa ter pelo menos {value} anos") @MaxIdade(value = MaxIdade.TUTOR, message = "O tutor não pode ter mais de {value} anos") LocalDate dataNascimento,
         @NotBlank @Celular String telefone,
         @Email @Size(max = 150) String email,
         @Valid List<AnimalRequest> animais
