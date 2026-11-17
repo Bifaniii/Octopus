@@ -72,12 +72,14 @@ class PrescricaoServiceTest {
     private TransactionTemplate transacao;
 
     private PrescricaoService prescricaoService;
+    // Tarefas que o service mandou para o segundo plano (a conclusão automática). Os testes rodam quando querem.
+    private final List<Runnable> emSegundoPlano = new java.util.ArrayList<>();
 
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(AGORA.atZone(SAO_PAULO).toInstant(), SAO_PAULO);
         prescricaoService = new PrescricaoService(prescricaoRepository, internacaoClient, medicacaoClient, doseClient,
-                transacao, clock, java.time.LocalDate.of(2026, 11, 1));
+                transacao, clock, java.time.LocalDate.of(2026, 11, 1), emSegundoPlano::add);
         // O TransactionTemplate mockado só executa o bloco, como faria o de verdade sem banco.
         lenient().when(transacao.execute(any()))
                 .thenAnswer(inv -> inv.<TransactionCallback<?>>getArgument(0).doInTransaction(null));
@@ -583,6 +585,12 @@ class PrescricaoServiceTest {
         assertThat(prescricaoService.ativar(5L).ativo()).isTrue();
     }
 
+    private void rodarSegundoPlano() {
+        List<Runnable> tarefas = List.copyOf(emSegundoPlano);
+        emSegundoPlano.clear();
+        tarefas.forEach(Runnable::run);
+    }
+
     /** Prescrição ativa da internação, criada `minutosAtras` minutos antes do relógio dos testes. */
     private Prescricao ativaCriadaHa(long id, int minutosAtras) {
         Prescricao p = Prescricao.builder().id(id).internacaoId(INTERNACAO).veterinarioEmail("vet@teste.local")
@@ -599,9 +607,15 @@ class PrescricaoServiceTest {
 
         List<PrescricaoResponse> lista = prescricaoService.listar(INTERNACAO);
 
+        // A listagem responde só com o banco: a conferência ainda não chamou ninguém.
+        assertThat(lista.get(0).situacao()).isEqualTo("ATIVA");
+        verify(internacaoClient, never()).buscar(anyLong());
+
+        rodarSegundoPlano();
+
         assertThat(p.isAtivo()).isFalse();
         assertThat(p.getConcluidaEm()).isEqualTo(AGORA);
-        assertThat(lista.get(0).situacao()).isEqualTo("CONCLUIDA");
+        assertThat(prescricaoService.listar(INTERNACAO).get(0).situacao()).isEqualTo("CONCLUIDA");
         verify(doseClient, never()).situacao(any());
     }
 
@@ -611,9 +625,11 @@ class PrescricaoServiceTest {
         internacaoEm("EM_TRATAMENTO");
         when(doseClient.situacao(List.of(5L))).thenReturn(List.of(new SituacaoDosesDto(5L, 0, false)));
 
-        PrescricaoResponse resposta = prescricaoService.listar(INTERNACAO).get(0);
+        prescricaoService.listar(INTERNACAO);
+        rodarSegundoPlano();
 
         assertThat(p.isAtivo()).isFalse();
+        PrescricaoResponse resposta = prescricaoService.listar(INTERNACAO).get(0);
         assertThat(resposta.ativo()).isFalse();
         assertThat(resposta.situacao()).isEqualTo("CONCLUIDA");
     }
@@ -623,10 +639,13 @@ class PrescricaoServiceTest {
         Prescricao comPendente = ativaCriadaHa(5L, 600);
         internacaoEm("EM_TRATAMENTO");
         when(doseClient.situacao(List.of(5L))).thenReturn(List.of(new SituacaoDosesDto(5L, 2, false)));
-        assertThat(prescricaoService.listar(INTERNACAO).get(0).situacao()).isEqualTo("ATIVA");
+        prescricaoService.listar(INTERNACAO);
+        rodarSegundoPlano();
         assertThat(comPendente.isAtivo()).isTrue();
 
         when(doseClient.situacao(List.of(5L))).thenReturn(List.of(new SituacaoDosesDto(5L, 0, true)));
+        prescricaoService.listar(INTERNACAO);
+        rodarSegundoPlano();
         assertThat(prescricaoService.listar(INTERNACAO).get(0).situacao()).isEqualTo("ATIVA");
     }
 
@@ -635,7 +654,8 @@ class PrescricaoServiceTest {
         Prescricao p = ativaCriadaHa(5L, 1);
         internacaoEm("EM_TRATAMENTO");
 
-        assertThat(prescricaoService.listar(INTERNACAO).get(0).situacao()).isEqualTo("ATIVA");
+        prescricaoService.listar(INTERNACAO);
+        rodarSegundoPlano();
 
         assertThat(p.isAtivo()).isTrue();
         verify(doseClient, never()).situacao(any());
@@ -648,6 +668,7 @@ class PrescricaoServiceTest {
         when(doseClient.situacao(any())).thenThrow(new ServicoIndisponivelException("msdoses fora"));
 
         assertThat(prescricaoService.listar(INTERNACAO)).hasSize(1);
+        rodarSegundoPlano();
 
         assertThat(p.isAtivo()).isTrue();
     }
@@ -660,8 +681,37 @@ class PrescricaoServiceTest {
 
         assertThat(prescricaoService.listar(INTERNACAO).get(0).situacao()).isEqualTo("DESATIVADA");
 
+        // Sem prescrição ativa, nem chega a mandar a conferência para o segundo plano.
+        assertThat(emSegundoPlano).isEmpty();
         verify(internacaoClient, never()).buscar(anyLong());
         verify(doseClient, never()).situacao(any());
+    }
+
+    @Test
+    void buscar_respondeSemEsperarAConclusao() {
+        Prescricao p = Prescricao.builder().id(5L).internacaoId(INTERNACAO).veterinarioEmail("vet@teste.local")
+                .criadoEm(AGORA.minusMinutes(600)).build();
+        when(prescricaoRepository.findById(5L)).thenReturn(Optional.of(p));
+        internacaoEm("ENCERRADA");
+
+        assertThat(prescricaoService.buscar(5L).situacao()).isEqualTo("ATIVA");
+        verify(internacaoClient, never()).buscar(anyLong());
+
+        rodarSegundoPlano();
+
+        assertThat(p.isAtivo()).isFalse();
+        assertThat(prescricaoService.buscar(5L).situacao()).isEqualTo("CONCLUIDA");
+    }
+
+    @Test
+    void conclusaoQueFalhaNoSegundoPlanoNaoAfetaQuemListou() {
+        ativaCriadaHa(5L, 600);
+        when(internacaoClient.buscar(INTERNACAO)).thenReturn(new InternacaoDto(INTERNACAO, "EM_TRATAMENTO", "Thor"));
+        when(doseClient.situacao(any())).thenReturn(List.of(new SituacaoDosesDto(5L, 0, false)));
+        doThrow(new IllegalStateException("banco fora")).when(transacao).executeWithoutResult(any());
+
+        assertThat(prescricaoService.listar(INTERNACAO)).hasSize(1);
+        rodarSegundoPlano(); // a falha fica no log, não sobe
     }
 
     @Test
@@ -696,7 +746,7 @@ class PrescricaoServiceTest {
     void criar_seNecessarioEmVigorVaiAoMsdosesSemHorariosEComOIntervaloMinimo() {
         Clock clock = Clock.fixed(AGORA.atZone(SAO_PAULO).toInstant(), SAO_PAULO);
         prescricaoService = new PrescricaoService(prescricaoRepository, internacaoClient, medicacaoClient, doseClient,
-                transacao, clock, java.time.LocalDate.of(2026, 10, 1));
+                transacao, clock, java.time.LocalDate.of(2026, 10, 1), emSegundoPlano::add);
         internacaoEm("EM_TRATAMENTO");
         Long dipirona = novoId();
         when(medicacaoClient.buscar(dipirona))
@@ -721,7 +771,7 @@ class PrescricaoServiceTest {
     void criar_seNecessarioSemEstoqueNenhumERecusado() {
         prescricaoService = new PrescricaoService(prescricaoRepository, internacaoClient, medicacaoClient, doseClient,
                 transacao, Clock.fixed(AGORA.atZone(SAO_PAULO).toInstant(), SAO_PAULO),
-                java.time.LocalDate.of(2026, 10, 1));
+                java.time.LocalDate.of(2026, 10, 1), emSegundoPlano::add);
         internacaoEm("ADMITIDA");
         Long dipirona = novoId();
         when(medicacaoClient.buscar(dipirona))

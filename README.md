@@ -7,19 +7,19 @@ medicamentos para uma internação, com a RN-06 (interação proibida no mesmo h
 Arquitetura e convenções de todos os módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 07/11/2026 na branch `claude/medicamentos-500-error-gjvu1q` (para a `feature/prescricao`)_
-- RN-06: "mesmo horário" passa a ser o cruzamento das janelas de aplicação da RN-03, e não o mesmo minuto. Duas doses
-  com interação proibida a até 60 minutos uma da outra são recusadas (08:00 e 08:10 eram aceitas, embora o auxiliar
-  aplicasse as duas juntas); com mais de 60 minutos o par continua aceito, como diz o enunciado. Vale entre os itens
-  da prescrição nova e entre eles e as prescrições ativas da internação, e também ao reativar.
-- A mensagem de erro mostra os dois horários em conflito.
-- 4 testes novos no `PrescricaoServiceTest` (71 no módulo), com a borda de 60 minutos exatos recusada, porque os
-  limites da janela são inclusivos.
-- Substitui a proposta de 8 horas da `fix/validacao_medicacao`, que proibia o par em qualquer horário.
+_Push de 17/11/2026 na branch `fix/prescricao-listagem-lenta` (para a `feature/prescricao`)_
+- `GET /api/prescricoes` e `GET /api/prescricoes/{id}` respondem só com o banco do módulo. A conclusão automática
+  (internação encerrada ou sem dose pendente) chamava o ms-internacao uma vez por internação e o msdoses antes de
+  cada resposta, e a tela chegava a esperar 18 s. Agora ela roda em segundo plano, depois da resposta, com o token
+  de quem pediu (`client/TokenRepassado`), e a prescrição concluída aparece assim na leitura seguinte.
+- Executor próprio da conclusão (`config/ConclusaoConfig`): uma thread e uma vaga na fila, e o excedente é
+  descartado, para as conferências não se acumularem quando um módulo estiver lento.
+- Itens carregados em lote (`hibernate.default_batch_fetch_size=50`): a listagem faz 2 consultas ao banco em vez de
+  1 por prescrição.
+- 5 testes novos (76 no módulo). Versão `0.0.4-SNAPSHOT` para `0.0.5-SNAPSHOT`.
 
 ## Próximos passos
-- [ ] Levar a mudança para a `feature/prescricao` e subir a versão do `pom.xml` para publicar
-- [ ] Encerrar a `fix/validacao_medicacao`
-- [ ] Avaliar a conferência da RN-06 na aplicação do item "se necessário" (msdoses), que não tem horário
+- [ ] Concluir a prescrição no momento do fato (saída do animal no ms-internacao, última dose no msdoses), em vez de
+  conferir a cada leitura
 - [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)
 

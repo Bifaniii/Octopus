@@ -80,15 +80,24 @@ final class ClientesHttp {
         }
     }
 
-    // Repassa o JWT de quem chamou: os outros módulos validam o mesmo token, com o mesmo JWT_SECRET.
+    // Repassa o JWT de quem chamou: os outros módulos validam o mesmo token, com o mesmo JWT_SECRET. Numa tarefa
+    // em segundo plano não há requisição em andamento, e o token vem do TokenRepassado.
     private static ClientHttpResponse repassarToken(HttpRequest request, byte[] body,
                                                     ClientHttpRequestExecution execution) throws IOException {
-        if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes atributos) {
-            String token = atributos.getRequest().getHeader(HttpHeaders.AUTHORIZATION);
-            if (token != null) {
-                request.getHeaders().set(HttpHeaders.AUTHORIZATION, token);
-            }
+        String token = tokenDaRequisicao();
+        if (token == null) {
+            token = TokenRepassado.daTarefaAtual();
+        }
+        if (token != null) {
+            request.getHeaders().set(HttpHeaders.AUTHORIZATION, token);
         }
         return execution.execute(request, body);
+    }
+
+    static String tokenDaRequisicao() {
+        if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes atributos) {
+            return atributos.getRequest().getHeader(HttpHeaders.AUTHORIZATION);
+        }
+        return null;
     }
 }

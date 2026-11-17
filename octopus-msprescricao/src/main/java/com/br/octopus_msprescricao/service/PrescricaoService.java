@@ -15,6 +15,9 @@ import com.br.octopus_msprescricao.exception.RecursoNaoEncontradoException;
 import com.br.octopus_msprescricao.exception.RegraDeNegocioException;
 import com.br.octopus_msprescricao.repository.PrescricaoRepository;
 import lombok.extern.slf4j.Slf4j;
+import com.br.octopus_msprescricao.client.TokenRepassado;
+import com.br.octopus_msprescricao.config.ConclusaoConfig;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -31,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Executor;
 
 @Slf4j
 @Service
@@ -54,11 +58,14 @@ public class PrescricaoService {
     private final Clock clock;
     // Mudança contratada: o item "se necessário" passa a existir em 01/11/2026. Configurável para ensaiar antes.
     private final LocalDate seNecessarioAPartirDe;
+    // Conclusão automática, depois de a listagem responder (config/ConclusaoConfig).
+    private final Executor conclusaoEmSegundoPlano;
 
     public PrescricaoService(PrescricaoRepository prescricaoRepository, InternacaoClient internacaoClient,
                              MedicacaoClient medicacaoClient, DoseClient doseClient, TransactionTemplate transacao,
                              Clock clock,
-                             @Value("${app.prescricao.se-necessario-a-partir-de:2026-11-01}") LocalDate seNecessarioAPartirDe) {
+                             @Value("${app.prescricao.se-necessario-a-partir-de:2026-11-01}") LocalDate seNecessarioAPartirDe,
+                             @Qualifier(ConclusaoConfig.EXECUTOR) Executor conclusaoEmSegundoPlano) {
         this.prescricaoRepository = prescricaoRepository;
         this.internacaoClient = internacaoClient;
         this.medicacaoClient = medicacaoClient;
@@ -66,6 +73,7 @@ public class PrescricaoService {
         this.transacao = transacao;
         this.clock = clock;
         this.seNecessarioAPartirDe = seNecessarioAPartirDe;
+        this.conclusaoEmSegundoPlano = conclusaoEmSegundoPlano;
     }
 
     /**
@@ -115,26 +123,37 @@ public class PrescricaoService {
 
     /**
      * Devolve ativas e inativas, com {@code ativo} e {@code situacao}. Com {@code internacaoId}, só as daquela
-     * internação. Antes de responder, conclui as prescrições que já acabaram (ver {@link #concluirAsQueAcabaram}).
+     * internação. Lê só o banco do módulo: a conferência das que já acabaram (ver {@link #concluirAsQueAcabaram})
+     * chama o ms-internacao e o msdoses, então roda depois da resposta, e uma prescrição concluída aparece assim na
+     * leitura seguinte. Antes ela rodava aqui e a listagem esperava os dois módulos a cada abertura da tela.
      */
     public List<PrescricaoResponse> listar(Long internacaoId) {
         List<PrescricaoResponse> lista = transacao.execute(status -> respostas(internacaoId == null
                 ? prescricaoRepository.findAll(Sort.by(Sort.Direction.DESC, "criadoEm"))
                 : prescricaoRepository.findByInternacaoIdOrderByCriadoEmDesc(internacaoId)));
-        if (!concluirAsQueAcabaram(lista)) {
-            return lista;
-        }
-        return transacao.execute(status -> respostas(internacaoId == null
-                ? prescricaoRepository.findAll(Sort.by(Sort.Direction.DESC, "criadoEm"))
-                : prescricaoRepository.findByInternacaoIdOrderByCriadoEmDesc(internacaoId)));
+        concluirEmSegundoPlano(lista);
+        return lista;
     }
 
     public PrescricaoResponse buscar(Long id) {
         PrescricaoResponse resposta = transacao.execute(status -> PrescricaoResponse.from(obter(id)));
-        if (!concluirAsQueAcabaram(List.of(resposta))) {
-            return resposta;
+        concluirEmSegundoPlano(List.of(resposta));
+        return resposta;
+    }
+
+    // O token é lido agora, ainda na thread da requisição: a tarefa roda depois que ela terminou.
+    private void concluirEmSegundoPlano(List<PrescricaoResponse> lista) {
+        if (lista.stream().noneMatch(PrescricaoResponse::ativo)) {
+            return;
         }
-        return transacao.execute(status -> PrescricaoResponse.from(obter(id)));
+        String token = TokenRepassado.daRequisicaoAtual();
+        conclusaoEmSegundoPlano.execute(() -> {
+            try {
+                TokenRepassado.executarCom(token, () -> concluirAsQueAcabaram(lista));
+            } catch (RuntimeException e) {
+                log.warn("Conclusão automática das prescrições falhou: {}", e.getMessage());
+            }
+        });
     }
 
     private List<PrescricaoResponse> respostas(List<Prescricao> prescricoes) {
@@ -144,8 +163,8 @@ public class PrescricaoService {
     /**
      * Uma prescrição ativa acaba quando o animal já saiu (internação encerrada) ou quando não resta dose pendente
      * nem item "se necessário" ativo no msdoses (todas aplicadas, perdidas ou canceladas). Ela vira inativa e
-     * "concluída"; só isso, nada é apagado. Roda ao ler, como a varredura de doses perdidas: se o msdoses ou o
-     * ms-internacao não responderem, a prescrição fica como está e a listagem não falha. As criadas há menos de 2
+     * "concluída"; só isso, nada é apagado. Roda depois de cada leitura, em segundo plano: se o msdoses ou o
+     * ms-internacao não responderem, a prescrição fica como está e tenta de novo na leitura seguinte. As criadas há menos de 2
      * minutos ficam de fora, porque as doses ainda podem estar sendo agendadas. Devolve se concluiu alguma.
      */
     private boolean concluirAsQueAcabaram(List<PrescricaoResponse> lista) {
