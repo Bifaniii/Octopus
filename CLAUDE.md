@@ -382,6 +382,10 @@ que acontece com ela.
   pendente. Cada aplicação cria uma dose já aplicada, reserva 1 unidade e é recusada antes do intervalo mínimo
   desde a última, com o item travado contra aplicações simultâneas. Desativar a prescrição ou encerrar a
   internação desativa o item.
+- Antirrábica (21/11/2026, `service/Antirrabica`): aplicar um medicamento com "antirrábica" no nome (sem diferença de
+  acento, maiúscula ou hífen) grava a data no cadastro do animal (`PATCH /api/animais/{id}/antirrabica` do msusuario),
+  antes de registrar a aplicação; se o msusuario falhar, a aplicação recebe 503 e nada é gravado. URLs em
+  `MS_INTERNACAO_URL` (animal da internação) e `MS_USUARIO_URL`.
 - Painel (tela 6): `GET /api/doses/painel` traz atrasadas (pendentes que passaram do horário e ainda estão na
   janela), próximas (vencem na próxima hora), perdidas das últimas 24 horas e os itens "se necessário" com o horário
   a partir do qual a próxima aplicação é aceita.

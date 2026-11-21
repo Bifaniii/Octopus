@@ -54,6 +54,10 @@ class DoseApiTest {
     @MockitoBean
     private EstoqueClient estoqueClient;
 
+    // Sem stub, o nome do medicamento vem nulo e nenhuma dose é tratada como antirrábica.
+    @MockitoBean
+    private com.br.octopus_msdoses.client.CadastrosClient cadastrosClient;
+
     @Autowired
     private RelogioDeTeste relogio;
 

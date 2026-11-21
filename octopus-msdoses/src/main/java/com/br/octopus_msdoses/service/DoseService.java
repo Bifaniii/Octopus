@@ -39,6 +39,7 @@ public class DoseService {
     private final Varredura varredura;
     private final TransactionTemplate transacao;
     private final Clock clock;
+    private final Antirrabica antirrabica;
 
     /**
      * Uma dose por horário de cada item com horário fixo; o item "se necessário" só é registrado, sem dose. Idempotente:
@@ -200,10 +201,20 @@ public class DoseService {
                 .orElseGet(() -> ItemSeNecessarioResponse.from(item, null, null, agora));
     }
 
-    /** RN-03 e RN-05: grava o auxiliar (dono do token) e a hora da clínica, dentro da janela. Não há edição depois. */
+    /**
+     * RN-03 e RN-05: grava o auxiliar (dono do token) e a hora da clínica, dentro da janela. Não há edição depois.
+     * Se for a antirrábica, a data vai para o cadastro do animal antes de gravar a aplicação, fora da transação; se
+     * isso falhar, a aplicação não é registrada e o auxiliar tenta de novo.
+     */
     public DoseResponse aplicar(Long id, String auxiliarEmail, String observacao) {
         LocalDateTime agora = agora();
         varredura.executar(agora);
+        Dose conferida = transacao.execute(s -> {
+            Dose dose = obter(id);
+            dose.conferirAplicacao(agora);
+            return dose;
+        });
+        antirrabica.registrarSeFor(conferida.getMedicacaoId(), conferida.getInternacaoId(), agora.toLocalDate());
         return transacao.execute(s -> {
             Dose dose = obter(id);
             dose.aplicar(auxiliarEmail, agora, observacao);
@@ -228,6 +239,7 @@ public class DoseService {
         Map<Long, Integer> reserva = Map.of(item.getMedicacaoId(), 1);
         estoque.reservar(reserva);
         try {
+            antirrabica.registrarSeFor(item.getMedicacaoId(), item.getInternacaoId(), agora.toLocalDate());
             return transacao.execute(s -> {
                 ItemSeNecessario travado = itemSeNecessarioRepository.travarPorItem(itemPrescricaoId).orElseThrow();
                 conferirIntervalo(travado, agora);
