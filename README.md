@@ -124,25 +124,14 @@ cd octopus-msusuario && ./mvnw test
 - Arquitetura e convenções para novos módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 07/11/2026 na branch `fix/sexo-especie-animal` (para a `main`)_
-- `Animal` ganha `sexo` (`MACHO` ou `FEMEA`), obrigatório no cadastro e na edição.
-- `especie` passa a ser uma lista fixa: `Cão`, `Gato` ou `Outro` (enum `Especie`; no banco `CAO`, `GATO`, `OUTRO`).
-  O JSON continua com o rótulo, então o ms-internacao e os relatórios não mudam. Valor fora da lista recebe 400 com
-  os valores aceitos.
-- Mãe: precisa ser fêmea, da mesma espécie e com o sexo informado (422). Quem já é mãe de algum animal não pode
-  virar macho nem trocar de espécie. Vale em `POST /api/animais`, `PUT /api/animais/{id}` e `POST /api/tutores`
-  com a lista `animais`.
-- Migration `V9__animais_sexo_especie.sql`: coluna `sexo` anulável (animais antigos ficam sem sexo até a edição) e
-  normalização da espécie em texto livre ("cão", "cachorro", "canino" viram `CAO`; "gato", "felino" viram `GATO`;
-  o resto vira `OUTRO`). O animal sem espécie da carga fica nulo, e o ms-internacao continua recusando.
-- 9 testes novos (107 no módulo).
-- Versão `0.0.6-SNAPSHOT` para `0.0.7-SNAPSHOT`: o merge na `main` publica o msusuario com a `V9`.
-- Veterinário precisa ter pelo menos 23 anos (`@MinIdade`, no cadastro e na edição): o aniversário vale no próprio dia e a data de hoje é a de São Paulo. Auxiliar, recepcionista e tutor precisam ter pelo menos 18 anos (`MinIdade.ADULTO`); o admin não tem data de nascimento e o animal fica fora.
-- Versão `0.0.7` para `0.0.8-SNAPSHOT`: publica a idade mínima (veterinário 23 anos; auxiliar, recepcionista e tutor 18), o nome sem números e com sobrenome, o CNPJ alfanumérico, o e-mail do tutor e o envio do resumo de alta.
-- Idade máxima (`@MaxIdade`): 70 anos para veterinário, auxiliar e recepcionista, e 120 para o tutor (cliente idoso é comum, o teto só barra data absurda). Quem faz 71 no dia do aniversário deixa de valer. Versão `0.0.8` para `0.0.9-SNAPSHOT`.
+_Push de 21/11/2026 na branch `fix/antirrabica-na-aplicacao-usuario` (para a `main`)_
+- `PATCH /api/animais/{id}/antirrabica` (corpo `{"data": "aaaa-MM-dd"}`): grava a data da última antirrábica do
+  animal. É chamado pelo octopus-msdoses quando o auxiliar aplica a vacina, com o token dele, então aceita
+  `ADMIN`, `RECEPCIONISTA`, `VETERINARIO` e `AUXILIAR`. Só mexe nessa data e só para a frente: uma data mais antiga
+  que a do cadastro é ignorada. Data futura ou ausente recebe 400; animal inexistente, 404.
+- O auxiliar continua sem poder editar o resto do animal (`PUT /api/animais/{id}` segue só admin e recepção).
+- 4 testes novos (118 no módulo). Versão `0.0.9-SNAPSHOT` para `0.0.10-SNAPSHOT`.
 
 ## Próximos passos
-- [ ] Mesclar o PR na `main` junto com o front (o back novo exige `sexo`, que o front antigo não manda)
-- [ ] Completar o sexo dos animais já cadastrados (Thor, Nina, Bidu) pela edição
-- [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)
+- [ ] Publicar antes do msdoses, que passa a chamar este endpoint ao aplicar a antirrábica
 
