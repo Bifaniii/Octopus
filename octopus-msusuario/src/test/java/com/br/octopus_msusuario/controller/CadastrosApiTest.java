@@ -375,6 +375,77 @@ class CadastrosApiTest {
                 .andExpect(status().isForbidden());
     }
 
+    private String loginDoAuxiliar() throws Exception {
+        String perfilId = cadastrarAuxiliar("Paulo Vacina " + sufixo);
+        String email = JsonPath.read(mockMvc.perform(get("/api/auxiliares/{id}", perfilId)
+                .header("Authorization", admin)).andReturn().getResponse().getContentAsString(), "$.usuario.email");
+        return login(email, "senha-forte-123");
+    }
+
+    @Test
+    void auxiliarRegistraAAntirrabicaAplicadaESoAvancaAData() throws Exception {
+        long tutor = criarTutor("Joana " + sufixo);
+        long animal = criarAnimal(tutor, "Thor", null); // antirrábica em 01/03/2026
+        String auxiliar = loginDoAuxiliar();
+        String hoje = LocalDate.now().toString();
+
+        mockMvc.perform(patch("/api/animais/{id}/antirrabica", animal)
+                        .header("Authorization", auxiliar)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"data\": \"" + hoje + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.dataUltimaAntirrabica").value(hoje));
+
+        // Uma data mais antiga que a do cadastro é ignorada.
+        mockMvc.perform(patch("/api/animais/{id}/antirrabica", animal)
+                        .header("Authorization", auxiliar)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"data\": \"2026-01-10\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.dataUltimaAntirrabica").value(hoje));
+    }
+
+    @Test
+    void antirrabicaComDataFuturaOuSemDataRecebe400() throws Exception {
+        long tutor = criarTutor("Marta " + sufixo);
+        long animal = criarAnimal(tutor, "Nina", null);
+
+        mockMvc.perform(patch("/api/animais/{id}/antirrabica", animal)
+                        .header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"data\": \"" + LocalDate.now().plusDays(1) + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.campos.data").exists());
+
+        mockMvc.perform(patch("/api/animais/{id}/antirrabica", animal)
+                        .header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void auxiliarSoMexeNaAntirrabicaENaoEditaOAnimal() throws Exception {
+        long tutor = criarTutor("Rosa " + sufixo);
+        long animal = criarAnimal(tutor, "Bidu", null);
+        String auxiliar = loginDoAuxiliar();
+
+        mockMvc.perform(put("/api/animais/{id}", animal)
+                        .header("Authorization", auxiliar)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(corpoAnimal("Bidu Jr", null)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void antirrabicaDeAnimalInexistenteRecebe404() throws Exception {
+        mockMvc.perform(patch("/api/animais/{id}/antirrabica", 999_999L)
+                        .header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"data\": \"2026-01-10\"}"))
+                .andExpect(status().isNotFound());
+    }
+
     @Test
     void veterinarioLeTutoresEAnimaisMasNaoCadastra() throws Exception {
         String cpf = GeradorDeDocumentos.cpf();

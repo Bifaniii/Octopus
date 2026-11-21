@@ -1,6 +1,7 @@
 package com.br.octopus_msusuario.controller;
 
 import com.br.octopus_msusuario.dto.request.AnimalRequest;
+import com.br.octopus_msusuario.dto.request.AntirrabicaRequest;
 import com.br.octopus_msusuario.dto.response.AnimalResponse;
 import com.br.octopus_msusuario.service.AnimalService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -55,5 +57,13 @@ public class AnimalController {
     @PutMapping("/{id}")
     public AnimalResponse atualizar(@PathVariable Long id, @Valid @RequestBody AnimalRequest request) {
         return animalService.atualizar(id, request);
+    }
+
+    // Chamado pelo octopus-msdoses quando o auxiliar aplica a vacina antirrábica, com o token dele. Só mexe na data
+    // da vacina, e só para a frente: uma data mais antiga que a do cadastro é ignorada.
+    @PatchMapping("/{id}/antirrabica")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPCIONISTA', 'VETERINARIO', 'AUXILIAR')")
+    public AnimalResponse registrarAntirrabica(@PathVariable Long id, @Valid @RequestBody AntirrabicaRequest request) {
+        return animalService.registrarAntirrabica(id, request.data());
     }
 }

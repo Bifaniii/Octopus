@@ -248,6 +248,9 @@ Portas de host default: 8080/3307 (usuário), 8081/3308 (baias), 8082/3309 (medi
   perfis continuam `UUID`. `PUT /api/tutores/{id}` edita só os dados do tutor; `PUT /api/animais/{id}` edita nome,
   espécie, sexo, antirrábica e mãe (a mãe não pode ser o próprio animal nem alguém da linha de ascendência dele: 422).
   `POST /api/tutores` aceita a lista `animais` e grava tudo numa transação.
+- `PATCH /api/animais/{id}/antirrabica` (21/11/2026): só a data da última antirrábica, e só para a frente (data mais
+  antiga que a do cadastro é ignorada). Chamado pelo msdoses quando o auxiliar aplica a vacina, por isso aceita
+  também `VETERINARIO` e `AUXILIAR`.
 - `PUT /api/veterinarios/{id}`, `/api/auxiliares/{id}`, `/api/recepcionistas/{id}` e `/api/admins/{id}` (só
   `ADMIN`) editam os dados do perfil e o e-mail de login, com as mesmas validações do cadastro e sem a senha, que só
   muda pela recuperação. CPF, CNPJ, CRMV/UF e e-mail continuam únicos (409). Trocar o e-mail derruba os tokens já

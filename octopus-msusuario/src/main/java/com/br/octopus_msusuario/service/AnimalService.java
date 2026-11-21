@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -69,6 +70,20 @@ public class AnimalService {
             throw new RegraNegocioException(animal.getNome() + " é mãe de animais cadastrados e não pode trocar de "
                     + "espécie.");
         }
+    }
+
+    /**
+     * Data da última antirrábica, vinda da aplicação da vacina no msdoses. Só avança: se o cadastro já tiver uma data
+     * igual ou mais recente (corrigida à mão pela recepção, por exemplo), fica a do cadastro.
+     */
+    @Transactional
+    public AnimalResponse registrarAntirrabica(Long id, LocalDate data) {
+        Animal animal = obter(id);
+        LocalDate atual = animal.getDataUltimaAntirrabica();
+        if (atual == null || data.isAfter(atual)) {
+            animal.setDataUltimaAntirrabica(data);
+        }
+        return AnimalResponse.from(animal);
     }
 
     private Animal obter(Long id) {
