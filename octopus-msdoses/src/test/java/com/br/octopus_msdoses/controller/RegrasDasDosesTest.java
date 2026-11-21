@@ -55,6 +55,10 @@ class RegrasDasDosesTest {
     @MockitoBean
     private EstoqueClient estoqueClient;
 
+    // Sem stub, o nome do medicamento vem nulo e nenhuma dose é tratada como antirrábica.
+    @MockitoBean
+    private com.br.octopus_msdoses.client.CadastrosClient cadastrosClient;
+
     /** Prescrição de um item com horário fixo; devolve o id da prescrição. Agenda com o relógio às 13h. */
     private long prescrever(long internacao, long medicacao, String esquema, String... horarios) throws Exception {
         relogio.acertar(AS_14H.minusHours(1));
@@ -93,6 +97,71 @@ class RegrasDasDosesTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("APLICADA"))
                 .andExpect(jsonPath("$.aplicadaEm").value("2026-11-03T14:20:00"));
+    }
+
+    @Test
+    void aplicarAAntirrabicaAtualizaADataNoCadastroDoAnimal() throws Exception {
+        long internacao = PROXIMO.incrementAndGet();
+        org.mockito.Mockito.when(cadastrosClient.nomeDoMedicamento(99L)).thenReturn("Vacina Anti-Rábica");
+        org.mockito.Mockito.when(cadastrosClient.animalDaInternacao(internacao)).thenReturn(7L);
+        long prescricao = prescrever(internacao, 99, "CONTINUO", "2026-11-03T14:00:00");
+        int dose = primeiraDose(prescricao);
+
+        relogio.acertar(AS_14H.plusMinutes(10));
+        mockMvc.perform(patch("/api/doses/{id}/aplicar", dose).header("Authorization", AUXILIAR))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("APLICADA"));
+
+        org.mockito.Mockito.verify(cadastrosClient).registrarAntirrabica(7L, java.time.LocalDate.of(2026, 11, 3));
+    }
+
+    @Test
+    void aplicarOutroMedicamentoNaoMexeNoCadastroDoAnimal() throws Exception {
+        org.mockito.Mockito.when(cadastrosClient.nomeDoMedicamento(97L)).thenReturn("Dipirona");
+        long prescricao = prescrever(PROXIMO.incrementAndGet(), 97, "CONTINUO", "2026-11-03T14:00:00");
+        int dose = primeiraDose(prescricao);
+
+        relogio.acertar(AS_14H.plusMinutes(10));
+        mockMvc.perform(patch("/api/doses/{id}/aplicar", dose).header("Authorization", AUXILIAR))
+                .andExpect(status().isOk());
+
+        org.mockito.Mockito.verify(cadastrosClient, org.mockito.Mockito.never())
+                .registrarAntirrabica(org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void antirrabicaComOCadastroForaDoArNaoRegistraAAplicacao() throws Exception {
+        long internacao = PROXIMO.incrementAndGet();
+        org.mockito.Mockito.when(cadastrosClient.nomeDoMedicamento(98L)).thenReturn("Antirrábica");
+        org.mockito.Mockito.when(cadastrosClient.animalDaInternacao(internacao)).thenReturn(8L);
+        org.mockito.Mockito.doThrow(new com.br.octopus_msdoses.exception.ServicoIndisponivelException(
+                        "octopus-msusuario não respondeu."))
+                .when(cadastrosClient).registrarAntirrabica(org.mockito.ArgumentMatchers.eq(8L),
+                        org.mockito.ArgumentMatchers.any());
+        long prescricao = prescrever(internacao, 98, "CONTINUO", "2026-11-03T14:00:00");
+        int dose = primeiraDose(prescricao);
+
+        relogio.acertar(AS_14H.plusMinutes(10));
+        mockMvc.perform(patch("/api/doses/{id}/aplicar", dose).header("Authorization", AUXILIAR))
+                .andExpect(status().isServiceUnavailable());
+
+        // Nada foi gravado: a dose segue pendente e pode ser aplicada de novo quando o msusuario voltar.
+        doses(prescricao).andExpect(jsonPath("$[0].status").value("PENDENTE"));
+    }
+
+    @Test
+    void antirrabicaForaDaJanelaNemChegaAoCadastroDoAnimal() throws Exception {
+        long internacao = PROXIMO.incrementAndGet();
+        org.mockito.Mockito.when(cadastrosClient.nomeDoMedicamento(96L)).thenReturn("Antirrábica");
+        long prescricao = prescrever(internacao, 96, "CONTINUO", "2026-11-03T14:00:00");
+        int dose = primeiraDose(prescricao);
+
+        relogio.acertar(AS_14H.minusMinutes(40));
+        mockMvc.perform(patch("/api/doses/{id}/aplicar", dose).header("Authorization", AUXILIAR))
+                .andExpect(status().isUnprocessableEntity());
+
+        org.mockito.Mockito.verify(cadastrosClient, org.mockito.Mockito.never())
+                .registrarAntirrabica(org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.any());
     }
 
     @Test

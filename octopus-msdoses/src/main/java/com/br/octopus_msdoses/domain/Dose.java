@@ -124,6 +124,15 @@ public class Dose {
 
     // RN-03 e RN-05: registra quem aplicou e quando, uma vez só e dentro da janela.
     public void aplicar(String auxiliar, LocalDateTime agora, String observacao) {
+        conferirAplicacao(agora);
+        this.status = StatusDose.APLICADA;
+        this.aplicadaPor = auxiliar;
+        this.aplicadaEm = agora;
+        this.observacao = observacao;
+    }
+
+    /** RN-03, RN-04 e RN-05 sem mudar nada: a aplicação da antirrábica confere antes de atualizar o cadastro do animal. */
+    public void conferirAplicacao(LocalDateTime agora) {
         if (status == StatusDose.APLICADA) {
             throw new RegraDeNegocioException("RN-05: a aplicação desta dose já foi registrada por " + aplicadaPor
                     + " e não pode ser alterada.");
@@ -140,10 +149,6 @@ public class Dose {
                     + " só pode ser registrada entre " + inicioDaJanela().format(HORA) + " e "
                     + fimDaJanela().format(HORA) + ".");
         }
-        this.status = StatusDose.APLICADA;
-        this.aplicadaPor = auxiliar;
-        this.aplicadaEm = agora;
-        this.observacao = observacao;
     }
 
     /** Cancela se ainda estiver pendente. Devolve se mudou alguma coisa. */
