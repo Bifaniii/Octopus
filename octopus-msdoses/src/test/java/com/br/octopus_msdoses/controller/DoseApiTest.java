@@ -185,6 +185,25 @@ class DoseApiTest {
                 .andExpect(jsonPath("$.aplicadaPor").value("paulo@teste.local"));
     }
 
+    // O admin é o perfil de TI e pode fazer o que os outros perfis fazem: agenda, aplica e cancela.
+    @Test
+    void adminAgendaAplicaECancela() throws Exception {
+        String admin = "Bearer " + TokensDeTeste.gerar("ti@teste.local", "ROLE_ADMIN");
+        long prescricao = PROXIMA_PRESCRICAO.incrementAndGet();
+        mockMvc.perform(post("/api/doses/agendamentos")
+                        .header("Authorization", admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(agendamento(prescricao, 7)))
+                .andExpect(status().isCreated());
+        Integer dose = agendar(prescricao, 7).get(0);
+
+        mockMvc.perform(patch("/api/doses/{id}/aplicar", dose).header("Authorization", admin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.aplicadaPor").value("ti@teste.local"));
+        mockMvc.perform(patch("/api/doses/prescricoes/{id}/cancelar", prescricao).header("Authorization", admin))
+                .andExpect(status().isOk());
+    }
+
     @Test
     void veterinarioNaoRegistraAplicacao() throws Exception {
         Integer dose = agendar(PROXIMA_PRESCRICAO.incrementAndGet(), 7).get(0);

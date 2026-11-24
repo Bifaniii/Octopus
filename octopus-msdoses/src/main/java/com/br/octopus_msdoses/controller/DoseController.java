@@ -42,7 +42,7 @@ public class DoseController {
 
     @PostMapping("/agendamentos")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasRole('VETERINARIO')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'VETERINARIO')")
     public List<DoseResponse> agendar(@Valid @RequestBody AgendamentoRequest request) {
         return doseService.agendar(request);
     }
@@ -54,21 +54,21 @@ public class DoseController {
     }
 
     @PatchMapping("/prescricoes/{prescricaoId}/cancelar")
-    @PreAuthorize("hasRole('VETERINARIO')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'VETERINARIO')")
     public List<DoseResponse> cancelarDaPrescricao(@PathVariable Long prescricaoId) {
         return doseService.cancelarDaPrescricao(prescricaoId);
     }
 
     // Reativar a prescrição: as doses canceladas ainda dentro da janela voltam a ficar pendentes.
     @PatchMapping("/prescricoes/{prescricaoId}/reativar")
-    @PreAuthorize("hasRole('VETERINARIO')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'VETERINARIO')")
     public List<DoseResponse> reativarDaPrescricao(@PathVariable Long prescricaoId) {
         return doseService.reativarDaPrescricao(prescricaoId);
     }
 
     // Chamado pelo ms-internacao ao encerrar (saída física): mesmos perfis que registram a saída lá.
     @PatchMapping("/internacoes/{internacaoId}/cancelar")
-    @PreAuthorize("hasAnyRole('RECEPCIONISTA', 'VETERINARIO')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPCIONISTA', 'VETERINARIO')")
     public List<DoseResponse> cancelarDaInternacao(@PathVariable Long internacaoId) {
         return doseService.cancelarDaInternacao(internacaoId);
     }
@@ -95,7 +95,7 @@ public class DoseController {
     }
 
     @PatchMapping("/{id}/aplicar")
-    @PreAuthorize("hasRole('AUXILIAR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AUXILIAR')")
     public DoseResponse aplicar(@PathVariable Long id, @Valid @RequestBody(required = false) AplicacaoRequest request,
                                 Authentication authentication) {
         return doseService.aplicar(id, authentication.getName(), request == null ? null : request.observacao());
@@ -104,7 +104,7 @@ public class DoseController {
     // Item "se necessário" (mudança contratada de 01/11): cada aplicação cria a dose, respeitando o intervalo mínimo.
     @PostMapping("/se-necessario/{itemPrescricaoId}/aplicacoes")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasRole('AUXILIAR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AUXILIAR')")
     public DoseResponse aplicarSeNecessario(@PathVariable Long itemPrescricaoId,
                                             @Valid @RequestBody(required = false) AplicacaoRequest request,
                                             Authentication authentication) {

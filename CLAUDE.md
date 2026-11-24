@@ -298,10 +298,10 @@ MySQL.
 | :------- | :-------- |
 | `POST /api/internacoes` | `RECEPCIONISTA`, `ADMIN` |
 | `GET /api/internacoes?status=&baiaId=&animalId=`, `GET /{id}`, `GET /{id}/eventos` | autenticado |
-| `PATCH /{id}/iniciar-tratamento`, `/isolar`, `/autorizar-alta` | `VETERINARIO` |
-| `PATCH /{id}/alta-a-pedido-do-tutor`, `/encerrar` | `RECEPCIONISTA`, `VETERINARIO` |
+| `PATCH /{id}/iniciar-tratamento`, `/isolar`, `/autorizar-alta` | `ADMIN`, `VETERINARIO` |
+| `PATCH /{id}/alta-a-pedido-do-tutor`, `/encerrar` | `ADMIN`, `RECEPCIONISTA`, `VETERINARIO` |
 
-O `ADMIN` fica fora dos atos clínicos de propósito, para o histórico mostrar sempre um veterinário na alta.
+Desde 24/11/2026 o `ADMIN` é o perfil de TI e pode fazer todos os atos; o histórico grava o e-mail de quem fez cada passo.
 Todos os ids são `Long`: o da internação e as referências `animalId`, `baiaId` e `maeId`.
 
 **Migrations.** `V1__internacoes.sql` cria as duas tabelas; `V2__internacoes_animal.sql` acrescenta nome e
@@ -335,8 +335,8 @@ Pacote `com.br.octopus_msprescricao`, mesmas camadas dos outros módulos.
 - Os clients usam o `HttpClient` do JDK (`JdkClientHttpRequestFactory`), e não o `SimpleClientHttpRequestFactory`:
   o `HttpURLConnection` recusa PATCH, e o `iniciar-tratamento` nunca chegava ao ms-internacao. Timeout de leitura
   de 3 s, e 10 s para o agendamento das doses.
-- Só o `VETERINARIO` prescreve e desativa (o enunciado diz que é ele quem prescreve, e é o único perfil que o
-  `ms-internacao` aceita no `iniciar-tratamento`). Leitura liberada para qualquer perfil autenticado.
+- O `VETERINARIO` prescreve e desativa (o enunciado diz que é ele quem prescreve), e desde 24/11/2026 o `ADMIN`
+  (perfil de TI) também; os dois são aceitos no `iniciar-tratamento` do `ms-internacao`. Leitura liberada para qualquer perfil autenticado.
 - RN-06: antes de iniciar o tratamento e gravar, o `MedicacaoClient` busca cada medicamento novo no
   msmedications (`GET /api/medicacoes/{id}`, uma vez por medicamento) e a prescrição é recusada com 422 se dois
   medicamentos com interação proibida cairiam **no mesmo horário**: entre os itens novos ou entre um item novo e
@@ -352,10 +352,10 @@ Pacote `com.br.octopus_msprescricao`, mesmas camadas dos outros módulos.
 
 | Endpoint | Quem pode |
 | :------- | :-------- |
-| `POST /api/prescricoes` | `VETERINARIO` |
+| `POST /api/prescricoes` | `ADMIN`, `VETERINARIO` |
 | `GET /api/prescricoes?internacaoId=`, `GET /{id}` | autenticado |
-| `PATCH /{id}/desativar` | `VETERINARIO` |
-| `PATCH /{id}/ativar` | `VETERINARIO` (refaz o RN-06 nos horários futuros e reativa as doses ainda na janela) |
+| `PATCH /{id}/desativar` | `ADMIN`, `VETERINARIO` |
+| `PATCH /{id}/ativar` | `ADMIN`, `VETERINARIO` (refaz o RN-06 nos horários futuros e reativa as doses ainda na janela) |
 
 ## Arquitetura do `octopus-msdoses`
 
@@ -394,15 +394,15 @@ que acontece com ela.
 
 | Endpoint | Quem pode |
 | :------- | :-------- |
-| `POST /api/doses/agendamentos` | `VETERINARIO` (chamado pelo msprescricao com o token de quem prescreveu) |
-| `PATCH /api/doses/prescricoes/{prescricaoId}/cancelar` | `VETERINARIO` |
+| `POST /api/doses/agendamentos` | `ADMIN`, `VETERINARIO` (chamado pelo msprescricao com o token de quem prescreveu) |
+| `PATCH /api/doses/prescricoes/{prescricaoId}/cancelar` | `ADMIN`, `VETERINARIO` |
 | `GET /api/doses/prescricoes/situacao?ids=` | autenticado (pendentes e "se necessário" ativo por prescrição) |
-| `PATCH /api/doses/prescricoes/{prescricaoId}/reativar` | `VETERINARIO` (doses canceladas ainda na janela voltam a pendentes e reservam estoque) |
-| `PATCH /api/doses/internacoes/{internacaoId}/cancelar` | `RECEPCIONISTA`, `VETERINARIO` (chamado pelo ms-internacao ao encerrar) |
+| `PATCH /api/doses/prescricoes/{prescricaoId}/reativar` | `ADMIN`, `VETERINARIO` (doses canceladas ainda na janela voltam a pendentes e reservam estoque) |
+| `PATCH /api/doses/internacoes/{internacaoId}/cancelar` | `ADMIN`, `RECEPCIONISTA`, `VETERINARIO` (chamado pelo ms-internacao ao encerrar) |
 | `GET /api/doses?internacaoId=&prescricaoId=&status=&de=&ate=`, `GET /{id}` | autenticado |
-| `PATCH /api/doses/{id}/aplicar` (corpo opcional com `observacao`) | `AUXILIAR` |
+| `PATCH /api/doses/{id}/aplicar` (corpo opcional com `observacao`) | `ADMIN`, `AUXILIAR` |
 | `GET /api/doses/painel?internacaoId=` | autenticado |
-| `POST /api/doses/se-necessario/{itemPrescricaoId}/aplicacoes` | `AUXILIAR` |
+| `POST /api/doses/se-necessario/{itemPrescricaoId}/aplicacoes` | `ADMIN`, `AUXILIAR` |
 
 ## Estoque de medicamentos
 
@@ -525,10 +525,10 @@ A autorização fina continua por `@PreAuthorize` no controller:
 | :-------------- | :----------------- | :----------------------------------- |
 | `msusuario`     | conforme o recurso; `GET /api/usuarios` só `ADMIN`; `GET /api/usuarios/nomes` autenticado; tutores e animais também `VETERINARIO` | `ADMIN` (usuários), `ADMIN`/`RECEPCIONISTA` (tutor, animal) |
 | `msbaias`       | autenticado        | `ADMIN`                              |
-| `msmedications` | autenticado        | `ADMIN`/`VETERINARIO`; desativar só `ADMIN`; reservar estoque `VETERINARIO`/`AUXILIAR`; devolver qualquer perfil |
+| `msmedications` | autenticado        | `ADMIN`/`VETERINARIO`; desativar só `ADMIN`; reservar estoque `ADMIN`/`VETERINARIO`/`AUXILIAR`; devolver qualquer perfil |
 | `msinternacao`  | autenticado        | por transição; ver "Arquitetura do `ms-internacao`" |
-| `msprescricao`  | autenticado        | `VETERINARIO` (prescrever e desativar)  |
-| `msdoses`       | autenticado        | `VETERINARIO` (agendar, cancelar), `RECEPCIONISTA`/`VETERINARIO` (cancelar da internação), `AUXILIAR` (aplicar, aplicar "se necessário") |
+| `msprescricao`  | autenticado        | `ADMIN`/`VETERINARIO` (prescrever e desativar) |
+| `msdoses`       | autenticado        | `ADMIN` em tudo; `VETERINARIO` (agendar, cancelar), `RECEPCIONISTA`/`VETERINARIO` (cancelar da internação), `AUXILIAR` (aplicar, aplicar "se necessário") |
 | `msrelatorios`  | por relatório; ver "Arquitetura do `octopus-msrelatorios`" | não escreve nada |
 
 Desativar um usuário no `msusuario` não corta na hora o acesso dele aos outros módulos: como eles não consultam
