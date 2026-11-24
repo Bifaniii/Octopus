@@ -67,26 +67,26 @@ public class InternacaoController {
     }
 
     @PatchMapping("/{id}/iniciar-tratamento")
-    @PreAuthorize("hasRole('VETERINARIO')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'VETERINARIO')")
     public InternacaoResponse iniciarTratamento(@PathVariable Long id, @AuthenticationPrincipal String usuario) {
         return internacaoService.iniciarTratamento(id, usuario);
     }
 
     @PatchMapping("/{id}/isolar")
-    @PreAuthorize("hasRole('VETERINARIO')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'VETERINARIO')")
     public InternacaoResponse isolar(@PathVariable Long id, @Valid @RequestBody IsolamentoRequest request,
                                      @AuthenticationPrincipal String usuario) {
         return internacaoService.isolar(id, request, usuario);
     }
 
     @PatchMapping("/{id}/autorizar-alta")
-    @PreAuthorize("hasRole('VETERINARIO')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'VETERINARIO')")
     public InternacaoResponse autorizarAlta(@PathVariable Long id, @AuthenticationPrincipal String usuario) {
         return internacaoService.autorizarAlta(id, usuario);
     }
 
     @PatchMapping("/{id}/alta-a-pedido-do-tutor")
-    @PreAuthorize("hasAnyRole('RECEPCIONISTA', 'VETERINARIO')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPCIONISTA', 'VETERINARIO')")
     public InternacaoResponse altaAPedidoDoTutor(@PathVariable Long id, @Valid @RequestBody AltaAPedidoRequest request,
                                                  @AuthenticationPrincipal String usuario) {
         return internacaoService.altaAPedidoDoTutor(id, request, usuario);
@@ -94,7 +94,7 @@ public class InternacaoController {
 
     // RN-08: registra a saída física e libera a baia.
     @PatchMapping("/{id}/encerrar")
-    @PreAuthorize("hasAnyRole('RECEPCIONISTA', 'VETERINARIO')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPCIONISTA', 'VETERINARIO')")
     public InternacaoResponse encerrar(@PathVariable Long id, @Valid @RequestBody EncerramentoRequest request,
                                        @AuthenticationPrincipal String usuario) {
         return internacaoService.encerrar(id, request, usuario);

@@ -171,13 +171,18 @@ class InternacaoApiTest {
     }
 
     @Test
-    @DisplayName("admin admite, mas não faz ato clínico: 201 e 403")
-    void adminNaoFazAtoClinico() throws Exception {
+    @DisplayName("admin (TI) faz todos os atos: admite, inicia o tratamento e autoriza a alta")
+    void adminFazTodosOsAtos() throws Exception {
         String corpo = como("ROLE_ADMIN", admissao()).andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         String id = objectMapper.readTree(corpo).get("id").asString();
 
-        como("ROLE_ADMIN", patch(URL + "/" + id + "/iniciar-tratamento")).andExpect(status().isForbidden());
+        como("ROLE_ADMIN", patch(URL + "/" + id + "/iniciar-tratamento"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("EM_TRATAMENTO"));
+        como("ROLE_ADMIN", patch(URL + "/" + id + "/autorizar-alta"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ALTA_AUTORIZADA"));
     }
 
     @Test

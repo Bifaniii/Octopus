@@ -69,12 +69,12 @@ Nada é apagado: a internação termina em `ENCERRADA` e cada passo fica no hist
 - Detalhes de arquitetura e convenções para novos módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 24/10/2026 na branch `feature/internacao`_
-- `subir()` do `pipeline.yml`: container com 256 MB de RAM e até 768 MB com swap
-  (`--memory 256m --memory-swap 768m`) e a JVM configurada no `docker run` por `JAVA_TOOL_OPTIONS`
-  (`-Xmx128m`, metaspace até 128 MB, pilha de 256 KB, `SerialGC`, `-XX:TieredStopAtLevel=1`).
-- `CLAUDE.md`: regra de memória atualizada para esses valores.
+_Push de 24/11/2026 na branch `fix/admin-ti-internacao` (para a `feature/internacao`)_
+- O `ADMIN` passa a ser o perfil de TI e pode fazer tudo o que os outros perfis fazem neste módulo.
+- `iniciar-tratamento`, `isolar` e `autorizar-alta` passam a aceitar `ADMIN` e `VETERINARIO`; `alta-a-pedido-do-tutor` e `encerrar`, `ADMIN`, `RECEPCIONISTA` e `VETERINARIO`. Antes o admin ficava fora dos atos clínicos; o histórico (`tb_internacao_eventos`) continua gravando o e-mail de quem fez cada passo.
+- Testes de permissão atualizados para o admin. Versão `0.0.5-SNAPSHOT` para `0.0.6-SNAPSHOT`.
 
 ## Próximos passos
-- [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)
-- [ ] Publicar em produção junto com os outros módulos (ver o documento de deploy)
+- [ ] Publicar junto com os outros módulos da mesma mudança (internação, prescrição, doses e medicamentos)
+- [ ] Liberar no front as ações que hoje aparecem só para cada perfil
+
