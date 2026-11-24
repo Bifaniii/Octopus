@@ -283,7 +283,7 @@ class MedicacaoApiTest {
     }
 
     @Test
-    @DisplayName("estoque: recepção não reserva; quantidade zero é inválida; PATCH acerta a contagem")
+    @DisplayName("estoque: recepção não reserva, admin reserva; quantidade zero é inválida; PATCH acerta a contagem")
     void permissoesEValidacaoDoEstoque() throws Exception {
         Long id = criar("Novalgina", "12345678901");
 
@@ -293,6 +293,11 @@ class MedicacaoApiTest {
                 .andExpect(status().isForbidden());
         mockMvc.perform(patch(URL + "/" + id + "/estoque/reservar")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_AUXILIAR"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"quantidade\": 1}"))
+                .andExpect(status().isOk());
+        // O admin (TI) também reserva: é o que acontece quando ele prescreve e o msdoses agenda as doses.
+        mockMvc.perform(patch(URL + "/" + id + "/estoque/reservar")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("ROLE_ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"quantidade\": 1}"))
                 .andExpect(status().isOk());
         mockMvc.perform(patch(URL + "/" + id + "/estoque/reservar")

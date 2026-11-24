@@ -69,7 +69,7 @@ public class MedicacaoController {
     // perdida de esquema sintomático (RN-07) devolve a unidade na primeira consulta depois da janela, seja quem for
     // que consultou.
     @PatchMapping("/{id}/estoque/reservar")
-    @PreAuthorize("hasAnyRole('VETERINARIO','AUXILIAR')")
+    @PreAuthorize("hasAnyRole('ADMIN','VETERINARIO','AUXILIAR')")
     public MedicacaoResponse reservar(@PathVariable Long id, @Valid @RequestBody MovimentoEstoqueRequest request) {
         return service.reservar(id, request.quantidade());
     }
