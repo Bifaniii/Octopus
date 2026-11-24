@@ -7,19 +7,12 @@ medicamentos para uma internação, com a RN-06 (interação proibida no mesmo h
 Arquitetura e convenções de todos os módulos: [`CLAUDE.md`](CLAUDE.md).
 
 ## Últimas alterações
-_Push de 17/11/2026 na branch `fix/prescricao-listagem-lenta` (para a `feature/prescricao`)_
-- `GET /api/prescricoes` e `GET /api/prescricoes/{id}` respondem só com o banco do módulo. A conclusão automática
-  (internação encerrada ou sem dose pendente) chamava o ms-internacao uma vez por internação e o msdoses antes de
-  cada resposta, e a tela chegava a esperar 18 s. Agora ela roda em segundo plano, depois da resposta, com o token
-  de quem pediu (`client/TokenRepassado`), e a prescrição concluída aparece assim na leitura seguinte.
-- Executor próprio da conclusão (`config/ConclusaoConfig`): uma thread e uma vaga na fila, e o excedente é
-  descartado, para as conferências não se acumularem quando um módulo estiver lento.
-- Itens carregados em lote (`hibernate.default_batch_fetch_size=50`): a listagem faz 2 consultas ao banco em vez de
-  1 por prescrição.
-- 5 testes novos (76 no módulo). Versão `0.0.4-SNAPSHOT` para `0.0.5-SNAPSHOT`.
+_Push de 24/11/2026 na branch `fix/admin-ti-prescricao` (para a `feature/prescricao`)_
+- O `ADMIN` passa a ser o perfil de TI e pode fazer tudo o que os outros perfis fazem neste módulo.
+- Prescrever, desativar e reativar prescrição passam a aceitar `ADMIN` e `VETERINARIO`. O e-mail gravado na prescrição continua sendo o de quem prescreveu.
+- Testes de permissão atualizados para o admin. Versão `0.0.5-SNAPSHOT` para `0.0.6-SNAPSHOT`.
 
 ## Próximos passos
-- [ ] Concluir a prescrição no momento do fato (saída do animal no ms-internacao, última dose no msdoses), em vez de
-  conferir a cada leitura
-- [ ] Executar os 10 casos de teste do enunciado com os dados de carga (Sprint 5)
+- [ ] Publicar junto com os outros módulos da mesma mudança (internação, prescrição, doses e medicamentos)
+- [ ] Liberar no front as ações que hoje aparecem só para cada perfil
 

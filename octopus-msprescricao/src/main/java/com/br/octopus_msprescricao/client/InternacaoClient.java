@@ -28,7 +28,7 @@ public class InternacaoClient {
 
     // Admitida → Em tratamento (a guarda dessa transição é "prescrição ativa"). Idempotente no ms-internacao:
     // nas prescrições seguintes, ou com a internação já em tratamento ou isolamento, não muda nada.
-    // Exige ROLE_VETERINARIO, que é quem prescreve.
+    // Exige ROLE_VETERINARIO ou ROLE_ADMIN, os perfis que prescrevem.
     public void iniciarTratamento(Long id) {
         ClientesHttp.chamar(() -> restClient.patch()
                 .uri("/api/internacoes/{id}/iniciar-tratamento", id)

@@ -35,7 +35,7 @@ public class PrescricaoController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasRole('VETERINARIO')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'VETERINARIO')")
     public PrescricaoResponse criar(@Valid @RequestBody PrescricaoRequest request, Authentication authentication) {
         // O principal é o e-mail do claim "sub" (ver JwtAuthenticationFilter).
         return prescricaoService.criar(request, authentication.getName());
@@ -52,13 +52,13 @@ public class PrescricaoController {
     }
 
     @PatchMapping("/{id}/desativar")
-    @PreAuthorize("hasRole('VETERINARIO')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'VETERINARIO')")
     public PrescricaoResponse desativar(@PathVariable Long id) {
         return prescricaoService.desativar(id);
     }
 
     @PatchMapping("/{id}/ativar")
-    @PreAuthorize("hasRole('VETERINARIO')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'VETERINARIO')")
     public PrescricaoResponse ativar(@PathVariable Long id) {
         return prescricaoService.ativar(id);
     }

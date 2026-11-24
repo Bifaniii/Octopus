@@ -121,12 +121,14 @@ class PrescricaoControllerTest {
     }
 
     @Test
-    void adminNaoPrescreve() throws Exception {
+    // O admin é o perfil de TI e pode fazer tudo o que os outros perfis fazem.
+    void adminTambemPrescreve() throws Exception {
         mockMvc.perform(post("/api/prescricoes")
                         .header("Authorization", ADMIN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(corpoValido(novaInternacao())))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.ativo").value(true));
     }
 
     @Test

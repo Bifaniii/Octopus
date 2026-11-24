@@ -12,7 +12,7 @@ import org.springframework.web.client.RestClient;
 import java.time.Duration;
 import java.util.List;
 
-// As doses moram no octopus-msdoses. Os dois endpoints exigem ROLE_VETERINARIO, que é quem prescreve, e são
+// As doses moram no octopus-msdoses. Os dois endpoints exigem ROLE_VETERINARIO ou ROLE_ADMIN, que são quem prescreve, e são
 // idempotentes lá: repetir o agendamento ou o cancelamento de uma prescrição não duplica nem muda nada.
 @Component
 public class DoseClient {
