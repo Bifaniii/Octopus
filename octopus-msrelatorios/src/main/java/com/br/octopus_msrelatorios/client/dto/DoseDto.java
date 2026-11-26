@@ -11,7 +11,7 @@ public record DoseDto(Long id, Long prescricaoId, Long internacaoId, Long medica
     /** Observação do relatório: o tipo da dose, quando não é um horário comum, seguido da observação do auxiliar. */
     public String observacaoDoRelatorio() {
         String tipo = Boolean.TRUE.equals(seNecessario) ? "Se necessário"
-                : reaplicacaoDe != null ? "Reaplicação (RN-07)" : null;
+                : reaplicacaoDe != null ? "Reaplicação" : null;
         if (tipo == null) {
             return observacao;
         }

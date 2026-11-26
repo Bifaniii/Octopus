@@ -48,7 +48,7 @@ class SituacaoDoseTest {
         DoseDto reaplicacao = new DoseDto(2L, 1L, 1L, 1L, HORARIO, "APLICADA", HORARIO, "a@b", "ok", 1L, false);
         DoseDto seNecessario = new DoseDto(3L, 1L, 1L, 1L, HORARIO, "APLICADA", HORARIO, "a@b", null, null, true);
 
-        assertThat(reaplicacao.observacaoDoRelatorio()).isEqualTo("Reaplicação (RN-07). ok");
+        assertThat(reaplicacao.observacaoDoRelatorio()).isEqualTo("Reaplicação. ok");
         assertThat(seNecessario.observacaoDoRelatorio()).isEqualTo("Se necessário");
         assertThat(dose("APLICADA").observacaoDoRelatorio()).isNull();
     }
