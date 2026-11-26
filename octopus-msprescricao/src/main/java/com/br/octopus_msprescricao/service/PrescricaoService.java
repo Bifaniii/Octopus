@@ -341,7 +341,7 @@ public class PrescricaoService {
             return;
         }
         primeiroConflito(novo, outro, aPartirDe).ifPresent(conflito -> {
-            throw new RegraDeNegocioException("RN-06: " + medicacao.nomeComercial() + " tem interação proibida com "
+            throw new RegraDeNegocioException(medicacao.nomeComercial() + " tem interação proibida com "
                     + nomeOutro + complemento + ", e os dois cairiam no mesmo horário: " + medicacao.nomeComercial()
                     + " em " + conflito.horarioNovo().format(HORARIO) + " e " + nomeOutro + " em "
                     + conflito.horarioOutro().format(HORARIO) + ", a até " + MESMO_HORARIO.toMinutes()
