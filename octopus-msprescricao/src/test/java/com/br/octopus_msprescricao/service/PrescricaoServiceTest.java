@@ -286,7 +286,7 @@ class PrescricaoServiceTest {
         assertThatThrownBy(() -> prescricaoService.criar(
                 pedido(item(antibiotico, 8, 3, AS_14H), item(analgesico, 12, 2, AS_14H)), "vet@teste.local"))
                 .isInstanceOf(RegraDeNegocioException.class)
-                .hasMessageContaining("RN-06")
+                .hasMessageContaining("interação proibida")
                 .hasMessageContaining("Antibiótico A")
                 .hasMessageContaining("Analgésico C")
                 .hasMessageContaining("10/10 às 14:00");
@@ -332,7 +332,7 @@ class PrescricaoServiceTest {
 
         assertThatThrownBy(() -> prescricaoService.criar(pedido(item(analgesico, 12, 1, AS_14H)), "vet@teste.local"))
                 .isInstanceOf(RegraDeNegocioException.class)
-                .hasMessageContaining("RN-06")
+                .hasMessageContaining("interação proibida")
                 .hasMessageContaining("já prescrito nesta internação");
         verify(prescricaoRepository, never()).save(any());
     }
@@ -362,7 +362,7 @@ class PrescricaoServiceTest {
                 pedido(item(antibiotico, 8, 3, AS_8H), item(analgesico, 12, 2, AS_8H.plusMinutes(10))),
                 "vet@teste.local"))
                 .isInstanceOf(RegraDeNegocioException.class)
-                .hasMessageContaining("RN-06")
+                .hasMessageContaining("interação proibida")
                 .hasMessageContaining("10/10 às 08:00")
                 .hasMessageContaining("10/10 às 08:10");
         verify(prescricaoRepository, never()).save(any());
@@ -380,7 +380,7 @@ class PrescricaoServiceTest {
                 pedido(item(antibiotico, 8, 3, AS_8H), item(analgesico, 12, 2, AS_8H.plusHours(1))),
                 "vet@teste.local"))
                 .isInstanceOf(RegraDeNegocioException.class)
-                .hasMessageContaining("RN-06");
+                .hasMessageContaining("interação proibida");
     }
 
     @Test
@@ -565,7 +565,7 @@ class PrescricaoServiceTest {
 
         assertThatThrownBy(() -> prescricaoService.ativar(5L))
                 .isInstanceOf(RegraDeNegocioException.class)
-                .hasMessageContaining("RN-06")
+                .hasMessageContaining("interação proibida")
                 .hasMessageContaining("já prescrito nesta internação");
         verify(doseClient, never()).reativar(anyLong());
     }

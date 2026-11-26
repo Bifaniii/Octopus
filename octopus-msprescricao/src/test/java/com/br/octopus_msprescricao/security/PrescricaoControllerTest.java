@@ -181,7 +181,7 @@ class PrescricaoControllerTest {
                                             "quantidadeDoses": 3, "inicio": "2026-10-10T08:00:00"}]}
                                 """.formatted(novaInternacao(), meloxicam, cetoprofeno)))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.mensagem").value(org.hamcrest.Matchers.containsString("RN-06")));
+                .andExpect(jsonPath("$.mensagem").value(org.hamcrest.Matchers.containsString("interação proibida")));
     }
 
     @Test
