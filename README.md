@@ -1,137 +1,164 @@
-# Octopus: Sistema Plantão (VidaPet)
+# Octopus · Sistema Plantão (VidaPet)
 
-![CI](https://github.com/Bifaniii/Octopus/actions/workflows/ci.yml/badge.svg)
+![CI/CD](https://github.com/Bifaniii/Octopus/actions/workflows/pipeline.yml/badge.svg)
+![Status](https://img.shields.io/badge/status-conclu%C3%ADdo-brightgreen)
+![Java](https://img.shields.io/badge/Java-17-orange)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1-6DB33F)
 
-Projeto acadêmico da disciplina **Análise e Projeto de Sistemas II**. O **Plantão** é um sistema de gestão de
-plantões e internações para a clínica veterinária *VidaPet*: um painel de medicação que mostra, a qualquer hora,
-o que está atrasado, o que vence na próxima hora e o que foi perdido.
+Sistema de internação e medicação da clínica veterinária **VidaPet**. Ele mostra, a qualquer hora do plantão,
+quais doses estão atrasadas, quais vencem em breve e quais foram perdidas, e cuida do caminho do animal desde a
+admissão até a saída da baia.
 
-O escopo completo, as regras de negócio (RN-01 a RN-08), a squad e o cronograma das 5 sprints estão no [`TAP.md`](TAP.md).
+Projeto acadêmico da disciplina **Análise e Projeto de Sistemas II**, desenvolvido em 5 sprints pela squad Octopus.
+**O projeto está concluído.**
 
-## Microsserviços
+| | |
+| :--- | :--- |
+| **Aplicação** | <https://clinicavidapet.vercel.app> (acesso com usuário cadastrado) |
+| **Front-end** | [Bifaniii/Octopus-front](https://github.com/Bifaniii/Octopus-front) |
+| **Back-end** | este repositório: 7 microsserviços, um por branch |
 
-Cada microsserviço vive na sua própria branch, com `Dockerfile`, `docker-compose.yml` e `.env.example` próprios,
-e sobe sozinho. Esta branch contém o **microsserviço de usuários**.
+## Arquitetura
 
-| Módulo                    | Área                               | Porta | Branch                         |
-| :------------------------ | :--------------------------------- | :---- | :----------------------------- |
-| `octopus-msusuario/`      | Usuários, perfis, tutores, animais | 8080  | `main`                         |
-| `ms-cadastro-baias/`      | Baias                              | 8081  | `feature/cadastro-baia`        |
-| `octopus-msmedications/`  | Medicamentos                       | 8082  | `feature/register_medications` |
-| `ms-internacao/`          | Internação e ciclo de vida         | 8083  | `feature/internacao`           |
-| `octopus-msprescricao/`   | Prescrição e horários              | 8084  | `feature/prescricao`           |
-| `octopus-msdoses/`        | Doses e aplicação                  | 8085  | `feature/doses`                |
-| `octopus-msrelatorios/`   | Relatórios em PDF e XLSX           | 8086  | `feature/relatorios`           |
+Cada seta sai do serviço que faz a chamada.
 
-O que liga os módulos é o `JWT_SECRET`. O `msusuario` emite o token no login e os outros apenas validam, sem
-tabela de usuários própria.
+```mermaid
+flowchart LR
+    front([Front Angular]) --> back[[Microsserviços]]
 
-Stack: Java 17, Spring Boot 4.1.1, Spring Data JPA, Spring Security com JWT (jjwt), Bean Validation, Lombok,
-MySQL 8.4 com Flyway, H2 só nos testes e springdoc OpenAPI.
+    INT[Internação] --> USU[Usuário]
+    INT --> BAI[Baias]
+    INT --> PRE[Prescrição]
+    INT --> DOS[Doses]
+    INT --> REL[Relatórios]
 
-## Documentação
+    PRE --> INT
+    PRE --> MED[Medicação]
+    PRE --> DOS
 
-- [Panorama da Sprint 1](https://claude.ai/artifact/AZfbHYkBdQNs2ZBWSrMZ8U): o que está funcionando, como o
-  login e o banco se encaixam, endpoints por perfil e o que falta publicar.
-- [Mapas de processo](docs/mapas-processo.html): diagramas de atividade em UML, com raias, das
-  funcionalidades prontas. Página HTML autocontida, versionada no repositório.
-- [`TAP.md`](TAP.md), o Termo de Abertura do Projeto.
-- [`CLAUDE.md`](CLAUDE.md), com arquitetura, convenções e decisões técnicas.
+    DOS --> INT
+    DOS --> MED
+    DOS --> USU
+```
 
-## O que a Sprint 1 entrega (telas 1 a 3 do TAP)
+O **Relatórios** consulta os outros seis serviços para montar os documentos (essas setas ficaram fora do desenho
+para manter a leitura).
 
-| Tela do TAP | Onde | Endpoints |
-| :---------- | :--- | :-------- |
-| Login e perfis (base de tudo) | `msusuario` | `POST /api/auth/login`, `/api/admins`, `/api/veterinarios`, `/api/auxiliares`, `/api/recepcionistas` |
-| 1 · Animais e tutores | `msusuario` | `/api/tutores`, `/api/tutores/{id}/animais`, `/api/animais` |
-| 2 · Baias | `msbaias` | `/api/baias`, com tipo (coletiva, isolamento, ninhada) e capacidade |
-| 3 · Medicamentos | `msmedications` | `/api/medicacoes`, com esquema (contínuo ou sintomático) e interações proibidas |
+### Microsserviços
 
-Internação, prescrição, painel de doses e relatório ficam para as Sprints 2 a 4.
+| Serviço | Responsabilidade | Porta | Código |
+| :--- | :--- | :--- | :--- |
+| **Usuário** | Login e token JWT, recuperação de senha, perfis, tutores, animais e envio de e-mail ao tutor | 8080 | [`main`](https://github.com/Bifaniii/Octopus/tree/main/octopus-msusuario) |
+| **Baias** | Cadastro de baias, tipo, capacidade e limite de 12 ativas | 8081 | [`feature/cadastro-baia`](https://github.com/Bifaniii/Octopus/tree/feature/cadastro-baia/ms-cadastro-baias) |
+| **Medicação** | Medicamentos, esquema contínuo ou sintomático, interações proibidas e estoque em doses | 8082 | [`feature/register_medications`](https://github.com/Bifaniii/Octopus/tree/feature/register_medications/octopus-msmedications) |
+| **Internação** | Admissão, ciclo de vida do animal internado, alta e liberação da baia | 8083 | [`feature/internacao`](https://github.com/Bifaniii/Octopus/tree/feature/internacao/ms-internacao) |
+| **Prescrição** | Prescrições, geração dos horários, item "se necessário" e bloqueio de interações | 8084 | [`feature/prescricao`](https://github.com/Bifaniii/Octopus/tree/feature/prescricao/octopus-msprescricao) |
+| **Doses** | Painel de doses, janela de aplicação, dose perdida e reaplicação | 8085 | [`feature/doses`](https://github.com/Bifaniii/Octopus/tree/feature/doses/octopus-msdoses) |
+| **Relatórios** | Relatórios em PDF e XLSX, PDF da prescrição e resumo de alta; não tem banco de dados | 8086 | [`feature/relatorios`](https://github.com/Bifaniii/Octopus/tree/feature/relatorios/octopus-msrelatorios) |
+
+### Como os serviços se comunicam
+
+- **API REST** com JSON, em chamadas síncronas com tempo limite.
+- **JWT:** só o serviço de Usuário emite o token. Os demais validam com a mesma chave (`JWT_SECRET`) e repassam o
+  token quando chamam outro serviço, então as permissões do usuário continuam valendo.
+- **Dados desacoplados:** um serviço guarda apenas o id do que pertence a outro, sem chave estrangeira entre eles.
+  Cada serviço com banco tem as próprias migrations.
+
+## Regras de negócio
+
+| Regra | O que o sistema garante |
+| :--- | :--- |
+| RN-01 | Baia coletiva e de isolamento comportam 1 animal; ninhada, até 6 filhotes da mesma mãe |
+| RN-02 | Animal com antirrábica vencida ou sem registro só pode ir para o isolamento |
+| RN-03 | A dose só é registrada de 30 minutos antes até 30 minutos depois do horário previsto |
+| RN-04 | Dose não aplicada dentro da janela é marcada como perdida automaticamente |
+| RN-05 | Toda aplicação registra quem aplicou, data e hora, e não pode ser editada |
+| RN-06 | Medicamentos com interação proibida não podem cair no mesmo horário |
+| RN-07 | Dose contínua perdida é reaplicada e desloca as seguintes; a sintomática é pulada |
+| RN-08 | A baia só é liberada com a saída física do animal, mesmo com a alta autorizada |
+
+## Perfis de acesso
+
+| Perfil | Principais ações |
+| :--- | :--- |
+| **Recepcionista** | Cadastra tutores e animais e registra a internação |
+| **Veterinário** | Prescreve e dá alta |
+| **Auxiliar** | Registra a aplicação das doses |
+| **Administrador (TI)** | Gerencia os usuários e tem acesso às telas operacionais |
+
+## Tecnologias
+
+- Java 17, Spring Boot 4.1, Spring Data JPA, Spring Security com JWT, Bean Validation e Lombok
+- MySQL com Flyway; H2 nos testes
+- springdoc OpenAPI (Swagger)
+- Docker, GitHub Actions e GitHub Container Registry
+- Produção: microsserviços na AWS EC2, banco no Aiven e front-end na Vercel
 
 ## Como rodar
 
-Nesta branch o compose e o `.env` ficam na raiz do repositório, e é de lá que saem os comandos.
+Pré-requisitos: Docker com Compose. Para rodar fora do Docker, Java 17 (o Maven Wrapper já vem no projeto).
 
-### 1. Variáveis de ambiente
-
-```bash
-cp .env.example .env
-openssl rand -base64 48   # use a saída como JWT_SECRET
-```
-
-Não há valores default no código, então sem `.env` a aplicação não sobe. Os outros módulos precisam usar o mesmo
-`JWT_SECRET`, senão o token emitido aqui é rejeitado lá.
-
-### 2. Tudo pelo Docker Compose
+### Serviço de Usuário (esta branch)
 
 ```bash
+git clone https://github.com/Bifaniii/Octopus.git
+cd Octopus
+cp .env.example .env         # preencha as variáveis
+openssl rand -base64 48      # sugestão para o JWT_SECRET
 docker compose up --build
 ```
 
-Sobe o MySQL 8.4 e a aplicação. O compose preenche as variáveis `DB_*` sozinho, e o Flyway cria as tabelas na
-primeira subida.
+- Swagger: <http://localhost:8080/swagger-ui.html>
+- No primeiro start é criado o administrador definido em `ADMIN_EMAIL` e `ADMIN_SENHA`.
+- Faça login em `POST /api/auth/login` e use o token no botão **Authorize** do Swagger.
 
-### 3. Local, com Maven Wrapper (não precisa de Maven instalado)
+### Demais serviços
+
+Cada um é autocontido na própria branch, com `Dockerfile`, `docker-compose.yml` e `.env.example` na pasta do módulo:
 
 ```bash
-docker compose up -d mysql   # só o banco
-cd octopus-msusuario
-./mvnw spring-boot:run       # http://localhost:8080
-./mvnw test                  # testes com H2 em memória, não dependem do .env
+git checkout feature/doses   # exemplo
+cd octopus-msdoses
+cp .env.example .env
+docker compose up --build
 ```
 
-### 4. Usando a API
+Para usar o sistema integrado, todos precisam do **mesmo `JWT_SECRET`**, e as variáveis `MS_*_URL` de cada `.env`
+devem apontar para os serviços que ele chama.
 
-- Swagger: <http://localhost:8080/swagger-ui.html>
-- Login em `POST /api/auth/login`, com e-mail e senha, devolve o token JWT. No Swagger, use o botão **Authorize** (`bearerAuth`).
-- Na primeira subida é criado um admin com `ADMIN_EMAIL` e `ADMIN_SENHA` do `.env`.
+## Testes e entrega
 
-| Endpoint | O que faz | Quem pode |
-| :------- | :-------- | :-------- |
-| `POST /api/auth/login` | Troca e-mail e senha pelo token JWT | qualquer perfil, menos tutor |
-| `POST /api/veterinarios` | Cadastra veterinário, com CRMV único por UF | `ADMIN` |
-| `POST /api/auxiliares`, `/api/recepcionistas`, `/api/admins` | Cadastra os demais perfis | `ADMIN` |
-| `PATCH /api/<perfil>/{id}/desativar` | Arquiva a conta e derruba os tokens dela | `ADMIN` |
-| `POST /api/tutores` | Cadastra tutor, opcionalmente já com os animais | `ADMIN`, `RECEPCIONISTA` |
-| `POST /api/tutores/{id}/animais` | Cadastra animal (nome, espécie, data da última antirrábica e, opcionalmente, a mãe) sob o tutor | `ADMIN`, `RECEPCIONISTA` |
-| `GET /api/animais`, `/api/tutores` | Lista animais e tutores | `ADMIN`, `RECEPCIONISTA` |
-| `GET /api/animais/{id}` | Busca um animal (usado pelo `ms-internacao` nas RN-01 e RN-02) | `ADMIN`, `RECEPCIONISTA`, `VETERINARIO` |
-
-Nada é apagado no sistema: o que sai de uso é desativado (`ativo = false`) e continua no banco, para preservar
-o histórico.
-
-## Testes
+São mais de **350 testes automatizados** (JUnit 5, Mockito e MockMvc), distribuídos pelos sete serviços.
 
 ```bash
 cd octopus-msusuario && ./mvnw test
 ```
 
-- Unitários com JUnit 5 e Mockito para os services (login, cadastro de usuário e veterinário, tutores, animais)
-  e para o `JwtService`.
-- `AutenticacaoEAutorizacaoTest` sobe a aplicação inteira com H2 e MockMvc e cobre login, 401/403 em JSON,
-  `@PreAuthorize` por perfil, e-mail duplicado (409), desativação derrubando tokens já emitidos e o cadastro de
-  tutor com animais.
-- O GitHub Actions roda a suíte a cada push na `main` e em pull requests.
+Cada branch tem o seu pipeline no GitHub Actions: os testes rodam antes da entrega e, quando a versão do `pom.xml`
+é nova, a imagem Docker é publicada e implantada na EC2.
 
-## Convenções
+## Organização do repositório
 
-- Uma branch por microsserviço, permanente. Os módulos não se mesclam.
-- Cada microsserviço na sua pasta, com `pom.xml`, `mvnw`, `Dockerfile` e compose próprios.
-- Pacote base `com.br.octopus_ms<area>`, entidades em português conforme o TAP, tabelas `tb_<plural>`, id `Long` (só usuários e perfis usam `UUID`).
-- Schema por migrations Flyway em `src/main/resources/db/migration/V<n>__<descricao>.sql`. O Hibernate roda em
-  `validate` e nunca cria tabela. Migration aplicada não se edita: mudança de tabela é uma nova versão.
-- Arquitetura e convenções para novos módulos: [`CLAUDE.md`](CLAUDE.md).
+- Uma branch permanente por microsserviço; os módulos não são mesclados entre si.
+- Pacote base `com.br.octopus_ms<area>` e schema versionado por migrations Flyway.
+- Registros em uso não são apagados: são desativados, para preservar o histórico.
 
-## Últimas alterações
-_Push de 21/11/2026 na branch `fix/antirrabica-na-aplicacao-usuario` (para a `main`)_
-- `PATCH /api/animais/{id}/antirrabica` (corpo `{"data": "aaaa-MM-dd"}`): grava a data da última antirrábica do
-  animal. É chamado pelo octopus-msdoses quando o auxiliar aplica a vacina, com o token dele, então aceita
-  `ADMIN`, `RECEPCIONISTA`, `VETERINARIO` e `AUXILIAR`. Só mexe nessa data e só para a frente: uma data mais antiga
-  que a do cadastro é ignorada. Data futura ou ausente recebe 400; animal inexistente, 404.
-- O auxiliar continua sem poder editar o resto do animal (`PUT /api/animais/{id}` segue só admin e recepção).
-- 4 testes novos (118 no módulo). Versão `0.0.9-SNAPSHOT` para `0.0.10-SNAPSHOT`.
+## Documentação
 
-## Próximos passos
-- [ ] Publicar antes do msdoses, que passa a chamar este endpoint ao aplicar a antirrábica
+- [Termo de Abertura do Projeto](TAP.md)
+- [Decisões de arquitetura (ADRs)](docs/adr)
+- [Mapas de processo](docs/mapas-processo.html) (baixe e abra no navegador)
+- [Arquitetura e convenções](CLAUDE.md)
 
+## Squad Octopus
+
+| Integrante | Papel |
+| :--- | :--- |
+| Douglas Rocha | Tech Lead |
+| Guilherme Bifani | Dev Backend |
+| Guilherme Soares | Dev Backend |
+| Gustavo Amaral | Dev Frontend |
+| Luigi Vasconcelos | Dev Fullstack |
+| Marcos Vinicios | Product Owner |
+| Miliani Alves | Scrum Master |
+| Vitor Kimany | QA |
