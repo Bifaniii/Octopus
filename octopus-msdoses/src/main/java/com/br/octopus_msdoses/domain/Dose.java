@@ -134,18 +134,18 @@ public class Dose {
     /** RN-03, RN-04 e RN-05 sem mudar nada: a aplicação da antirrábica confere antes de atualizar o cadastro do animal. */
     public void conferirAplicacao(LocalDateTime agora) {
         if (status == StatusDose.APLICADA) {
-            throw new RegraDeNegocioException("RN-05: a aplicação desta dose já foi registrada por " + aplicadaPor
+            throw new RegraDeNegocioException("A aplicação desta dose já foi registrada por " + aplicadaPor
                     + " e não pode ser alterada.");
         }
         if (status == StatusDose.PERDIDA) {
-            throw new RegraDeNegocioException("RN-04: a dose de " + horarioPrevisto.format(HORA)
+            throw new RegraDeNegocioException("A dose de " + horarioPrevisto.format(HORA)
                     + " foi perdida e não pode mais ser aplicada.");
         }
         if (status != StatusDose.PENDENTE) {
             throw new RegraDeNegocioException("A dose está " + status + " e não pode ser aplicada.");
         }
         if (agora.isBefore(inicioDaJanela()) || agora.isAfter(fimDaJanela())) {
-            throw new RegraDeNegocioException("RN-03: a dose de " + horarioPrevisto.format(HORA)
+            throw new RegraDeNegocioException("A dose de " + horarioPrevisto.format(HORA)
                     + " só pode ser registrada entre " + inicioDaJanela().format(HORA) + " e "
                     + fimDaJanela().format(HORA) + ".");
         }

@@ -172,7 +172,7 @@ class RegrasDasDosesTest {
         relogio.acertar(AS_14H.minusMinutes(40));
         mockMvc.perform(patch("/api/doses/{id}/aplicar", dose).header("Authorization", AUXILIAR))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.mensagem").value(containsString("RN-03")));
+                .andExpect(jsonPath("$.mensagem").value(containsString("só pode ser registrada entre")));
     }
 
     // Caso de teste 6: dose prevista para 14h, agora são 14h50.
@@ -190,7 +190,7 @@ class RegrasDasDosesTest {
                 .andExpect(jsonPath("$.atrasadas.length()").value(0));
         mockMvc.perform(patch("/api/doses/{id}/aplicar", dose).header("Authorization", AUXILIAR))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.mensagem").value(containsString("RN-04")));
+                .andExpect(jsonPath("$.mensagem").value(containsString("foi perdida")));
     }
 
     // Caso de teste 7: dose de Antibiótico A (contínuo) perdida; o esquema inteiro é deslocado.

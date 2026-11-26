@@ -179,7 +179,7 @@ class DoseApiTest {
         String outro = "Bearer " + TokensDeTeste.gerar("outro@teste.local", "ROLE_AUXILIAR");
         mockMvc.perform(patch("/api/doses/{id}/aplicar", dose).header("Authorization", outro))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.mensagem").value(org.hamcrest.Matchers.containsString("RN-05")));
+                .andExpect(jsonPath("$.mensagem").value(org.hamcrest.Matchers.containsString("já foi registrada")));
 
         mockMvc.perform(get("/api/doses/{id}", dose).header("Authorization", VET))
                 .andExpect(jsonPath("$.aplicadaPor").value("paulo@teste.local"));

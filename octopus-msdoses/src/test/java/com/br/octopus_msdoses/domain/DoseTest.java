@@ -47,7 +47,7 @@ class DoseTest {
 
         assertThatThrownBy(() -> dose.aplicar("outro@vidapet.local", AS_14H.plusMinutes(5), "corrigindo"))
                 .isInstanceOf(RegraDeNegocioException.class)
-                .hasMessageContaining("RN-05")
+                .hasMessageContaining("já foi registrada")
                 .hasMessageContaining("paulo@vidapet.local");
         assertThat(dose.getAplicadaPor()).isEqualTo("paulo@vidapet.local");
         assertThat(dose.getAplicadaEm()).isEqualTo(AS_14H);
@@ -96,11 +96,11 @@ class DoseTest {
 
         assertThatThrownBy(() -> cedo.aplicar("paulo@vidapet.local", AS_14H.minusMinutes(31), null))
                 .isInstanceOf(RegraDeNegocioException.class)
-                .hasMessageContaining("RN-03")
+                .hasMessageContaining("só pode ser registrada entre")
                 .hasMessageContaining("13:30")
                 .hasMessageContaining("14:30");
         assertThatThrownBy(() -> tarde.aplicar("paulo@vidapet.local", AS_14H.plusMinutes(31), null))
-                .hasMessageContaining("RN-03");
+                .hasMessageContaining("só pode ser registrada entre");
         assertThat(cedo.getStatus()).isEqualTo(StatusDose.PENDENTE);
     }
 
@@ -119,6 +119,6 @@ class DoseTest {
 
         assertThatThrownBy(() -> dose.aplicar("paulo@vidapet.local", AS_14H, null))
                 .isInstanceOf(RegraDeNegocioException.class)
-                .hasMessageContaining("RN-04");
+                .hasMessageContaining("foi perdida");
     }
 }
