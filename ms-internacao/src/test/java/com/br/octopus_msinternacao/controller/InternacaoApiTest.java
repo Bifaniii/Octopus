@@ -216,7 +216,7 @@ class InternacaoApiTest {
         when(animalClient.buscar(outro.id())).thenReturn(outro);
         comoRecepcao(json(post(URL), new AdmissaoRequest(outro.id(), baia.id(), "Fratura")))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.mensagem").value(org.hamcrest.Matchers.containsString("RN-01")));
+                .andExpect(jsonPath("$.mensagem").value(org.hamcrest.Matchers.containsString("está lotada")));
 
         comoRecepcao(json(patch(URL + "/" + id + "/encerrar"), new EncerramentoRequest(LocalDateTime.now(clock))))
                 .andExpect(status().isOk())
@@ -296,7 +296,7 @@ class InternacaoApiTest {
 
         comoRecepcao(json(post(URL), new AdmissaoRequest(semVacina.id(), baia.id(), "Tosse")))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.mensagem").value(org.hamcrest.Matchers.containsString("RN-02")));
+                .andExpect(jsonPath("$.mensagem").value(org.hamcrest.Matchers.containsString("só pode ser internado em baia de isolamento")));
     }
 
     @Test

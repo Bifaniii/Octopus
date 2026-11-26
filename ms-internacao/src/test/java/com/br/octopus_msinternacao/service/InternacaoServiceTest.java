@@ -167,7 +167,7 @@ class InternacaoServiceTest {
 
         assertThatThrownBy(() -> admitir(animal, baia))
                 .isInstanceOf(RegraNegocioException.class)
-                .hasMessageContaining("RN-02");
+                .hasMessageContaining("só pode ser internado em baia de isolamento");
         verifyNoInteractions(transacao, repository);
     }
 
@@ -177,7 +177,7 @@ class InternacaoServiceTest {
         AnimalDto animal = animal(HOJE.minusMonths(12).minusDays(1), null);
         BaiaDto baia = baia(TipoBaia.COLETIVA, 1);
 
-        assertThatThrownBy(() -> admitir(animal, baia)).hasMessageContaining("RN-02");
+        assertThatThrownBy(() -> admitir(animal, baia)).hasMessageContaining("só pode ser internado em baia de isolamento");
     }
 
     @Test
@@ -210,7 +210,7 @@ class InternacaoServiceTest {
         ocupantes(isolamento);
 
         assertThatThrownBy(() -> admitir(animal, coletiva))
-                .hasMessageContaining("RN-02")
+                .hasMessageContaining("só pode ser internado em baia de isolamento")
                 .hasMessageContaining("data futura");
         assertThat(admitir(animal, isolamento).status()).isEqualTo(ADMITIDA);
     }
@@ -264,7 +264,7 @@ class InternacaoServiceTest {
 
         assertThatThrownBy(() -> admitir(animal, baia))
                 .isInstanceOf(RegraNegocioException.class)
-                .hasMessageContaining("RN-01")
+                .hasMessageContaining("está lotada")
                 .hasMessageContaining("1/1");
         verify(repository, never()).save(any());
     }
@@ -357,7 +357,7 @@ class InternacaoServiceTest {
         BaiaDto isolamento = baia(TipoBaia.ISOLAMENTO, 1);
 
         assertThatThrownBy(() -> service.isolar(internacao.getId(), new IsolamentoRequest(isolamento.id()), VET))
-                .hasMessageContaining("RN-02");
+                .hasMessageContaining("só se aplica a animal");
         verifyNoInteractions(transacao);
     }
 
@@ -381,7 +381,7 @@ class InternacaoServiceTest {
         ocupantes(isolamento, ocupante(isolamento, null));
 
         assertThatThrownBy(() -> service.isolar(internacao.getId(), new IsolamentoRequest(isolamento.id()), VET))
-                .hasMessageContaining("RN-01");
+                .hasMessageContaining("está lotada");
     }
 
     @Test

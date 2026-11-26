@@ -57,7 +57,7 @@ public class InternacaoService {
         }
         BaiaDto baia = buscarBaiaAtiva(request.baiaId());
         if (antirrabicaVencida(animal) && baia.tipo() != TipoBaia.ISOLAMENTO) {
-            throw new RegraNegocioException("RN-02: antirrábica " + (antirrabicaNoFuturo(animal)
+            throw new RegraNegocioException("Antirrábica " + (antirrabicaNoFuturo(animal)
                     ? "com data futura no cadastro (registro inválido)" : "vencida ou sem registro")
                     + "; o animal só pode ser internado em baia de isolamento.");
         }
@@ -78,7 +78,7 @@ public class InternacaoService {
         Internacao atual = buscarEntidade(id);
         AnimalDto animal = animalClient.buscar(atual.getAnimalId());
         if (!antirrabicaVencida(animal)) {
-            throw new RegraNegocioException("RN-02: o isolamento só se aplica a animal com antirrábica vencida ou "
+            throw new RegraNegocioException("O isolamento só se aplica a animal com antirrábica vencida ou "
                     + "sem registro.");
         }
         BaiaDto baia = buscarBaiaAtiva(request.baiaId());
@@ -170,15 +170,15 @@ public class InternacaoService {
     private void exigirVaga(BaiaDto baia, Long maeId) {
         List<Internacao> ocupantes = internacaoRepository.findByBaiaIdAndStatusNot(baia.id(), ENCERRADA);
         if (ocupantes.size() >= baia.capacidadeEfetiva()) {
-            throw new RegraNegocioException("RN-01: a baia " + baia.nome() + " está lotada ("
+            throw new RegraNegocioException("A baia " + baia.nome() + " está lotada ("
                     + ocupantes.size() + "/" + baia.capacidadeEfetiva() + ").");
         }
         if (baia.tipo() == TipoBaia.NINHADA) {
             if (maeId == null) {
-                throw new RegraNegocioException("RN-01: baia de ninhada só recebe filhote com a mãe cadastrada.");
+                throw new RegraNegocioException("Baia de ninhada só recebe filhote com a mãe cadastrada.");
             }
             if (ocupantes.stream().anyMatch(o -> !maeId.equals(o.getMaeId()))) {
-                throw new RegraNegocioException("RN-01: a baia " + baia.nome() + " já abriga filhotes de outra mãe.");
+                throw new RegraNegocioException("A baia " + baia.nome() + " já abriga filhotes de outra mãe.");
             }
         }
     }
